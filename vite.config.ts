@@ -13,9 +13,10 @@ export default defineConfig({
   server: {
     port: 5180,
     proxy: {
-      "/ws": {
+      "/gateway-ws": {
         target: "ws://localhost:18789",
         ws: true,
+        rewrite: (path) => path.replace(/^\/gateway-ws/, ""),
       },
     },
   },

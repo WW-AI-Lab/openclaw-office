@@ -5,8 +5,9 @@ import { EventThrottle } from "@/lib/event-throttle";
 import { useOfficeStore } from "@/store/office-store";
 import type {
   AgentEventPayload,
-  AgentsListResponse,
+  AgentSummary,
   GatewayEventFrame,
+  HealthSnapshot,
 } from "@/gateway/types";
 
 interface UseGatewayConnectionOptions {
@@ -48,12 +49,20 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       setConnectionStatus(status, error);
 
       if (status === "connected") {
-        fetchInitialData(rpc, initAgents);
+        initAgentsFromSnapshot(ws, initAgents);
       }
     });
 
     ws.onEvent("agent", (frame: GatewayEventFrame) => {
       throttle.push(frame.payload as AgentEventPayload);
+    });
+
+    ws.onEvent("health", (frame: GatewayEventFrame) => {
+      const health = frame.payload as HealthSnapshot;
+      if (health?.agents) {
+        const summaries = healthAgentsToSummaries(health);
+        initAgents(summaries);
+      }
     });
 
     ws.connect(url, token);
@@ -70,28 +79,21 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
   return { wsClient: wsRef, rpcClient: rpcRef };
 }
 
-async function fetchInitialData(
-  rpc: GatewayRpcClient,
-  initAgents: (agents: AgentsListResponse["agents"]) => void,
-): Promise<void> {
-  try {
-    const result = await rpc.request<AgentsListResponse>("agents.list");
-    if (result.agents) {
-      initAgents(result.agents);
-    }
-  } catch (e) {
-    console.warn("[Gateway] Failed to fetch agents list:", e);
-  }
+function healthAgentsToSummaries(health: HealthSnapshot): AgentSummary[] {
+  if (!health.agents) return [];
+  return health.agents.map((a) => ({
+    id: a.agentId,
+    name: a.agentId,
+  }));
+}
 
-  try {
-    await rpc.request("tools.catalog");
-  } catch {
-    // tools catalog is optional
-  }
-
-  try {
-    await rpc.request("usage.status");
-  } catch {
-    // usage is optional
+function initAgentsFromSnapshot(
+  ws: GatewayWsClient,
+  initAgents: (agents: AgentSummary[]) => void,
+): void {
+  const snapshot = ws.getSnapshot();
+  const health = snapshot?.health as HealthSnapshot | undefined;
+  if (health?.agents) {
+    initAgents(healthAgentsToSummaries(health));
   }
 }

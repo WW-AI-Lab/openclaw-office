@@ -51,22 +51,39 @@ export interface ConnectParams {
     mode: string;
   };
   caps: string[];
+  scopes?: string[];
   auth?: {
     token: string;
   };
+}
+
+export interface HealthAgentInfo {
+  agentId: string;
+  isDefault?: boolean;
+  heartbeat?: Record<string, unknown>;
+  sessions?: Record<string, unknown>;
+}
+
+export interface HealthSnapshot {
+  ok: boolean;
+  ts: number;
+  agents?: HealthAgentInfo[];
+  defaultAgentId?: string;
+  channels?: Record<string, unknown>;
+  sessions?: Record<string, unknown>;
 }
 
 export interface HelloOk {
   type: "hello-ok";
   protocol: number;
   server: {
-    name: string;
     version: string;
+    connId?: string;
   };
-  features: string[];
+  features?: Record<string, unknown>;
   snapshot?: {
     presence?: unknown;
-    health?: unknown;
+    health?: HealthSnapshot;
     sessionDefaults?: unknown;
   };
   policy?: Record<string, unknown>;
