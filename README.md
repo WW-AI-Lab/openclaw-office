@@ -98,12 +98,27 @@ npm install -g @ww-ai-lab/openclaw-office
 openclaw-office
 ```
 
-The server starts on `http://localhost:5180` by default. Customize with environment variables:
+### Gateway Token Auto-Detection
+
+If [OpenClaw](https://github.com/openclaw/openclaw) is installed locally, the Gateway auth token is **automatically detected** from `~/.openclaw/openclaw.json` — no manual configuration needed.
+
+You can also provide the token explicitly:
 
 ```bash
-PORT=3000 openclaw-office          # Use a custom port
-HOST=127.0.0.1 openclaw-office     # Bind to localhost only
+openclaw-office --token <your-gateway-token>
+# or via environment variable
+OPENCLAW_GATEWAY_TOKEN=<token> openclaw-office
 ```
+
+### CLI Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-t, --token <token>` | Gateway auth token | auto-detected |
+| `-g, --gateway <url>` | Gateway WebSocket URL | `ws://localhost:18789` |
+| `-p, --port <port>` | Server port | `5180` |
+| `--host <host>` | Bind address | `0.0.0.0` |
+| `-h, --help` | Show help | — |
 
 > **Note:** This serves the pre-built production bundle. For development with hot reload, see [Development](#development) below.
 

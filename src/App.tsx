@@ -99,8 +99,11 @@ function PageTracker() {
 }
 
 export function App() {
-  const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || "ws://localhost:18789";
-  const gatewayToken = import.meta.env.VITE_GATEWAY_TOKEN || "";
+  const injected = (window as unknown as Record<string, unknown>).__OPENCLAW_CONFIG__ as
+    | { gatewayUrl?: string; gatewayToken?: string }
+    | undefined;
+  const gatewayUrl = injected?.gatewayUrl || import.meta.env.VITE_GATEWAY_URL || "ws://localhost:18789";
+  const gatewayToken = injected?.gatewayToken || import.meta.env.VITE_GATEWAY_TOKEN || "";
   const { isMobile } = useResponsive();
   const setViewMode = useOfficeStore((s) => s.setViewMode);
 

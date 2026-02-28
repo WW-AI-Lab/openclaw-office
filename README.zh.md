@@ -98,12 +98,27 @@ npm install -g @ww-ai-lab/openclaw-office
 openclaw-office
 ```
 
-服务默认启动在 `http://localhost:5180`。可通过环境变量自定义：
+### Gateway Token 自动检测
+
+如果本地已安装 [OpenClaw](https://github.com/openclaw/openclaw)，Gateway 认证 token 会从 `~/.openclaw/openclaw.json` **自动读取**，无需手动配置。
+
+也可以手动指定 token：
 
 ```bash
-PORT=3000 openclaw-office          # 自定义端口
-HOST=127.0.0.1 openclaw-office     # 仅绑定本地地址
+openclaw-office --token <你的-gateway-token>
+# 或通过环境变量
+OPENCLAW_GATEWAY_TOKEN=<token> openclaw-office
 ```
+
+### CLI 参数
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `-t, --token <token>` | Gateway 认证 token | 自动检测 |
+| `-g, --gateway <url>` | Gateway WebSocket 地址 | `ws://localhost:18789` |
+| `-p, --port <port>` | 服务端口 | `5180` |
+| `--host <host>` | 绑定地址 | `0.0.0.0` |
+| `-h, --help` | 显示帮助 | — |
 
 > **说明：** 此方式运行的是预构建的生产版本。如需热重载开发，请参见下方 [开发](#开发) 部分。
 
