@@ -17,6 +17,14 @@
     "killWarning": "确定要终止 <strong>{{name}}</strong> 的当前运行吗？此操作不可撤销。",
     "kill": "终止"
   },
+  "chatDialog": {
+    "loadingHistory": "加载历史消息...",
+    "scrollToBottom": "滚动到底部"
+  },
+  "sessionSwitcher": {
+    "noSessions": "暂无其他会话",
+    "newSession": "新建会话"
+  },
   "contextMenu": {
     "pause": "暂停",
     "resume": "恢复",

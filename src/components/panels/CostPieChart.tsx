@@ -1,5 +1,5 @@
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useTranslation } from "react-i18next";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { generateAvatar3dColor } from "@/lib/avatar-generator";
 import { useOfficeStore } from "@/store/office-store";
 
@@ -64,7 +64,9 @@ export function CostPieChart() {
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{formatTokens(total)}</span>
+        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+          {formatTokens(total)}
+        </span>
       </div>
     </div>
   );

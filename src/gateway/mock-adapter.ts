@@ -17,9 +17,11 @@ import type {
   ConfigSnapshot,
   CronTask,
   CronTaskInput,
+  ModelCatalogEntry,
   SessionInfo,
   SessionPreview,
   SkillInfo,
+  SkillInstallResult,
   StatusSummary,
   ToolCatalog,
   UpdateRunResult,
@@ -28,19 +30,143 @@ import type {
 import type { AgentsListResponse } from "./types";
 
 const MOCK_CHANNELS: ChannelInfo[] = [
-  { id: "telegram:bot1", type: "telegram", name: "MyBot", status: "connected", accountId: "bot1", configured: true, linked: true, running: true, lastConnectedAt: Date.now() - 60_000 },
-  { id: "discord:srv1", type: "discord", name: "Dev Server", status: "connected", accountId: "srv1", configured: true, linked: true, running: true, lastConnectedAt: Date.now() - 120_000 },
-  { id: "whatsapp:wa1", type: "whatsapp", name: "WhatsApp", status: "disconnected", accountId: "wa1", configured: true, linked: false, running: false },
-  { id: "signal:sig1", type: "signal", name: "Signal", status: "error", accountId: "sig1", configured: true, linked: false, running: false, error: "Session expired" },
+  {
+    id: "telegram:bot1",
+    type: "telegram",
+    name: "MyBot",
+    status: "connected",
+    accountId: "bot1",
+    configured: true,
+    linked: true,
+    running: true,
+    lastConnectedAt: Date.now() - 60_000,
+  },
+  {
+    id: "discord:srv1",
+    type: "discord",
+    name: "Dev Server",
+    status: "connected",
+    accountId: "srv1",
+    configured: true,
+    linked: true,
+    running: true,
+    lastConnectedAt: Date.now() - 120_000,
+  },
+  {
+    id: "whatsapp:wa1",
+    type: "whatsapp",
+    name: "WhatsApp",
+    status: "disconnected",
+    accountId: "wa1",
+    configured: true,
+    linked: false,
+    running: false,
+  },
+  {
+    id: "signal:sig1",
+    type: "signal",
+    name: "Signal",
+    status: "error",
+    accountId: "sig1",
+    configured: true,
+    linked: false,
+    running: false,
+    error: "Session expired",
+  },
 ];
 
 const MOCK_SKILLS: SkillInfo[] = [
-  { id: "web-search", slug: "web-search", name: "Web Search", description: "搜索互联网获取实时信息", enabled: true, icon: "🔍", version: "1.0.0", isCore: true, isBundled: true, source: "core", always: true, eligible: true, requirements: { bins: ["curl"] }, missing: { bins: [] }, configChecks: [{ path: "SEARCH_API_KEY", satisfied: true }], primaryEnv: "SEARCH_API_KEY" },
-  { id: "code-interpreter", slug: "code-interpreter", name: "Code Interpreter", description: "执行代码并返回结果", enabled: true, icon: "💻", version: "1.2.0", isCore: true, isBundled: true, source: "core", always: true, eligible: true },
-  { id: "file-editor", slug: "file-editor", name: "File Editor", description: "读写本地文件", enabled: true, icon: "📝", version: "1.0.0", isCore: true, isBundled: true, source: "core", always: true, eligible: true },
-  { id: "image-gen", slug: "image-gen", name: "Image Generation", description: "使用 AI 生成图片", enabled: true, icon: "🎨", version: "0.9.0", isBundled: false, source: "marketplace", eligible: true, installOptions: [{ id: "node", kind: "npm", label: "npm install" }], homepage: "https://github.com/openclaw/image-gen" },
-  { id: "playwright", slug: "playwright", name: "Playwright", description: "浏览器自动化与测试", enabled: true, icon: "🎭", version: "1.1.0", isBundled: false, source: "marketplace", eligible: true, installOptions: [{ id: "brew", kind: "brew", label: "Homebrew" }, { id: "npm", kind: "npm", label: "npm install" }], requirements: { bins: ["playwright"] }, missing: { bins: [] } },
-  { id: "voice-call", slug: "voice-call", name: "Voice Call", description: "语音通话技能", enabled: false, icon: "📞", version: "0.5.0", isBundled: false, source: "marketplace", eligible: false, blockedByAllowlist: true },
+  {
+    id: "web-search",
+    slug: "web-search",
+    name: "Web Search",
+    description: "搜索互联网获取实时信息",
+    enabled: true,
+    icon: "🔍",
+    version: "1.0.0",
+    isCore: true,
+    isBundled: true,
+    source: "core",
+    always: true,
+    eligible: true,
+    requirements: { bins: ["curl"] },
+    missing: { bins: [] },
+    configChecks: [{ path: "SEARCH_API_KEY", satisfied: true }],
+    primaryEnv: "SEARCH_API_KEY",
+  },
+  {
+    id: "code-interpreter",
+    slug: "code-interpreter",
+    name: "Code Interpreter",
+    description: "执行代码并返回结果",
+    enabled: true,
+    icon: "💻",
+    version: "1.2.0",
+    isCore: true,
+    isBundled: true,
+    source: "core",
+    always: true,
+    eligible: true,
+  },
+  {
+    id: "file-editor",
+    slug: "file-editor",
+    name: "File Editor",
+    description: "读写本地文件",
+    enabled: true,
+    icon: "📝",
+    version: "1.0.0",
+    isCore: true,
+    isBundled: true,
+    source: "core",
+    always: true,
+    eligible: true,
+  },
+  {
+    id: "image-gen",
+    slug: "image-gen",
+    name: "Image Generation",
+    description: "使用 AI 生成图片",
+    enabled: true,
+    icon: "🎨",
+    version: "0.9.0",
+    isBundled: false,
+    source: "marketplace",
+    eligible: true,
+    installOptions: [{ id: "node", kind: "npm", label: "npm install" }],
+    homepage: "https://github.com/openclaw/image-gen",
+  },
+  {
+    id: "playwright",
+    slug: "playwright",
+    name: "Playwright",
+    description: "浏览器自动化与测试",
+    enabled: true,
+    icon: "🎭",
+    version: "1.1.0",
+    isBundled: false,
+    source: "marketplace",
+    eligible: true,
+    installOptions: [
+      { id: "brew", kind: "brew", label: "Homebrew" },
+      { id: "npm", kind: "npm", label: "npm install" },
+    ],
+    requirements: { bins: ["playwright"] },
+    missing: { bins: [] },
+  },
+  {
+    id: "voice-call",
+    slug: "voice-call",
+    name: "Voice Call",
+    description: "语音通话技能",
+    enabled: false,
+    icon: "📞",
+    version: "0.5.0",
+    isBundled: false,
+    source: "marketplace",
+    eligible: false,
+    blockedByAllowlist: true,
+  },
 ];
 
 const MOCK_CRON_TASKS: CronTask[] = [
@@ -56,7 +182,11 @@ const MOCK_CRON_TASKS: CronTask[] = [
     wakeMode: "now",
     payload: { kind: "agentTurn", message: "生成今日工作摘要" },
     delivery: { mode: "notify", channel: "telegram", target: "bot1" },
-    state: { lastRunAtMs: Date.now() - 86400_000, lastRunStatus: "ok", nextRunAtMs: Date.now() + 3600_000 },
+    state: {
+      lastRunAtMs: Date.now() - 86400_000,
+      lastRunStatus: "ok",
+      nextRunAtMs: Date.now() + 3600_000,
+    },
   },
   {
     id: "cron-2",
@@ -81,7 +211,12 @@ const MOCK_CRON_TASKS: CronTask[] = [
     sessionTarget: "main",
     wakeMode: "now",
     payload: { kind: "agentTurn", message: "执行系统健康检查" },
-    state: { lastRunAtMs: Date.now() - 1200_000, lastRunStatus: "error", lastError: "Agent timeout", nextRunAtMs: Date.now() + 600_000 },
+    state: {
+      lastRunAtMs: Date.now() - 1200_000,
+      lastRunStatus: "error",
+      lastError: "Agent timeout",
+      nextRunAtMs: Date.now() + 600_000,
+    },
   },
 ];
 
@@ -96,9 +231,30 @@ function mockConfigData(): Record<string, unknown> {
           apiKey: REDACTED,
           api: "anthropic-messages",
           models: [
-            { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", reasoning: true, input: ["text", "image"], contextWindow: 200000, maxTokens: 16384 },
-            { id: "claude-opus-4-20250514", name: "Claude Opus 4", reasoning: true, input: ["text", "image"], contextWindow: 200000, maxTokens: 32768 },
-            { id: "claude-3-5-haiku-20241022", name: "Claude 3.5 Haiku", reasoning: false, input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
+            {
+              id: "claude-sonnet-4-20250514",
+              name: "Claude Sonnet 4",
+              reasoning: true,
+              input: ["text", "image"],
+              contextWindow: 200000,
+              maxTokens: 16384,
+            },
+            {
+              id: "claude-opus-4-20250514",
+              name: "Claude Opus 4",
+              reasoning: true,
+              input: ["text", "image"],
+              contextWindow: 200000,
+              maxTokens: 32768,
+            },
+            {
+              id: "claude-3-5-haiku-20241022",
+              name: "Claude 3.5 Haiku",
+              reasoning: false,
+              input: ["text", "image"],
+              contextWindow: 200000,
+              maxTokens: 8192,
+            },
           ],
         },
         openai: {
@@ -106,30 +262,247 @@ function mockConfigData(): Record<string, unknown> {
           apiKey: REDACTED,
           api: "openai-responses",
           models: [
-            { id: "gpt-4o", name: "GPT-4o", reasoning: false, input: ["text", "image"], contextWindow: 128000, maxTokens: 16384 },
-            { id: "o3", name: "o3", reasoning: true, input: ["text", "image"], contextWindow: 200000, maxTokens: 100000 },
-            { id: "gpt-4o-mini", name: "GPT-4o Mini", reasoning: false, input: ["text", "image"], contextWindow: 128000, maxTokens: 16384 },
+            {
+              id: "gpt-4o",
+              name: "GPT-4o",
+              reasoning: false,
+              input: ["text", "image"],
+              contextWindow: 128000,
+              maxTokens: 16384,
+            },
+            {
+              id: "o3",
+              name: "o3",
+              reasoning: true,
+              input: ["text", "image"],
+              contextWindow: 200000,
+              maxTokens: 100000,
+            },
+            {
+              id: "gpt-4o-mini",
+              name: "GPT-4o Mini",
+              reasoning: false,
+              input: ["text", "image"],
+              contextWindow: 128000,
+              maxTokens: 16384,
+            },
           ],
         },
       },
+    },
+    agents: {
+      defaults: {
+        subagents: { maxConcurrent: 12, maxSpawnDepth: 2 },
+      },
+    },
+    tools: {
+      agentToAgent: { enabled: true, allow: ["main", "coder", "ai-researcher", "ecommerce"] },
     },
     update: { channel: "stable" },
     gateway: { auth: { token: REDACTED } },
   };
 }
 
-function deepMergePatch(target: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+function deepMergePatch(
+  target: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
   const result = { ...target };
   for (const [key, value] of Object.entries(patch)) {
     if (value === null) {
       delete result[key];
-    } else if (typeof value === "object" && !Array.isArray(value) && typeof result[key] === "object" && !Array.isArray(result[key]) && result[key] !== null) {
-      result[key] = deepMergePatch(result[key] as Record<string, unknown>, value as Record<string, unknown>);
+    } else if (
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      typeof result[key] === "object" &&
+      !Array.isArray(result[key]) &&
+      result[key] !== null
+    ) {
+      result[key] = deepMergePatch(
+        result[key] as Record<string, unknown>,
+        value as Record<string, unknown>,
+      );
     } else {
       result[key] = value;
     }
   }
   return result;
+}
+
+function randRange(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
+class SubAgentSimulator {
+  private timers: ReturnType<typeof setTimeout>[] = [];
+  private activeSubAgents = new Set<string>();
+  private subCounter = 0;
+  private running = false;
+
+  constructor(
+    private emit: (event: string, payload: unknown) => void,
+    private maxConcurrent: number = 3,
+  ) {}
+
+  start(): void {
+    if (this.running) return;
+    this.running = true;
+    this.scheduleNextSpawn(5000);
+    this.scheduleAgentToAgentComm(20_000);
+  }
+
+  stop(): void {
+    this.running = false;
+    for (const t of this.timers) clearTimeout(t);
+    this.timers = [];
+    this.activeSubAgents.clear();
+  }
+
+  private schedule(fn: () => void, ms: number): void {
+    const t = setTimeout(fn, ms);
+    this.timers.push(t);
+  }
+
+  private scheduleNextSpawn(delayMs: number): void {
+    this.schedule(() => {
+      if (!this.running) return;
+      if (this.activeSubAgents.size < this.maxConcurrent) {
+        this.spawnSubAgent();
+      }
+      this.scheduleNextSpawn(randRange(3000, 8000));
+    }, delayMs);
+  }
+
+  private spawnSubAgent(): void {
+    this.subCounter++;
+    const subId = `mock-sub-${this.subCounter}`;
+    const runId = `mock-run-sub-${this.subCounter}`;
+    const sessionKey = `mock-session-sub-${this.subCounter}`;
+
+    this.activeSubAgents.add(subId);
+
+    // lifecycle start
+    this.emit("agent", {
+      runId,
+      seq: 1,
+      stream: "lifecycle",
+      ts: Date.now(),
+      data: { phase: "start", agentId: subId, parentAgentId: "main" },
+      sessionKey,
+    });
+
+    // thinking phase
+    this.schedule(() => {
+      if (!this.running) return;
+      this.emit("agent", {
+        runId,
+        seq: 2,
+        stream: "assistant",
+        ts: Date.now(),
+        data: { text: `Sub-agent ${subId} 正在分析任务...` },
+        sessionKey,
+      });
+    }, randRange(1000, 2000));
+
+    // tool calling phase
+    this.schedule(() => {
+      if (!this.running) return;
+      const tools = ["web_search", "code_exec", "file_read", "analyze_data"];
+      const tool = tools[Math.floor(Math.random() * tools.length)];
+      this.emit("agent", {
+        runId,
+        seq: 3,
+        stream: "tool",
+        ts: Date.now(),
+        data: { name: tool, phase: "start" },
+        sessionKey,
+      });
+    }, randRange(3000, 5000));
+
+    // speaking phase
+    this.schedule(() => {
+      if (!this.running) return;
+      this.emit("agent", {
+        runId,
+        seq: 4,
+        stream: "assistant",
+        ts: Date.now(),
+        data: { text: `Sub-agent ${subId} 已完成任务分析。` },
+        sessionKey,
+      });
+    }, randRange(6000, 9000));
+
+    // lifecycle end
+    const endDelay = randRange(8000, 15_000);
+    this.schedule(() => {
+      if (!this.running) return;
+      this.emit("agent", {
+        runId,
+        seq: 5,
+        stream: "lifecycle",
+        ts: Date.now(),
+        data: { phase: "end", agentId: subId },
+        sessionKey,
+      });
+      this.activeSubAgents.delete(subId);
+    }, endDelay);
+  }
+
+  private scheduleAgentToAgentComm(delayMs: number): void {
+    this.schedule(() => {
+      if (!this.running) return;
+      const agents = ["main", "coder", "ai-researcher", "ecommerce"];
+      const a = agents[Math.floor(Math.random() * agents.length)];
+      let b = a;
+      while (b === a) b = agents[Math.floor(Math.random() * agents.length)];
+
+      const sessionKey = `a2a-${Date.now()}`;
+      const runIdA = `a2a-run-${a}-${Date.now()}`;
+      const runIdB = `a2a-run-${b}-${Date.now()}`;
+
+      // Both agents start in the same session (triggers collaboration link)
+      this.emit("agent", {
+        runId: runIdA,
+        seq: 1,
+        stream: "lifecycle",
+        ts: Date.now(),
+        data: { phase: "start", agentId: a },
+        sessionKey,
+      });
+      this.emit("agent", {
+        runId: runIdB,
+        seq: 1,
+        stream: "lifecycle",
+        ts: Date.now(),
+        data: { phase: "start", agentId: b },
+        sessionKey,
+      });
+
+      // End communication after some time
+      const commDuration = randRange(10_000, 20_000);
+      this.schedule(() => {
+        if (!this.running) return;
+        this.emit("agent", {
+          runId: runIdA,
+          seq: 2,
+          stream: "lifecycle",
+          ts: Date.now(),
+          data: { phase: "end", agentId: a },
+          sessionKey,
+        });
+        this.emit("agent", {
+          runId: runIdB,
+          seq: 2,
+          stream: "lifecycle",
+          ts: Date.now(),
+          data: { phase: "end", agentId: b },
+          sessionKey,
+        });
+      }, commDuration);
+
+      this.scheduleAgentToAgentComm(randRange(15_000, 30_000));
+    }, delayMs);
+  }
 }
 
 export class MockAdapter implements GatewayAdapter {
@@ -138,6 +511,7 @@ export class MockAdapter implements GatewayAdapter {
   private pendingTimers: ReturnType<typeof setTimeout>[] = [];
   private mockConfig: Record<string, unknown> = mockConfigData();
   private mockHash = Date.now().toString(36);
+  private subAgentSimulator: SubAgentSimulator | null = null;
 
   async connect(): Promise<void> {
     this.heartbeatTimer = setInterval(() => {
@@ -145,6 +519,13 @@ export class MockAdapter implements GatewayAdapter {
         h("heartbeat", { ts: Date.now() });
       }
     }, 30_000);
+
+    // Start sub-agent simulator after connection
+    this.subAgentSimulator = new SubAgentSimulator(
+      (event, payload) => this.emit(event, payload),
+      3,
+    );
+    this.subAgentSimulator.start();
   }
 
   disconnect(): void {
@@ -152,13 +533,17 @@ export class MockAdapter implements GatewayAdapter {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+    this.subAgentSimulator?.stop();
+    this.subAgentSimulator = null;
     this.cancelPendingTimers();
     this.handlers.clear();
   }
 
   onEvent(handler: AdapterEventHandler): () => void {
     this.handlers.add(handler);
-    return () => { this.handlers.delete(handler); };
+    return () => {
+      this.handlers.delete(handler);
+    };
   }
 
   private emit(event: string, payload: unknown): void {
@@ -190,7 +575,8 @@ export class MockAdapter implements GatewayAdapter {
       {
         id: "msg-hist-2",
         role: "assistant",
-        content: "**OpenClaw** 是一个多 Agent 协作系统，支持：\n\n- 多渠道消息接入（Telegram、Discord、WhatsApp 等）\n- 工具调用和技能扩展\n- 定时任务调度\n- 实时可视化监控\n\n你可以通过 OpenClaw Office 观察 Agent 的协作行为。",
+        content:
+          "**OpenClaw** 是一个多 Agent 协作系统，支持：\n\n- 多渠道消息接入（Telegram、Discord、WhatsApp 等）\n- 工具调用和技能扩展\n- 定时任务调度\n- 实时可视化监控\n\n你可以通过 OpenClaw Office 观察 Agent 的协作行为。",
         timestamp: Date.now() - 110_000,
       },
     ];
@@ -260,7 +646,14 @@ export class MockAdapter implements GatewayAdapter {
 
   async sessionsList(): Promise<SessionInfo[]> {
     return [
-      { key: "agent:main:main", agentId: "agent-main", label: "默认会话", createdAt: Date.now() - 3600_000, lastActiveAt: Date.now(), messageCount: 12 },
+      {
+        key: "agent:main:main",
+        agentId: "agent-main",
+        label: "默认会话",
+        createdAt: Date.now() - 3600_000,
+        lastActiveAt: Date.now(),
+        messageCount: 12,
+      },
     ];
   }
 
@@ -286,7 +679,8 @@ export class MockAdapter implements GatewayAdapter {
 
   async webLoginStart(_force?: boolean): Promise<{ qrDataUrl?: string; message: string }> {
     return {
-      qrDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      qrDataUrl:
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       message: "Scan QR code with WhatsApp",
     };
   }
@@ -296,8 +690,13 @@ export class MockAdapter implements GatewayAdapter {
     return { connected: true, message: "WhatsApp connected successfully" };
   }
 
-  async skillsInstall(_name: string, _installId: string): Promise<{ ok: boolean; message: string }> {
-    return { ok: true, message: "Mock install completed" };
+  async skillsInstall(_name: string, _installId: string): Promise<SkillInstallResult> {
+    return {
+      ok: true,
+      message: "Mock install completed",
+      stdout: "mock: skill installed successfully",
+      code: 0,
+    };
   }
 
   async skillsUpdate(_skillKey: string, _patch: SkillUpdatePatch): Promise<{ ok: boolean }> {
@@ -341,7 +740,11 @@ export class MockAdapter implements GatewayAdapter {
       scope: "global",
       agents: [
         { id: "main", name: "main", default: true, identity: { name: "main", emoji: "m" } },
-        { id: "ai-researcher", name: "ResearchClaw", identity: { name: "ResearchClaw", emoji: "🔬" } },
+        {
+          id: "ai-researcher",
+          name: "ResearchClaw",
+          identity: { name: "ResearchClaw", emoji: "🔬" },
+        },
         { id: "coder", name: "CodeClaw", identity: { name: "CodeClaw", emoji: "💻" } },
         { id: "ecommerce", name: "TradeClaw", identity: { name: "TradeClaw", emoji: "🛒" } },
       ],
@@ -349,7 +752,12 @@ export class MockAdapter implements GatewayAdapter {
   }
 
   async agentsCreate(params: AgentCreateParams): Promise<AgentCreateResult> {
-    return { ok: true, agentId: `agent-${Date.now()}`, name: params.name, workspace: params.workspace };
+    return {
+      ok: true,
+      agentId: `agent-${Date.now()}`,
+      name: params.name,
+      workspace: params.workspace,
+    };
   }
 
   async agentsUpdate(params: AgentUpdateParams): Promise<AgentUpdateResult> {
@@ -380,11 +788,20 @@ export class MockAdapter implements GatewayAdapter {
     return {
       agentId,
       workspace: `~/.openclaw/workspace`,
-      file: { name, content: `# ${name}\n\nMock content for ${name}`, size: 128, modifiedAt: new Date().toISOString() },
+      file: {
+        name,
+        content: `# ${name}\n\nMock content for ${name}`,
+        size: 128,
+        modifiedAt: new Date().toISOString(),
+      },
     };
   }
 
-  async agentsFilesSet(agentId: string, name: string, content: string): Promise<AgentFileSetResult> {
+  async agentsFilesSet(
+    agentId: string,
+    name: string,
+    content: string,
+  ): Promise<AgentFileSetResult> {
     return {
       ok: true,
       agentId,
@@ -419,12 +836,71 @@ export class MockAdapter implements GatewayAdapter {
           provider: "openai",
           displayName: "OpenAI",
           plan: "tier-3",
-          windows: [
-            { label: "daily", usedPercent: 12 },
-          ],
+          windows: [{ label: "daily", usedPercent: 12 }],
         },
       ],
     };
+  }
+
+  async modelsList(): Promise<ModelCatalogEntry[]> {
+    return [
+      {
+        id: "claude-sonnet-4-20250514",
+        name: "Claude Sonnet 4",
+        provider: "anthropic",
+        reasoning: true,
+        input: ["text", "image"],
+        contextWindow: 200000,
+      },
+      {
+        id: "claude-opus-4-20250514",
+        name: "Claude Opus 4",
+        provider: "anthropic",
+        reasoning: true,
+        input: ["text", "image"],
+        contextWindow: 200000,
+      },
+      {
+        id: "gpt-4o",
+        name: "GPT-4o",
+        provider: "openai",
+        reasoning: false,
+        input: ["text", "image"],
+        contextWindow: 128000,
+      },
+      {
+        id: "o3",
+        name: "o3",
+        provider: "openai",
+        reasoning: true,
+        input: ["text", "image"],
+        contextWindow: 200000,
+      },
+      {
+        id: "gpt-5.3-codex",
+        name: "gpt-5.3-codex",
+        provider: "openai-codex",
+        reasoning: true,
+        input: ["text"],
+        contextWindow: 1048576,
+      },
+      {
+        id: "gpt-5.3-codex-spark",
+        name: "gpt-5.3-codex-spark",
+        provider: "openai-codex",
+        reasoning: true,
+        input: ["text"],
+        contextWindow: 1048576,
+      },
+      {
+        id: "gpt-5.1-codex",
+        name: "gpt-5.1-codex",
+        provider: "openai-codex",
+        reasoning: true,
+        input: ["text"],
+        contextWindow: 200000,
+      },
+    ];
   }
 
   async configGet(): Promise<ConfigSnapshot> {
@@ -439,7 +915,11 @@ export class MockAdapter implements GatewayAdapter {
 
   async configPatch(raw: string, baseHash?: string): Promise<ConfigPatchResult> {
     if (baseHash && baseHash !== this.mockHash) {
-      return { ok: false, config: this.mockConfig, error: "config changed since last load; re-run config.get and retry" };
+      return {
+        ok: false,
+        config: this.mockConfig,
+        error: "config changed since last load; re-run config.get and retry",
+      };
     }
     const patch = JSON.parse(raw) as Record<string, unknown>;
     this.mockConfig = deepMergePatch(this.mockConfig, patch);
@@ -473,7 +953,13 @@ export class MockAdapter implements GatewayAdapter {
   async updateRun(_params?: { restartDelayMs?: number }): Promise<UpdateRunResult> {
     return {
       ok: true,
-      result: { status: "noop", mode: "npm", reason: "already up to date", steps: [], durationMs: 1200 },
+      result: {
+        status: "noop",
+        mode: "npm",
+        reason: "already up to date",
+        steps: [],
+        durationMs: 1200,
+      },
       restart: null,
     };
   }

@@ -1,14 +1,11 @@
+import { LayoutDashboard, ArrowLeft } from "lucide-react";
 import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  LayoutDashboard,
-  ArrowLeft,
-} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import type { ConnectionStatus, ThemeMode, ViewMode, PageId } from "@/gateway/types";
 import { isWebGLAvailable } from "@/lib/webgl-detect";
 import { useOfficeStore } from "@/store/office-store";
-import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 
 function getStatusConfig(
   t: (key: string) => string,
@@ -86,13 +83,32 @@ function OfficeTopBarContent({
   return (
     <>
       <div className="flex items-center gap-3">
-        <h1 className="text-lg font-semibold tracking-tight text-gray-800 dark:text-gray-100">OpenClaw Office</h1>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">v0.1.0</span>
+        <h1 className="text-lg font-semibold tracking-tight text-gray-800 dark:text-gray-100">
+          OpenClaw Office
+        </h1>
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+          v0.1.0
+        </span>
       </div>
-      <ViewModeSwitch viewMode={viewMode} setViewMode={setViewMode} webglAvailable={webglAvailable} isMobile={isMobile} />
+      <ViewModeSwitch
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        webglAvailable={webglAvailable}
+        isMobile={isMobile}
+      />
       <div className="mx-8 flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
-        <span>{t("topbar.activeCountText")} <strong className="text-gray-800 dark:text-gray-200">{metrics.activeAgents}/{metrics.totalAgents}</strong></span>
-        <span>{t("topbar.tokensLabel")} <strong className="text-gray-800 dark:text-gray-200">{formatTokens(metrics.totalTokens)}</strong></span>
+        <span>
+          {t("topbar.activeCountText")}{" "}
+          <strong className="text-gray-800 dark:text-gray-200">
+            {metrics.activeAgents}/{metrics.totalAgents}
+          </strong>
+        </span>
+        <span>
+          {t("topbar.tokensLabel")}{" "}
+          <strong className="text-gray-800 dark:text-gray-200">
+            {formatTokens(metrics.totalTokens)}
+          </strong>
+        </span>
       </div>
     </>
   );

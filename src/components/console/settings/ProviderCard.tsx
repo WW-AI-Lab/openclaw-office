@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { Pencil, Trash2, CheckCircle, XCircle, Brain, Image } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { inferProviderType, REDACTED_SENTINEL } from "@/lib/provider-types";
 
 interface ProviderCardProps {
@@ -17,18 +17,24 @@ export function ProviderCard({ providerId, config, onEdit, onDelete }: ProviderC
     config.baseUrl as string | undefined,
   );
   const hasAuth = typeof config.auth === "string" && config.auth.length > 0;
-  const hasApiKey = hasAuth || config.apiKey === REDACTED_SENTINEL || (typeof config.apiKey === "string" && config.apiKey.length > 0);
+  const hasApiKey =
+    hasAuth ||
+    config.apiKey === REDACTED_SENTINEL ||
+    (typeof config.apiKey === "string" && config.apiKey.length > 0);
   const models = Array.isArray(config.models) ? config.models : [];
   const reasoningCount = models.filter((m: Record<string, unknown>) => m.reasoning === true).length;
-  const imageCount = models.filter((m: Record<string, unknown>) =>
-    Array.isArray(m.input) && (m.input as string[]).includes("image"),
+  const imageCount = models.filter(
+    (m: Record<string, unknown>) =>
+      Array.isArray(m.input) && (m.input as string[]).includes("image"),
   ).length;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-600 dark:bg-gray-700/50">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-xl" title={meta.name}>{meta.icon}</span>
+          <span className="text-xl" title={meta.name}>
+            {meta.icon}
+          </span>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -57,13 +63,19 @@ export function ProviderCard({ providerId, config, onEdit, onDelete }: ProviderC
                 {t("settings.providers.modelCount", { count: models.length })}
               </span>
               {reasoningCount > 0 && (
-                <span className="flex items-center gap-0.5 text-xs text-purple-600 dark:text-purple-400" title={t("settings.providers.models.reasoning")}>
+                <span
+                  className="flex items-center gap-0.5 text-xs text-purple-600 dark:text-purple-400"
+                  title={t("settings.providers.models.reasoning")}
+                >
                   <Brain className="h-3 w-3" />
                   {reasoningCount}
                 </span>
               )}
               {imageCount > 0 && (
-                <span className="flex items-center gap-0.5 text-xs text-green-600 dark:text-green-400" title={t("settings.providers.models.input_image")}>
+                <span
+                  className="flex items-center gap-0.5 text-xs text-green-600 dark:text-green-400"
+                  title={t("settings.providers.models.input_image")}
+                >
                   <Image className="h-3 w-3" />
                   {imageCount}
                 </span>

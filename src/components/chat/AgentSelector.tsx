@@ -1,8 +1,8 @@
+import { ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown } from "lucide-react";
-import { useOfficeStore } from "@/store/office-store";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
+import { useOfficeStore } from "@/store/office-store";
 
 export function AgentSelector() {
   const { t } = useTranslation("chat");
@@ -41,7 +41,9 @@ export function AgentSelector() {
           className="inline-block h-2.5 w-2.5 rounded-full"
           style={{ backgroundColor: getAgentColor(currentAgent?.id ?? "") }}
         />
-        <span className="max-w-[100px] truncate">{currentAgent?.name ?? t("agentSelector.defaultLabel")}</span>
+        <span className="max-w-[100px] truncate">
+          {currentAgent?.name ?? t("agentSelector.defaultLabel")}
+        </span>
         <ChevronDown className="h-3 w-3" />
       </button>
 
@@ -56,7 +58,9 @@ export function AgentSelector() {
                 setOpen(false);
               }}
               className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                agent.id === targetAgentId ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"
+                agent.id === targetAgentId
+                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                  : "text-gray-700 dark:text-gray-300"
               }`}
             >
               <span

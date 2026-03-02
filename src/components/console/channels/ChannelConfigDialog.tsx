@@ -1,6 +1,6 @@
+import { Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, EyeOff } from "lucide-react";
 import type { ChannelType } from "@/gateway/adapter-types";
 import { CHANNEL_SCHEMAS, type ChannelFieldDef } from "@/lib/channel-schemas";
 import { WhatsAppQrFlow } from "./WhatsAppQrFlow";
@@ -45,7 +45,9 @@ export function ChannelConfigDialog({ open, channelType, onClose }: ChannelConfi
         <div className="p-6">
           <div className="mb-4 flex items-center gap-2">
             <span className="text-xl">{schema.icon}</span>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t(schema.nameKey)}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {t(schema.nameKey)}
+            </h3>
           </div>
           <WhatsAppQrFlow onClose={onClose} />
         </div>
@@ -86,7 +88,9 @@ export function ChannelConfigDialog({ open, channelType, onClose }: ChannelConfi
       <div className="p-6">
         <div className="mb-4 flex items-center gap-2">
           <span className="text-xl">{schema.icon}</span>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t(schema.nameKey)}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {t(schema.nameKey)}
+          </h3>
         </div>
 
         <div className="space-y-4">
@@ -104,10 +108,18 @@ export function ChannelConfigDialog({ open, channelType, onClose }: ChannelConfi
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+          >
             {t("channels.configDialog.cancel", { defaultValue: t("common:actions.cancel") })}
           </button>
-          <button type="button" onClick={handleSave} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+          <button
+            type="button"
+            onClick={handleSave}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
             {t("channels.configDialog.save", { defaultValue: t("common:actions.save") })}
           </button>
         </div>
@@ -147,7 +159,9 @@ function FieldInput({
           rows={4}
           className={`w-full rounded-md border bg-white px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-100 ${borderClass}`}
         />
-        {hasError && <p className="mt-1 text-xs text-red-500">{t("channels.configDialog.required")}</p>}
+        {hasError && (
+          <p className="mt-1 text-xs text-red-500">{t("channels.configDialog.required")}</p>
+        )}
       </div>
     );
   }
@@ -175,7 +189,9 @@ function FieldInput({
           </button>
         )}
       </div>
-      {hasError && <p className="mt-1 text-xs text-red-500">{t("channels.configDialog.required")}</p>}
+      {hasError && (
+        <p className="mt-1 text-xs text-red-500">{t("channels.configDialog.required")}</p>
+      )}
     </div>
   );
 }

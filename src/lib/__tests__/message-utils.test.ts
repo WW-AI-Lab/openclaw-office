@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { ToolCallInfo } from "@/gateway/adapter-types";
 import {
   generateMessageId,
   mergeDelta,
@@ -6,7 +7,6 @@ import {
   truncateText,
   createBatchScheduler,
 } from "../message-utils";
-import type { ToolCallInfo } from "@/gateway/adapter-types";
 
 describe("generateMessageId", () => {
   it("returns unique IDs with msg- prefix", () => {
@@ -32,9 +32,7 @@ describe("mergeDelta", () => {
 });
 
 describe("updateToolCall", () => {
-  const existing: ToolCallInfo[] = [
-    { id: "tc-1", name: "web_search", status: "running" },
-  ];
+  const existing: ToolCallInfo[] = [{ id: "tc-1", name: "web_search", status: "running" }];
 
   it("updates existing tool call by id", () => {
     const result = updateToolCall(existing, "tc-1", { status: "done", result: "found it" });

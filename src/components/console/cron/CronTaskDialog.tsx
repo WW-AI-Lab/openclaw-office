@@ -34,7 +34,13 @@ export function buildCronTaskInput(params: {
   };
 }
 
-export function CronTaskDialog({ open, editingTask, onSave, onUpdate, onClose }: CronTaskDialogProps) {
+export function CronTaskDialog({
+  open,
+  editingTask,
+  onSave,
+  onUpdate,
+  onClose,
+}: CronTaskDialogProps) {
   const { t } = useTranslation("console");
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -138,11 +144,15 @@ export function CronTaskDialog({ open, editingTask, onSave, onUpdate, onClose }:
               placeholder={t("cron.dialog.namePlaceholder")}
               className={`w-full rounded-md border bg-white px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-100 ${errors.name ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`}
             />
-            {errors.name && <p className="mt-1 text-xs text-red-500">{t("cron.dialog.required")}</p>}
+            {errors.name && (
+              <p className="mt-1 text-xs text-red-500">{t("cron.dialog.required")}</p>
+            )}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{t("cron.dialog.description")}</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("cron.dialog.description")}
+            </label>
             <input
               type="text"
               value={description}
@@ -153,7 +163,9 @@ export function CronTaskDialog({ open, editingTask, onSave, onUpdate, onClose }:
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{t("cron.dialog.schedule")}</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("cron.dialog.schedule")}
+            </label>
             <div className="mb-3 flex flex-wrap gap-2">
               {CRON_PRESETS.map((preset, i) => (
                 <button
@@ -187,15 +199,25 @@ export function CronTaskDialog({ open, editingTask, onSave, onUpdate, onClose }:
               rows={3}
               className={`w-full rounded-md border bg-white px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-100 ${errors.message ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`}
             />
-            {errors.message && <p className="mt-1 text-xs text-red-500">{t("cron.dialog.required")}</p>}
+            {errors.message && (
+              <p className="mt-1 text-xs text-red-500">{t("cron.dialog.required")}</p>
+            )}
           </div>
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+          >
             {t("common:actions.cancel")}
           </button>
-          <button type="button" onClick={handleSubmit} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
             {editingTask ? t("common:actions.save") : t("common:actions.create")}
           </button>
         </div>

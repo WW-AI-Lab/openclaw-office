@@ -97,7 +97,12 @@ export function ActivityHeatmap() {
       <svg width={COLS * CELL_W + 60} height={ROWS * CELL_H + 24} className="overflow-visible">
         {rows.map((row, ri) => (
           <g key={row.agentId}>
-            <text x={0} y={ri * CELL_H + CELL_H / 2 + 4} fontSize={9} fill={isDark ? "#e2e8f0" : "#374151"}>
+            <text
+              x={0}
+              y={ri * CELL_H + CELL_H / 2 + 4}
+              fontSize={9}
+              fill={isDark ? "#e2e8f0" : "#374151"}
+            >
               {row.agentName.length > 10 ? `${row.agentName.slice(0, 8)}…` : row.agentName}
             </text>
             {row.counts.map((count, ci) => {

@@ -1,5 +1,5 @@
-import Markdown from "react-markdown";
 import { useTranslation } from "react-i18next";
+import Markdown from "react-markdown";
 import { SvgAvatar } from "@/components/shared/SvgAvatar";
 import { STATUS_COLORS } from "@/lib/constants";
 import { useOfficeStore } from "@/store/office-store";
@@ -23,13 +23,17 @@ export function AgentDetailPanel() {
       <div className="mb-2 flex items-center gap-2">
         <SvgAvatar agentId={agent.id} size={32} />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">{agent.name}</div>
+          <div className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+            {agent.name}
+          </div>
           <div className="flex items-center gap-1">
             <span
               className="inline-block h-2 w-2 rounded-full"
               style={{ backgroundColor: STATUS_COLORS[agent.status] }}
             />
-            <span className="text-xs text-gray-500 dark:text-gray-400">{t(`common:agent.statusLabels.${agent.status}`)}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {t(`common:agent.statusLabels.${agent.status}`)}
+            </span>
           </div>
         </div>
         <button
@@ -55,7 +59,9 @@ export function AgentDetailPanel() {
 
       {agent.toolCallHistory.length > 0 && (
         <div className="mt-2">
-          <div className="mb-1 text-xs font-medium text-gray-400 dark:text-gray-500">{t("agentDetail.toolCallHistory")}</div>
+          <div className="mb-1 text-xs font-medium text-gray-400 dark:text-gray-500">
+            {t("agentDetail.toolCallHistory")}
+          </div>
           {agent.toolCallHistory.map((t, i) => (
             <div
               key={`${t.name}-${t.timestamp}-${i}`}

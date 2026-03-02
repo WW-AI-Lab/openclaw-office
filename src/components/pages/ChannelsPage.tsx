@@ -1,24 +1,29 @@
+import { RefreshCw, Inbox } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, Inbox } from "lucide-react";
-import { useChannelsStore } from "@/store/console-stores/channels-store";
-import type { ChannelInfo, ChannelType } from "@/gateway/adapter-types";
-import { LoadingState } from "@/components/console/shared/LoadingState";
-import { ErrorState } from "@/components/console/shared/ErrorState";
-import { EmptyState } from "@/components/console/shared/EmptyState";
-import { ConfirmDialog } from "@/components/console/shared/ConfirmDialog";
-import { ChannelStatsBar } from "@/components/console/channels/ChannelStatsBar";
-import { ChannelCard } from "@/components/console/channels/ChannelCard";
 import { AvailableChannelGrid } from "@/components/console/channels/AvailableChannelGrid";
+import { ChannelCard } from "@/components/console/channels/ChannelCard";
 import { ChannelConfigDialog } from "@/components/console/channels/ChannelConfigDialog";
+import { ChannelStatsBar } from "@/components/console/channels/ChannelStatsBar";
+import { ConfirmDialog } from "@/components/console/shared/ConfirmDialog";
+import { EmptyState } from "@/components/console/shared/EmptyState";
+import { ErrorState } from "@/components/console/shared/ErrorState";
+import { LoadingState } from "@/components/console/shared/LoadingState";
+import type { ChannelInfo, ChannelType } from "@/gateway/adapter-types";
+import { useChannelsStore } from "@/store/console-stores/channels-store";
 
 export function ChannelsPage() {
   const { t } = useTranslation("console");
   const {
-    channels, isLoading, error,
-    fetchChannels, logoutChannel,
-    configDialogOpen, configDialogChannelType,
-    openConfigDialog, closeConfigDialog,
+    channels,
+    isLoading,
+    error,
+    fetchChannels,
+    logoutChannel,
+    configDialogOpen,
+    configDialogChannelType,
+    openConfigDialog,
+    closeConfigDialog,
   } = useChannelsStore();
 
   const [logoutTarget, setLogoutTarget] = useState<ChannelInfo | null>(null);
@@ -37,7 +42,11 @@ export function ChannelsPage() {
   if (isLoading && channels.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("channels.title")} description={t("channels.description")} onRefresh={fetchChannels} />
+        <PageHeader
+          title={t("channels.title")}
+          description={t("channels.description")}
+          onRefresh={fetchChannels}
+        />
         <LoadingState />
       </div>
     );
@@ -46,7 +55,11 @@ export function ChannelsPage() {
   if (error && channels.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("channels.title")} description={t("channels.description")} onRefresh={fetchChannels} />
+        <PageHeader
+          title={t("channels.title")}
+          description={t("channels.description")}
+          onRefresh={fetchChannels}
+        />
         <ErrorState message={error} onRetry={fetchChannels} />
       </div>
     );
@@ -54,7 +67,12 @@ export function ChannelsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("channels.title")} description={t("channels.description")} onRefresh={fetchChannels} loading={isLoading} />
+      <PageHeader
+        title={t("channels.title")}
+        description={t("channels.description")}
+        onRefresh={fetchChannels}
+        loading={isLoading}
+      />
       <ChannelStatsBar channels={channels} />
 
       {channels.length === 0 ? (
@@ -99,7 +117,17 @@ export function ChannelsPage() {
   );
 }
 
-function PageHeader({ title, description, onRefresh, loading }: { title: string; description: string; onRefresh: () => void; loading?: boolean }) {
+function PageHeader({
+  title,
+  description,
+  onRefresh,
+  loading,
+}: {
+  title: string;
+  description: string;
+  onRefresh: () => void;
+  loading?: boolean;
+}) {
   const { t } = useTranslation("common");
   return (
     <div className="flex items-start justify-between">

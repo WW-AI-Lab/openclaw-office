@@ -64,7 +64,10 @@ export function MetricsPanel() {
     <div className="flex flex-col">
       <div className="grid grid-cols-4 gap-1 p-2">
         {cards.map((card) => (
-          <div key={card.label} className="rounded-lg bg-gray-50 px-1 py-1 text-center dark:bg-gray-800">
+          <div
+            key={card.label}
+            className="rounded-lg bg-gray-50 px-1 py-1 text-center dark:bg-gray-800"
+          >
             <div className="text-xs font-bold leading-tight" style={{ color: card.color }}>
               {card.value}
             </div>
@@ -79,7 +82,9 @@ export function MetricsPanel() {
             type="button"
             onClick={() => setActiveTab(tab.id)}
             className={`rounded px-2 py-0.5 text-[10px] ${
-              activeTab === tab.id ? "bg-gray-200 font-medium dark:bg-gray-700 dark:text-gray-200" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              activeTab === tab.id
+                ? "bg-gray-200 font-medium dark:bg-gray-700 dark:text-gray-200"
+                : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
             }`}
           >
             {tab.label}

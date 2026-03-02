@@ -1,6 +1,6 @@
+import { RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
 import type { AgentSummary } from "@/gateway/types";
 import { useAgentsStore } from "@/store/console-stores/agents-store";
 
@@ -13,7 +13,10 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
-function formatRelativeTime(raw: string | number, t: (key: string, opts?: Record<string, unknown>) => string): string {
+function formatRelativeTime(
+  raw: string | number,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
   const ts = typeof raw === "number" ? raw : new Date(raw).getTime();
   if (Number.isNaN(ts) || ts === 0) return "—";
   const diff = Date.now() - ts;
@@ -28,8 +31,17 @@ function formatRelativeTime(raw: string | number, t: (key: string, opts?: Record
 export function FilesTab({ agent }: FilesTabProps) {
   const { t } = useTranslation("console");
   const {
-    files, filesLoading, selectedFileName, fileContent, isFileDirty, fileSaving,
-    fetchFiles, fetchFileContent, setFileContent, resetFileContent, saveFileContent,
+    files,
+    filesLoading,
+    selectedFileName,
+    fileContent,
+    isFileDirty,
+    fileSaving,
+    fetchFiles,
+    fetchFileContent,
+    setFileContent,
+    resetFileContent,
+    saveFileContent,
   } = useAgentsStore();
 
   useEffect(() => {

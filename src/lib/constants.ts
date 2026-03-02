@@ -27,6 +27,18 @@ export const ZONES = {
   lounge: { x: rightX, y: bottomY, width: halfW, height: halfH, label: "休息区" },
 } as const;
 
+// Corridor entrance point: bottom center of the building (main entrance door)
+export const CORRIDOR_ENTRANCE = {
+  x: ZONES.lounge.x + ZONES.lounge.width / 2,
+  y: OFFICE.y + OFFICE.height - 30,
+} as const;
+
+// Corridor center crossing point
+export const CORRIDOR_CENTER = {
+  x: OFFICE.x + OFFICE.width / 2,
+  y: OFFICE.y + OFFICE.height / 2,
+} as const;
+
 export const ZONE_COLORS = {
   desk: "#f4f6f9",
   meeting: "#eef3fa",
@@ -79,6 +91,9 @@ export const DESK_MAX_AGENTS = DESK_GRID_COLS * DESK_GRID_ROWS;
 
 export const HOT_DESK_GRID_COLS = 4;
 export const HOT_DESK_GRID_ROWS = 3;
+
+export const MIN_DESK_WIDTH = 100;
+export const DEFAULT_MAX_SUB_AGENTS = 8;
 
 // 家具尺寸常量 (flat isometric 2D)
 export const FURNITURE = {

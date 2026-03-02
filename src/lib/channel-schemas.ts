@@ -23,7 +23,13 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.telegram",
     icon: "✈️",
     fields: [
-      { key: "botToken", labelKey: "console:channels.fields.botToken", type: "secret", required: true, placeholderKey: "console:channels.placeholders.botToken" },
+      {
+        key: "botToken",
+        labelKey: "console:channels.fields.botToken",
+        type: "secret",
+        required: true,
+        placeholderKey: "console:channels.placeholders.botToken",
+      },
     ],
   },
   discord: {
@@ -31,8 +37,20 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.discord",
     icon: "🎮",
     fields: [
-      { key: "botToken", labelKey: "console:channels.fields.botToken", type: "secret", required: true, placeholderKey: "console:channels.placeholders.botToken" },
-      { key: "applicationId", labelKey: "console:channels.fields.applicationId", type: "text", required: true, placeholderKey: "console:channels.placeholders.applicationId" },
+      {
+        key: "botToken",
+        labelKey: "console:channels.fields.botToken",
+        type: "secret",
+        required: true,
+        placeholderKey: "console:channels.placeholders.botToken",
+      },
+      {
+        key: "applicationId",
+        labelKey: "console:channels.fields.applicationId",
+        type: "text",
+        required: true,
+        placeholderKey: "console:channels.placeholders.applicationId",
+      },
     ],
   },
   whatsapp: {
@@ -47,7 +65,13 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.signal",
     icon: "🔒",
     fields: [
-      { key: "phoneNumber", labelKey: "console:channels.fields.phoneNumber", type: "text", required: true, placeholderKey: "console:channels.placeholders.phoneNumber" },
+      {
+        key: "phoneNumber",
+        labelKey: "console:channels.fields.phoneNumber",
+        type: "text",
+        required: true,
+        placeholderKey: "console:channels.placeholders.phoneNumber",
+      },
     ],
   },
   feishu: {
@@ -55,8 +79,20 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.feishu",
     icon: "🐦",
     fields: [
-      { key: "appId", labelKey: "console:channels.fields.appId", type: "text", required: true, placeholderKey: "console:channels.placeholders.appId" },
-      { key: "appSecret", labelKey: "console:channels.fields.appSecret", type: "secret", required: true, placeholderKey: "console:channels.placeholders.appSecret" },
+      {
+        key: "appId",
+        labelKey: "console:channels.fields.appId",
+        type: "text",
+        required: true,
+        placeholderKey: "console:channels.placeholders.appId",
+      },
+      {
+        key: "appSecret",
+        labelKey: "console:channels.fields.appSecret",
+        type: "secret",
+        required: true,
+        placeholderKey: "console:channels.placeholders.appSecret",
+      },
     ],
   },
   imessage: {
@@ -70,8 +106,20 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.matrix",
     icon: "🔗",
     fields: [
-      { key: "homeserver", labelKey: "console:channels.fields.homeserver", type: "text", required: true, placeholderKey: "console:channels.placeholders.homeserver" },
-      { key: "accessToken", labelKey: "console:channels.fields.accessToken", type: "secret", required: true, placeholderKey: "console:channels.placeholders.accessToken" },
+      {
+        key: "homeserver",
+        labelKey: "console:channels.fields.homeserver",
+        type: "text",
+        required: true,
+        placeholderKey: "console:channels.placeholders.homeserver",
+      },
+      {
+        key: "accessToken",
+        labelKey: "console:channels.fields.accessToken",
+        type: "secret",
+        required: true,
+        placeholderKey: "console:channels.placeholders.accessToken",
+      },
     ],
   },
   line: {
@@ -79,8 +127,20 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.line",
     icon: "🟢",
     fields: [
-      { key: "channelAccessToken", labelKey: "console:channels.fields.channelAccessToken", type: "secret", required: true, placeholderKey: "console:channels.placeholders.channelAccessToken" },
-      { key: "channelSecret", labelKey: "console:channels.fields.channelSecret", type: "secret", required: true, placeholderKey: "console:channels.placeholders.channelSecret" },
+      {
+        key: "channelAccessToken",
+        labelKey: "console:channels.fields.channelAccessToken",
+        type: "secret",
+        required: true,
+        placeholderKey: "console:channels.placeholders.channelAccessToken",
+      },
+      {
+        key: "channelSecret",
+        labelKey: "console:channels.fields.channelSecret",
+        type: "secret",
+        required: true,
+        placeholderKey: "console:channels.placeholders.channelSecret",
+      },
     ],
   },
   msteams: {
@@ -88,8 +148,20 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.msteams",
     icon: "👔",
     fields: [
-      { key: "appId", labelKey: "console:channels.fields.appId", type: "text", required: true, placeholderKey: "console:channels.placeholders.appId" },
-      { key: "appPassword", labelKey: "console:channels.fields.appPassword", type: "secret", required: true, placeholderKey: "console:channels.placeholders.appPassword" },
+      {
+        key: "appId",
+        labelKey: "console:channels.fields.appId",
+        type: "text",
+        required: true,
+        placeholderKey: "console:channels.placeholders.appId",
+      },
+      {
+        key: "appPassword",
+        labelKey: "console:channels.fields.appPassword",
+        type: "secret",
+        required: true,
+        placeholderKey: "console:channels.placeholders.appPassword",
+      },
     ],
   },
   googlechat: {
@@ -97,7 +169,13 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.googlechat",
     icon: "💭",
     fields: [
-      { key: "serviceAccountJson", labelKey: "console:channels.fields.serviceAccount", type: "textarea", required: true, placeholderKey: "console:channels.placeholders.serviceAccount" },
+      {
+        key: "serviceAccountJson",
+        labelKey: "console:channels.fields.serviceAccount",
+        type: "textarea",
+        required: true,
+        placeholderKey: "console:channels.placeholders.serviceAccount",
+      },
     ],
   },
   mattermost: {
@@ -105,8 +183,20 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
     nameKey: "console:channels.types.mattermost",
     icon: "💠",
     fields: [
-      { key: "serverUrl", labelKey: "console:channels.fields.serverUrl", type: "text", required: true, placeholderKey: "console:channels.placeholders.serverUrl" },
-      { key: "botToken", labelKey: "console:channels.fields.botToken", type: "secret", required: true, placeholderKey: "console:channels.placeholders.botToken" },
+      {
+        key: "serverUrl",
+        labelKey: "console:channels.fields.serverUrl",
+        type: "text",
+        required: true,
+        placeholderKey: "console:channels.placeholders.serverUrl",
+      },
+      {
+        key: "botToken",
+        labelKey: "console:channels.fields.botToken",
+        type: "secret",
+        required: true,
+        placeholderKey: "console:channels.placeholders.botToken",
+      },
     ],
   },
 };

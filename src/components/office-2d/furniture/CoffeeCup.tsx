@@ -11,7 +11,16 @@ export const CoffeeCup = memo(function CoffeeCup({ x, y }: CoffeeCupProps) {
       {/* Saucer */}
       <ellipse cx={0} cy={4} rx={9} ry={3} fill="#d1d5db" opacity={0.5} />
       {/* Cup body */}
-      <rect x={-5} y={-4} width={10} height={10} rx={2} fill="#f5f5f4" stroke="#d1d5db" strokeWidth={0.6} />
+      <rect
+        x={-5}
+        y={-4}
+        width={10}
+        height={10}
+        rx={2}
+        fill="#f5f5f4"
+        stroke="#d1d5db"
+        strokeWidth={0.6}
+      />
       {/* Coffee surface */}
       <ellipse cx={0} cy={-2} rx={4} ry={1.5} fill="#92400e" opacity={0.7} />
       {/* Handle */}

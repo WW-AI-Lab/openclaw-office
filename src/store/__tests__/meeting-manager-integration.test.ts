@@ -83,24 +83,37 @@ describe("meeting-manager integration", () => {
       (id) => useOfficeStore.getState().returnFromMeeting(id),
     );
 
+    // Movement is now animation-driven: agents should have movement state
     const afterGather = useOfficeStore.getState();
-    expect(afterGather.agents.get("a1")!.zone).toBe("meeting");
-    expect(afterGather.agents.get("a2")!.zone).toBe("meeting");
-    expect(afterGather.agents.get("a1")!.originalPosition).toEqual(a1OrigPos);
-    expect(afterGather.agents.get("a2")!.originalPosition).toEqual(a2OrigPos);
+    const a1m = afterGather.agents.get("a1")!;
+    const a2m = afterGather.agents.get("a2")!;
+    expect(a1m.originalPosition).toEqual(a1OrigPos);
+    expect(a2m.originalPosition).toEqual(a2OrigPos);
+    expect(a1m.movement?.toZone).toBe("meeting");
+    expect(a2m.movement?.toZone).toBe("meeting");
+
+    // Complete the walking animation
+    useOfficeStore.getState().completeMovement("a1");
+    useOfficeStore.getState().completeMovement("a2");
+
+    const arrived = useOfficeStore.getState();
+    expect(arrived.agents.get("a1")!.zone).toBe("meeting");
+    expect(arrived.agents.get("a2")!.zone).toBe("meeting");
 
     // Collaboration ends — empty groups
     applyMeetingGathering(
-      afterGather.agents,
+      arrived.agents,
       [],
       (id, pos) => useOfficeStore.getState().moveToMeeting(id, pos),
       (id) => useOfficeStore.getState().returnFromMeeting(id),
     );
 
+    // Complete the return walk
+    useOfficeStore.getState().completeMovement("a1");
+    useOfficeStore.getState().completeMovement("a2");
+
     const afterReturn = useOfficeStore.getState();
     expect(afterReturn.agents.get("a1")!.zone).toBe("desk");
     expect(afterReturn.agents.get("a2")!.zone).toBe("desk");
-    expect(afterReturn.agents.get("a1")!.position).toEqual(a1OrigPos);
-    expect(afterReturn.agents.get("a2")!.position).toEqual(a2OrigPos);
   });
 });

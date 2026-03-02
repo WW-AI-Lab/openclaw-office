@@ -81,7 +81,9 @@ export function Sidebar() {
     <aside className="flex w-80 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       {/* Sidebar header */}
       <div className="flex h-8 shrink-0 items-center justify-between border-b border-gray-200 px-3 dark:border-gray-700">
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t("sidebar.agents")}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          {t("sidebar.agents")}
+        </span>
         <button
           onClick={() => setSidebarCollapsed(true)}
           className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
@@ -154,7 +156,9 @@ export function Sidebar() {
             >
               <SvgAvatar agentId={agent.id} size={24} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-xs font-medium text-gray-800 dark:text-gray-200">{agent.name}</div>
+                <div className="truncate text-xs font-medium text-gray-800 dark:text-gray-200">
+                  {agent.name}
+                </div>
                 <div className="flex items-center gap-1.5">
                   <span
                     className="inline-block h-1.5 w-1.5 rounded-full"
@@ -165,13 +169,17 @@ export function Sidebar() {
                   <span className="text-[10px] text-gray-500 dark:text-gray-400">
                     {t(`common:agent.statusLabels.${agent.status}`)}
                   </span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500">· {timeAgo(t, agent.lastActiveAt)}</span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                    · {timeAgo(t, agent.lastActiveAt)}
+                  </span>
                 </div>
               </div>
             </button>
           ))}
           {agentList.length === 0 && (
-            <div className="px-3 py-4 text-center text-xs text-gray-400 dark:text-gray-500">{t("common:empty.noMatchingAgents")}</div>
+            <div className="px-3 py-4 text-center text-xs text-gray-400 dark:text-gray-500">
+              {t("common:empty.noMatchingAgents")}
+            </div>
           )}
         </div>
       </CollapsibleSection>

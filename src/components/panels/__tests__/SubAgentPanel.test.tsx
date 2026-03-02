@@ -15,10 +15,13 @@ function makeAgent(overrides: Partial<VisualAgent> & { id: string; name: string 
     toolCallHistory: [],
     runId: null,
     isSubAgent: false,
+    isPlaceholder: false,
     parentAgentId: null,
     childAgentIds: [],
     zone: "desk",
     originalPosition: null,
+    movement: null,
+    confirmed: true,
     ...overrides,
   };
 }

@@ -35,14 +35,14 @@
 
 完整的系统管理界面：
 
-| 页面 | 功能 |
-|------|------|
-| **Dashboard** | 概览统计卡片、告警横幅、Channel/Skill 概览、快捷导航 |
-| **Agents** | Agent 列表/创建/删除，详情多 Tab（Overview/Channels/Cron/Skills/Tools/Files） |
-| **Channels** | 渠道卡片、配置对话框、统计、WhatsApp QR 绑定流程 |
-| **Skills** | 技能市场、安装选项、技能详情 |
-| **Cron** | 定时任务管理和统计 |
-| **Settings** | Provider 管理（添加/编辑/模型编辑器）、外观/Gateway/开发者/高级/关于/更新 |
+| 页面          | 功能                                                                                                                 |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard** | 概览统计卡片、告警横幅、Channel/Skill 概览、快捷导航                                                                 |
+| **Agents**    | Agent 列表/创建/删除，详情多 Tab（Overview/Channels/Cron/Skills/Tools/Files）                                        |
+| **Channels**  | 渠道卡片、配置对话框、统计、WhatsApp QR 绑定流程                                                                     |
+| **Skills**    | 技能市场、安装选项、技能详情                                                                                         |
+| **Cron**      | 定时任务管理和统计                                                                                                   |
+| **Settings**  | Provider 管理（添加/编辑/模型编辑器、系统发现的 Provider 如 OpenAI Codex OAuth）、外观/Gateway/开发者/高级/关于/更新 |
 
 ![console-dashboard](./assets/console-dashboard.png)
 
@@ -60,18 +60,18 @@
 
 ## 技术栈
 
-| 层 | 技术 |
-|-----|------|
-| 构建工具 | Vite 6 |
-| UI 框架 | React 19 |
-| 2D 渲染 | SVG + CSS Animations |
-| 3D 渲染 | React Three Fiber (R3F) + @react-three/drei |
-| 状态管理 | Zustand 5 + Immer |
-| 样式 | Tailwind CSS 4 |
-| 路由 | React Router 7 |
-| 图表 | Recharts |
-| 国际化 | i18next + react-i18next |
-| 实时通信 | 原生 WebSocket（对接 OpenClaw Gateway） |
+| 层       | 技术                                        |
+| -------- | ------------------------------------------- |
+| 构建工具 | Vite 6                                      |
+| UI 框架  | React 19                                    |
+| 2D 渲染  | SVG + CSS Animations                        |
+| 3D 渲染  | React Three Fiber (R3F) + @react-three/drei |
+| 状态管理 | Zustand 5 + Immer                           |
+| 样式     | Tailwind CSS 4                              |
+| 路由     | React Router 7                              |
+| 图表     | Recharts                                    |
+| 国际化   | i18next + react-i18next                     |
+| 实时通信 | 原生 WebSocket（对接 OpenClaw Gateway）     |
 
 ---
 
@@ -112,13 +112,13 @@ OPENCLAW_GATEWAY_TOKEN=<token> openclaw-office
 
 ### CLI 参数
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `-t, --token <token>` | Gateway 认证 token | 自动检测 |
+| 参数                  | 说明                   | 默认值                 |
+| --------------------- | ---------------------- | ---------------------- |
+| `-t, --token <token>` | Gateway 认证 token     | 自动检测               |
 | `-g, --gateway <url>` | Gateway WebSocket 地址 | `ws://localhost:18789` |
-| `-p, --port <port>` | 服务端口 | `5180` |
-| `--host <host>` | 绑定地址 | `0.0.0.0` |
-| `-h, --help` | 显示帮助 | — |
+| `-p, --port <port>`   | 服务端口               | `5180`                 |
+| `--host <host>`       | 绑定地址               | `0.0.0.0`              |
+| `-h, --help`          | 显示帮助               | —                      |
 
 > **说明：** 此方式运行的是预构建的生产版本。如需热重载开发，请参见下方 [开发](#开发) 部分。
 
@@ -179,11 +179,11 @@ pnpm dev
 
 ### 环境变量
 
-| 变量 | 必须 | 默认值 | 说明 |
-|------|------|--------|------|
-| `VITE_GATEWAY_URL` | 否 | `ws://localhost:18789` | Gateway WebSocket 地址 |
-| `VITE_GATEWAY_TOKEN` | 是（连接真实 Gateway 时） | — | Gateway 认证 token |
-| `VITE_MOCK` | 否 | `false` | 启用 Mock 模式（不需要 Gateway） |
+| 变量                 | 必须                      | 默认值                 | 说明                             |
+| -------------------- | ------------------------- | ---------------------- | -------------------------------- |
+| `VITE_GATEWAY_URL`   | 否                        | `ws://localhost:18789` | Gateway WebSocket 地址           |
+| `VITE_GATEWAY_TOKEN` | 是（连接真实 Gateway 时） | —                      | Gateway 认证 token               |
+| `VITE_MOCK`          | 否                        | `false`                | 启用 Mock 模式（不需要 Gateway） |
 
 ### Mock 模式（无需 Gateway）
 

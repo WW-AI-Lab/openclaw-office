@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useChannelsStore } from "@/store/console-stores/channels-store";
 
 interface WhatsAppQrFlowProps {
@@ -38,7 +38,11 @@ export function WhatsAppQrFlow({ onClose }: WhatsAppQrFlowProps) {
     return (
       <div className="flex flex-col items-center gap-4 py-4">
         {qrDataUrl && (
-          <img src={qrDataUrl} alt="WhatsApp QR Code" className="h-48 w-48 rounded-lg border border-gray-200 dark:border-gray-700" />
+          <img
+            src={qrDataUrl}
+            alt="WhatsApp QR Code"
+            className="h-48 w-48 rounded-lg border border-gray-200 dark:border-gray-700"
+          />
         )}
         <p className="text-sm text-gray-600 dark:text-gray-400">
           {qrState === "scanning" ? t("channels.qr.waitingScan") : t("channels.qr.scanPrompt")}

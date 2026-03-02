@@ -1,8 +1,8 @@
+import { Trash2, Plus, X, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2, Plus, X, ChevronDown } from "lucide-react";
-import type { AgentSummary } from "@/gateway/types";
 import type { AgentModelConfig } from "@/gateway/adapter-types";
+import type { AgentSummary } from "@/gateway/types";
 import { useAgentsStore } from "@/store/console-stores/agents-store";
 
 interface OverviewTabProps {
@@ -12,8 +12,12 @@ interface OverviewTabProps {
 export function OverviewTab({ agent }: OverviewTabProps) {
   const { t } = useTranslation("console");
   const {
-    defaultAgentId, updateAgentModel, setDeleteDialogOpen,
-    systemModels, fetchSystemModels, agentModelConfigs,
+    defaultAgentId,
+    updateAgentModel,
+    setDeleteDialogOpen,
+    systemModels,
+    fetchSystemModels,
+    agentModelConfigs,
   } = useAgentsStore();
   const isDefault = agent.id === defaultAgentId;
 
@@ -38,9 +42,10 @@ export function OverviewTab({ agent }: OverviewTabProps) {
     setSaving(true);
     setSaveStatus("idle");
     const cleanFallbacks = fallbacks.filter((f) => f.length > 0);
-    const model: AgentModelConfig = cleanFallbacks.length > 0
-      ? { primary: primaryModel || undefined, fallbacks: cleanFallbacks }
-      : primaryModel || "";
+    const model: AgentModelConfig =
+      cleanFallbacks.length > 0
+        ? { primary: primaryModel || undefined, fallbacks: cleanFallbacks }
+        : primaryModel || "";
     const ok = await updateAgentModel(agent.id, model);
     setSaving(false);
     setSaveStatus(ok ? "success" : "error");
@@ -66,7 +71,10 @@ export function OverviewTab({ agent }: OverviewTabProps) {
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <InfoRow label={t("agents.overview.agentId")} value={agent.id} mono />
-          <InfoRow label={t("agents.overview.name")} value={agent.identity?.name ?? agent.name ?? agent.id} />
+          <InfoRow
+            label={t("agents.overview.name")}
+            value={agent.identity?.name ?? agent.name ?? agent.id}
+          />
           <InfoRow
             label={t("agents.overview.isDefault")}
             value={isDefault ? t("agents.overview.yes") : t("agents.overview.no")}
@@ -184,9 +192,7 @@ function ModelSelect({ value, onChange, models, placeholder }: ModelSelectProps)
         className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
       >
         <option value="">{placeholder}</option>
-        {!hasMatchingOption && value && (
-          <option value={value}>{value}</option>
-        )}
+        {!hasMatchingOption && value && <option value={value}>{value}</option>}
         {providers.map((provider) => (
           <optgroup key={provider} label={provider}>
             {models

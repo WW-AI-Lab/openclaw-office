@@ -1,15 +1,15 @@
+import { Radio, Wrench, Zap, Clock, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Radio, Wrench, Zap, Clock, RefreshCw } from "lucide-react";
+import { AlertBanner } from "@/components/console/dashboard/AlertBanner";
+import { ChannelOverview } from "@/components/console/dashboard/ChannelOverview";
+import { QuickNavGrid } from "@/components/console/dashboard/QuickNavGrid";
+import { SkillOverview } from "@/components/console/dashboard/SkillOverview";
+import { StatCard } from "@/components/console/dashboard/StatCard";
+import { ErrorState } from "@/components/console/shared/ErrorState";
+import { LoadingState } from "@/components/console/shared/LoadingState";
 import { useDashboardStore } from "@/store/console-stores/dashboard-store";
 import { useOfficeStore } from "@/store/office-store";
-import { LoadingState } from "@/components/console/shared/LoadingState";
-import { ErrorState } from "@/components/console/shared/ErrorState";
-import { StatCard } from "@/components/console/dashboard/StatCard";
-import { AlertBanner } from "@/components/console/dashboard/AlertBanner";
-import { QuickNavGrid } from "@/components/console/dashboard/QuickNavGrid";
-import { ChannelOverview } from "@/components/console/dashboard/ChannelOverview";
-import { SkillOverview } from "@/components/console/dashboard/SkillOverview";
 
 export function DashboardPage() {
   const { t } = useTranslation("console");
@@ -23,7 +23,11 @@ export function DashboardPage() {
   if (isLoading && channelsSummary.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("dashboard.title")} description={t("dashboard.description")} onRefresh={refresh} />
+        <PageHeader
+          title={t("dashboard.title")}
+          description={t("dashboard.description")}
+          onRefresh={refresh}
+        />
         <LoadingState message={t("dashboard.loading")} />
       </div>
     );
@@ -32,7 +36,11 @@ export function DashboardPage() {
   if (error && channelsSummary.length === 0 && skillsSummary.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("dashboard.title")} description={t("dashboard.description")} onRefresh={refresh} />
+        <PageHeader
+          title={t("dashboard.title")}
+          description={t("dashboard.description")}
+          onRefresh={refresh}
+        />
         <ErrorState message={error} onRetry={refresh} />
       </div>
     );
@@ -50,7 +58,12 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("dashboard.title")} description={t("dashboard.description")} onRefresh={refresh} loading={isLoading} />
+      <PageHeader
+        title={t("dashboard.title")}
+        description={t("dashboard.description")}
+        onRefresh={refresh}
+        loading={isLoading}
+      />
 
       {wsStatus !== "connected" && (
         <AlertBanner variant="warning" message={t("dashboard.alerts.gatewayDisconnected")} />
@@ -91,7 +104,9 @@ export function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">{t("dashboard.quickNav.title")}</h2>
+        <h2 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+          {t("dashboard.quickNav.title")}
+        </h2>
         <QuickNavGrid />
       </div>
 
@@ -103,7 +118,17 @@ export function DashboardPage() {
   );
 }
 
-function PageHeader({ title, description, onRefresh, loading }: { title: string; description: string; onRefresh: () => void; loading?: boolean }) {
+function PageHeader({
+  title,
+  description,
+  onRefresh,
+  loading,
+}: {
+  title: string;
+  description: string;
+  onRefresh: () => void;
+  loading?: boolean;
+}) {
   const { t } = useTranslation("common");
   return (
     <div className="flex items-start justify-between">

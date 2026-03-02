@@ -1,9 +1,9 @@
+import { ArrowDown } from "lucide-react";
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowDown } from "lucide-react";
 import { useChatDockStore, type ChatDockMessage } from "@/store/console-stores/chat-dock-store";
-import { MessageBubble } from "./MessageBubble";
 import { MarkdownContent } from "./MarkdownContent";
+import { MessageBubble } from "./MessageBubble";
 import { StreamingIndicator } from "./StreamingIndicator";
 
 interface ChatTimelineDrawerProps {
@@ -76,7 +76,10 @@ export function ChatTimelineDrawer({ height, onHeightChange }: ChatTimelineDrawe
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = dragStartY.current - e.clientY;
-      const newHeight = Math.max(150, Math.min(window.innerHeight * 0.4, dragStartHeight.current + delta));
+      const newHeight = Math.max(
+        150,
+        Math.min(window.innerHeight * 0.4, dragStartHeight.current + delta),
+      );
       onHeightChange(newHeight);
     };
 
@@ -113,11 +116,7 @@ export function ChatTimelineDrawer({ height, onHeightChange }: ChatTimelineDrawe
       </div>
 
       {/* Messages */}
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-2"
-      >
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-2">
         {allMessages.length === 0 && !isStreaming ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
             {t("dock.startNewChat")}

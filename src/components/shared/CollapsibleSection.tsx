@@ -50,7 +50,10 @@ export function CollapsibleSection({
       const handleMouseMove = (ev: MouseEvent) => {
         if (!dragRef.current) return;
         const delta = ev.clientY - dragRef.current.startY;
-        const newHeight = Math.max(minHeight, Math.min(maxHeight, dragRef.current.startHeight + delta));
+        const newHeight = Math.max(
+          minHeight,
+          Math.min(maxHeight, dragRef.current.startHeight + delta),
+        );
         onHeightChange(newHeight);
       };
 

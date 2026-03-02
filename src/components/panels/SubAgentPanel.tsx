@@ -1,6 +1,6 @@
+import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/shared/Avatar";
 import type { AgentVisualStatus } from "@/gateway/types";
-import { useTranslation } from "react-i18next";
 import { STATUS_COLORS } from "@/lib/constants";
 import { useOfficeStore } from "@/store/office-store";
 
@@ -12,7 +12,11 @@ export function SubAgentPanel() {
   const subAgents = Array.from(agents.values()).filter((a) => a.isSubAgent);
 
   if (subAgents.length === 0) {
-    return <div className="py-2 text-center text-xs text-gray-400 dark:text-gray-500">{t("empty.noSubAgents")}</div>;
+    return (
+      <div className="py-2 text-center text-xs text-gray-400 dark:text-gray-500">
+        {t("empty.noSubAgents")}
+      </div>
+    );
   }
 
   return (
@@ -30,7 +34,9 @@ export function SubAgentPanel() {
             <Avatar agentId={sub.id} agentName={sub.name} size={24} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="truncate text-xs font-medium text-gray-800 dark:text-gray-200">{sub.name}</span>
+                <span className="truncate text-xs font-medium text-gray-800 dark:text-gray-200">
+                  {sub.name}
+                </span>
                 <span
                   className="inline-flex items-center rounded px-1 py-0.5 text-[9px] font-medium text-white"
                   style={{

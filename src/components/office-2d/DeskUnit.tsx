@@ -1,8 +1,8 @@
 import { memo } from "react";
 import type { VisualAgent } from "@/gateway/types";
 import { useOfficeStore } from "@/store/office-store";
-import { Desk, Chair } from "./furniture";
 import { AgentAvatar } from "./AgentAvatar";
+import { Desk, Chair } from "./furniture";
 
 interface DeskUnitProps {
   x: number;

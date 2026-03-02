@@ -5,9 +5,7 @@ export function LanguageSwitcher() {
 
   const isZh = i18n.language?.startsWith("zh");
   const label = isZh ? "中文" : "EN";
-  const ariaLabel = isZh
-    ? t("topbar.language.switchToEn")
-    : t("topbar.language.switchToZh");
+  const ariaLabel = isZh ? t("topbar.language.switchToEn") : t("topbar.language.switchToZh");
 
   const handleSwitch = () => {
     i18n.changeLanguage(isZh ? "en" : "zh");

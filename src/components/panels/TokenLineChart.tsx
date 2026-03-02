@@ -1,5 +1,5 @@
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useTranslation } from "react-i18next";
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { TokenSnapshot } from "@/gateway/types";
 import { PALETTE } from "@/lib/avatar-generator";
 import { useOfficeStore } from "@/store/office-store";
@@ -65,7 +65,9 @@ export function TokenLineChart() {
             }
             const total = p.total as number;
             const lines = [
-              <div key="total">{t("tokenChart.total")} {formatTokens(total)}</div>,
+              <div key="total">
+                {t("tokenChart.total")} {formatTokens(total)}
+              </div>,
               ...topAgentIds.map((aid, i) => {
                 const v = (p[aid] as number) ?? 0;
                 return (

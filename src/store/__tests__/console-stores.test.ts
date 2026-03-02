@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { useDashboardStore } from "../console-stores/dashboard-store";
 import { useChannelsStore } from "../console-stores/channels-store";
-import { useSkillsStore } from "../console-stores/skills-store";
-import { useCronStore } from "../console-stores/cron-store";
-import { useConsoleSettingsStore } from "../console-stores/settings-store";
 import { useChatDockStore } from "../console-stores/chat-dock-store";
+import { useCronStore } from "../console-stores/cron-store";
+import { useDashboardStore } from "../console-stores/dashboard-store";
+import { useConsoleSettingsStore } from "../console-stores/settings-store";
+import { useSkillsStore } from "../console-stores/skills-store";
 
 describe("Dashboard Store", () => {
   it("has correct initial state", () => {

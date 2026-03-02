@@ -14,7 +14,8 @@ export function CronStatsBar({ tasks }: CronStatsBarProps) {
   return (
     <div className="flex items-center gap-4 text-sm">
       <span className="text-gray-500 dark:text-gray-400">
-        {t("cron.stats.total")} <strong className="text-gray-900 dark:text-gray-100">{tasks.length}</strong>
+        {t("cron.stats.total")}{" "}
+        <strong className="text-gray-900 dark:text-gray-100">{tasks.length}</strong>
       </span>
       <span className="text-gray-300 dark:text-gray-600">·</span>
       <span className="text-green-600 dark:text-green-400">

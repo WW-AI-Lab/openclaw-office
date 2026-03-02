@@ -23,7 +23,9 @@ describe("MockAdapter Phase D — config / status / update", () => {
 
     it("config contains models.providers with redacted keys", async () => {
       const snap = await adapter.configGet();
-      const providers = (snap.config.models as Record<string, unknown>)?.providers as Record<string, Record<string, unknown>> | undefined;
+      const providers = (snap.config.models as Record<string, unknown>)?.providers as
+        | Record<string, Record<string, unknown>>
+        | undefined;
       expect(providers).toBeTruthy();
       expect(providers!.anthropic).toBeTruthy();
       expect(providers!.anthropic.apiKey).toBe("__OPENCLAW_REDACTED__");
@@ -36,13 +38,22 @@ describe("MockAdapter Phase D — config / status / update", () => {
     it("merges patch into config", async () => {
       const snap = await adapter.configGet();
       const result = await adapter.configPatch(
-        JSON.stringify({ models: { providers: { ollama: { baseUrl: "http://localhost:11434", api: "openai-completions", models: [] } } } }),
+        JSON.stringify({
+          models: {
+            providers: {
+              ollama: { baseUrl: "http://localhost:11434", api: "openai-completions", models: [] },
+            },
+          },
+        }),
         snap.hash,
       );
       expect(result.ok).toBe(true);
 
       const updated = await adapter.configGet();
-      const providers = (updated.config.models as Record<string, unknown>).providers as Record<string, Record<string, unknown>>;
+      const providers = (updated.config.models as Record<string, unknown>).providers as Record<
+        string,
+        Record<string, unknown>
+      >;
       expect(providers.ollama).toBeTruthy();
       expect(providers.ollama.baseUrl).toBe("http://localhost:11434");
       expect(providers.anthropic).toBeTruthy();
@@ -57,7 +68,10 @@ describe("MockAdapter Phase D — config / status / update", () => {
       expect(result.ok).toBe(true);
 
       const updated = await adapter.configGet();
-      const providers = (updated.config.models as Record<string, unknown>).providers as Record<string, Record<string, unknown>>;
+      const providers = (updated.config.models as Record<string, unknown>).providers as Record<
+        string,
+        Record<string, unknown>
+      >;
       expect(providers.openai).toBeUndefined();
       expect(providers.anthropic).toBeTruthy();
     });

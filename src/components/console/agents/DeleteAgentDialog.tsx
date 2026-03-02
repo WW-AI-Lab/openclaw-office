@@ -1,11 +1,12 @@
+import { AlertTriangle, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, X } from "lucide-react";
 import { useAgentsStore } from "@/store/console-stores/agents-store";
 
 export function DeleteAgentDialog() {
   const { t } = useTranslation("console");
-  const { deleteDialogOpen, setDeleteDialogOpen, selectedAgentId, agents, deleteAgent } = useAgentsStore();
+  const { deleteDialogOpen, setDeleteDialogOpen, selectedAgentId, agents, deleteAgent } =
+    useAgentsStore();
   const [deleteFiles, setDeleteFiles] = useState(false);
   const [deleting, setDeleting] = useState(false);
 

@@ -79,14 +79,20 @@ const STATUS_COLORS: Record<string, string> = {
 
 // --- Conversion Functions ---
 
-export function toDashboardSummaryVM(channels: ChannelInfo[], skills: SkillInfo[], usage: UsageInfo | null): DashboardSummaryVM {
+export function toDashboardSummaryVM(
+  channels: ChannelInfo[],
+  skills: SkillInfo[],
+  usage: UsageInfo | null,
+): DashboardSummaryVM {
   const connectedChannels = channels.filter((c) => c.status === "connected").length;
   const errorChannels = channels.filter((c) => c.status === "error").length;
   const enabledSkills = skills.filter((s) => s.enabled).length;
 
   let providerUsage = "—";
   if (usage && usage.providers.length > 0) {
-    const maxUsed = Math.max(...usage.providers.flatMap((p) => p.windows.map((w) => w.usedPercent)));
+    const maxUsed = Math.max(
+      ...usage.providers.flatMap((p) => p.windows.map((w) => w.usedPercent)),
+    );
     providerUsage = `${Math.round(maxUsed)}%`;
   }
 
@@ -109,9 +115,14 @@ export function toChannelCardVM(channel: ChannelInfo): ChannelCardVM {
 }
 
 export function toSkillCardVM(skill: SkillInfo): SkillCardVM {
-  const hasMissing = Boolean(skill.missing && ((skill.missing.bins?.length ?? 0) > 0 || (skill.missing.env?.length ?? 0) > 0));
+  const hasMissing = Boolean(
+    skill.missing &&
+    ((skill.missing.bins?.length ?? 0) > 0 || (skill.missing.env?.length ?? 0) > 0),
+  );
   const hasInstallOptions = Boolean(skill.installOptions && skill.installOptions.length > 0);
-  const configChecksPassed = skill.configChecks ? skill.configChecks.every((c) => c.satisfied) : true;
+  const configChecksPassed = skill.configChecks
+    ? skill.configChecks.every((c) => c.satisfied)
+    : true;
 
   return {
     id: skill.id,
@@ -119,7 +130,9 @@ export function toSkillCardVM(skill: SkillInfo): SkillCardVM {
     description: skill.description,
     enabled: skill.enabled,
     icon: skill.icon || "📦",
-    source: skill.isBundled ? i18n.t("console:viewModels.skillSource.builtIn") : i18n.t("console:viewModels.skillSource.marketplace"),
+    source: skill.isBundled
+      ? i18n.t("console:viewModels.skillSource.builtIn")
+      : i18n.t("console:viewModels.skillSource.marketplace"),
     hasMissing,
     hasInstallOptions,
     configChecksPassed,
@@ -145,13 +158,23 @@ export function toCronTaskCardVM(task: CronTask): CronTaskCardVM {
     nextRunAt: task.state.nextRunAtMs ?? null,
     lastRunStatus: task.state.lastRunStatus ?? null,
     message,
-    statusLabel: task.enabled ? i18n.t("console:viewModels.taskStatus.active") : i18n.t("console:viewModels.taskStatus.paused"),
+    statusLabel: task.enabled
+      ? i18n.t("console:viewModels.taskStatus.active")
+      : i18n.t("console:viewModels.taskStatus.paused"),
   };
 }
 
-function formatCronSchedule(s: { kind: string; expr?: string; everyMs?: number; at?: string; anchorMs?: number; tz?: string }): string {
+function formatCronSchedule(s: {
+  kind: string;
+  expr?: string;
+  everyMs?: number;
+  at?: string;
+  anchorMs?: number;
+  tz?: string;
+}): string {
   if (s.kind === "cron" && s.expr) return s.expr;
-  if (s.kind === "every" && s.everyMs) return i18n.t("console:viewModels.schedule.every", { minutes: Math.round(s.everyMs / 60_000) });
+  if (s.kind === "every" && s.everyMs)
+    return i18n.t("console:viewModels.schedule.every", { minutes: Math.round(s.everyMs / 60_000) });
   if (s.kind === "at" && s.at) return i18n.t("console:viewModels.schedule.at", { time: s.at });
   return i18n.t("console:viewModels.schedule.unknown");
 }
@@ -166,7 +189,10 @@ function describeCronSchedule(expr: string): string {
     return i18n.t("console:viewModels.schedule.daily", { time: `${hour}:${min.padStart(2, "0")}` });
   }
   if (dow !== "*" && dom === "*") {
-    return i18n.t("console:viewModels.schedule.weekly", { day: dow, time: `${hour}:${min.padStart(2, "0")}` });
+    return i18n.t("console:viewModels.schedule.weekly", {
+      day: dow,
+      time: `${hour}:${min.padStart(2, "0")}`,
+    });
   }
 
   return expr;

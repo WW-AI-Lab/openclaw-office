@@ -1,20 +1,18 @@
 import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
-
-import zhCommon from "./locales/zh/common.json";
-import zhLayout from "./locales/zh/layout.json";
-import zhOffice from "./locales/zh/office.json";
-import zhPanels from "./locales/zh/panels.json";
-import zhChat from "./locales/zh/chat.json";
-import zhConsole from "./locales/zh/console.json";
-
+import { initReactI18next } from "react-i18next";
+import enChat from "./locales/en/chat.json";
 import enCommon from "./locales/en/common.json";
+import enConsole from "./locales/en/console.json";
 import enLayout from "./locales/en/layout.json";
 import enOffice from "./locales/en/office.json";
 import enPanels from "./locales/en/panels.json";
-import enChat from "./locales/en/chat.json";
-import enConsole from "./locales/en/console.json";
+import zhChat from "./locales/zh/chat.json";
+import zhCommon from "./locales/zh/common.json";
+import zhConsole from "./locales/zh/console.json";
+import zhLayout from "./locales/zh/layout.json";
+import zhOffice from "./locales/zh/office.json";
+import zhPanels from "./locales/zh/panels.json";
 
 export const supportedLngs = ["zh", "en"] as const;
 export type SupportedLng = (typeof supportedLngs)[number];

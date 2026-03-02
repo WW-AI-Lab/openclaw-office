@@ -19,10 +19,13 @@ function makeAgent(id: string, zone: string = "desk"): VisualAgent {
     toolCallHistory: [],
     runId: null,
     isSubAgent: false,
+    isPlaceholder: false,
     parentAgentId: null,
     childAgentIds: [],
     zone: zone as "desk" | "meeting" | "hotDesk" | "lounge",
     originalPosition: null,
+    movement: null,
+    confirmed: true,
   };
 }
 
@@ -69,6 +72,53 @@ describe("meeting-manager", () => {
         },
       ];
       expect(detectMeetingGroups(links, agents)).toEqual([]);
+    });
+
+    it("filters by allowList when provided", () => {
+      const agents = new Map([
+        ["a1", makeAgent("a1")],
+        ["a2", makeAgent("a2")],
+        ["a3", makeAgent("a3")],
+        ["a4", makeAgent("a4")],
+      ]);
+      const links: CollaborationLink[] = [
+        {
+          sourceId: "a1",
+          targetId: "a2",
+          sessionKey: "s1",
+          strength: 0.5,
+          lastActivityAt: Date.now(),
+        },
+        {
+          sourceId: "a3",
+          targetId: "a4",
+          sessionKey: "s2",
+          strength: 0.5,
+          lastActivityAt: Date.now(),
+        },
+      ];
+      const groups = detectMeetingGroups(links, agents, ["a1", "a2"]);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].agentIds).toContain("a1");
+      expect(groups[0].agentIds).toContain("a2");
+    });
+
+    it("returns all groups when allowList is empty", () => {
+      const agents = new Map([
+        ["a1", makeAgent("a1")],
+        ["a2", makeAgent("a2")],
+      ]);
+      const links: CollaborationLink[] = [
+        {
+          sourceId: "a1",
+          targetId: "a2",
+          sessionKey: "s1",
+          strength: 0.5,
+          lastActivityAt: Date.now(),
+        },
+      ];
+      const groups = detectMeetingGroups(links, agents, []);
+      expect(groups).toHaveLength(1);
     });
 
     it("limits to 3 concurrent meetings", () => {

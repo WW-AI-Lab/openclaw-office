@@ -1,6 +1,6 @@
+import { X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X } from "lucide-react";
 import { useAgentsStore } from "@/store/console-stores/agents-store";
 
 export function CreateAgentDialog() {
@@ -27,7 +27,8 @@ export function CreateAgentDialog() {
       setError(t("agents.createDialog.nameRequired"));
       return;
     }
-    const ws = workspace.trim() || `~/.openclaw/workspace-${name.trim().toLowerCase().replace(/\s+/g, "-")}`;
+    const ws =
+      workspace.trim() || `~/.openclaw/workspace-${name.trim().toLowerCase().replace(/\s+/g, "-")}`;
     setCreating(true);
     setError("");
     const agentId = await createAgent({

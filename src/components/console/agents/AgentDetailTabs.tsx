@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next";
 import type { AgentSummary } from "@/gateway/types";
 import { useAgentsStore, type AgentTab } from "@/store/console-stores/agents-store";
-import { OverviewTab } from "./tabs/OverviewTab";
-import { FilesTab } from "./tabs/FilesTab";
-import { ToolsTab } from "./tabs/ToolsTab";
-import { SkillsTab } from "./tabs/SkillsTab";
 import { ChannelsTab } from "./tabs/ChannelsTab";
 import { CronJobsTab } from "./tabs/CronJobsTab";
+import { FilesTab } from "./tabs/FilesTab";
+import { OverviewTab } from "./tabs/OverviewTab";
+import { SkillsTab } from "./tabs/SkillsTab";
+import { ToolsTab } from "./tabs/ToolsTab";
 
 const TABS: AgentTab[] = ["overview", "files", "tools", "skills", "channels", "cronJobs"];
 

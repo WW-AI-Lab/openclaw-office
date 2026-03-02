@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { ExternalLink } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useConfigStore } from "@/store/console-stores/config-store";
 
 export function AboutSection() {
@@ -17,9 +17,7 @@ export function AboutSection() {
           <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
             {t("settings.about.appName")}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {t("settings.about.tagline")}
-          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t("settings.about.tagline")}</p>
           {status?.version && (
             <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
               {t("settings.about.version")}: {status.version}

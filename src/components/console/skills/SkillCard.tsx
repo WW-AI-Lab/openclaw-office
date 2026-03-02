@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { AlertTriangle, Globe, Lock, Puzzle, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { SkillInfo } from "@/gateway/adapter-types";
 
 interface SkillCardProps {
@@ -10,24 +10,36 @@ interface SkillCardProps {
   onInstall?: (skill: SkillInfo) => void;
 }
 
-export function SkillCard({ skill, onToggle, onConfigure, isInstalling, onInstall }: SkillCardProps) {
+export function SkillCard({
+  skill,
+  onToggle,
+  onConfigure,
+  isInstalling,
+  onInstall,
+}: SkillCardProps) {
   const { t } = useTranslation("console");
 
   const isCoreLocked = skill.isCore && skill.always;
   const hasMissing = skill.missing?.bins?.length || skill.missing?.env?.length;
-  const sourceLabel = skill.isBundled
-    ? t("skills.source.builtIn")
-    : t("skills.source.marketplace");
+  const sourceLabel = skill.isBundled ? t("skills.source.builtIn") : t("skills.source.marketplace");
 
   return (
-    <div className={`rounded-2xl border p-4 transition-colors dark:bg-gray-800 ${skill.enabled ? "border-blue-200 bg-blue-50/40 dark:border-blue-900/40" : "border-gray-200 bg-white opacity-75 dark:border-gray-700"}`}>
+    <div
+      className={`rounded-2xl border p-4 transition-colors dark:bg-gray-800 ${skill.enabled ? "border-blue-200 bg-blue-50/40 dark:border-blue-900/40" : "border-gray-200 bg-white opacity-75 dark:border-gray-700"}`}
+    >
       <div className="flex items-start justify-between gap-4">
-        <button type="button" onClick={() => onConfigure(skill)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
+        <button
+          type="button"
+          onClick={() => onConfigure(skill)}
+          className="flex min-w-0 flex-1 items-start gap-3 text-left"
+        >
           <span className="text-2xl">{skill.icon || "📦"}</span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold text-gray-900 dark:text-gray-100">{skill.name}</span>
-              <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${skill.isBundled ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"}`}>
+              <span
+                className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${skill.isBundled ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"}`}
+              >
                 {sourceLabel}
               </span>
               {skill.isCore ? (
@@ -37,11 +49,11 @@ export function SkillCard({ skill, onToggle, onConfigure, isInstalling, onInstal
               ) : (
                 <Globe className="h-3.5 w-3.5 text-purple-500/70" />
               )}
-              {skill.version && (
-                <span className="text-[10px] text-gray-400">v{skill.version}</span>
-              )}
+              {skill.version && <span className="text-[10px] text-gray-400">v{skill.version}</span>}
             </div>
-            <p className="mt-2 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">{skill.description}</p>
+            <p className="mt-2 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">
+              {skill.description}
+            </p>
             {hasMissing && (
               <div className="mt-2 flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="h-3.5 w-3.5" />
@@ -72,7 +84,10 @@ export function SkillCard({ skill, onToggle, onConfigure, isInstalling, onInstal
             </button>
           )}
 
-          <label className="relative inline-flex cursor-pointer items-center" title={isCoreLocked ? t("skills.card.coreProtected") : undefined}>
+          <label
+            className="relative inline-flex cursor-pointer items-center"
+            title={isCoreLocked ? t("skills.card.coreProtected") : undefined}
+          >
             <input
               type="checkbox"
               checked={skill.enabled}

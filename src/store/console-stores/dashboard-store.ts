@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { ChannelInfo, SkillInfo, UsageInfo } from "@/gateway/adapter-types";
 import { waitForAdapter } from "@/gateway/adapter-provider";
+import type { ChannelInfo, SkillInfo, UsageInfo } from "@/gateway/adapter-types";
 
 interface DashboardState {
   channelsSummary: ChannelInfo[];

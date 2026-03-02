@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { RefreshCw, WifiOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useConfigStore } from "@/store/console-stores/config-store";
 
 export function GatewaySection() {
@@ -44,10 +44,17 @@ export function GatewaySection() {
       ) : status ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <InfoItem label={t("settings.gateway.version")} value={status.version ?? "—"} />
-          <InfoItem label={t("settings.gateway.port")} value={status.port != null ? String(status.port) : "—"} />
+          <InfoItem
+            label={t("settings.gateway.port")}
+            value={status.port != null ? String(status.port) : "—"}
+          />
           <InfoItem
             label={t("settings.gateway.uptime")}
-            value={status.uptime != null ? t("settings.gateway.uptimeFormat", { hours: uptimeHours, minutes: uptimeMinutes }) : "—"}
+            value={
+              status.uptime != null
+                ? t("settings.gateway.uptimeFormat", { hours: uptimeHours, minutes: uptimeMinutes })
+                : "—"
+            }
           />
           <InfoItem label={t("settings.gateway.mode")} value={status.mode ?? "—"} />
           <InfoItem label={t("settings.gateway.nodeVersion")} value={status.nodeVersion ?? "—"} />

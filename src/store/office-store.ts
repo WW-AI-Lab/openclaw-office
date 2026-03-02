@@ -2,12 +2,15 @@ import { enableMapSet } from "immer";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { parseAgentEvent } from "@/gateway/event-parser";
+import { localPersistence } from "@/lib/local-persistence";
 
 enableMapSet();
 import type {
   AgentEventPayload,
   AgentSummary,
+  AgentToAgentConfig,
   AgentVisualStatus,
+  AgentZone,
   CollaborationLink,
   ConnectionStatus,
   EventHistoryItem,
@@ -20,8 +23,15 @@ import type {
   ViewMode,
   VisualAgent,
 } from "@/gateway/types";
-import { allocatePosition } from "@/lib/position-allocator";
+import { ZONES, CORRIDOR_ENTRANCE } from "@/lib/constants";
+import { allocatePosition, calculateLoungePositions } from "@/lib/position-allocator";
+import {
+  planWalkPath,
+  calculateWalkDuration,
+  interpolatePathPosition,
+} from "@/lib/movement-animator";
 import { applyEventToAgent } from "./agent-reducer";
+import { applyMeetingGathering, detectMeetingGroups } from "./meeting-manager";
 import { computeMetrics } from "./metrics-reducer";
 
 const EVENT_HISTORY_LIMIT = 200;
@@ -29,6 +39,21 @@ const LINK_TIMEOUT_MS = 60_000;
 const THEME_STORAGE_KEY = "openclaw-theme";
 const CHAT_DOCK_HEIGHT_KEY = "openclaw-chat-dock-height";
 const DEFAULT_CHAT_DOCK_HEIGHT = 300;
+const LOUNGE_TO_HOTDESK_DEBOUNCE_MS = 500;
+const HOTDESK_TO_LOUNGE_DELAY_MS = 30_000;
+
+const zoneMigrationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const confirmationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const removedAgentIds = new Set<string>();
+const REMOVED_IDS_TTL_MS = 30_000;
+const UNCONFIRMED_TIMEOUT_MS = 5_000;
+let meetingGatheringTimer: ReturnType<typeof setTimeout> | null = null;
+let lastMeetingGroupsHash = "";
+const MEETING_GATHERING_THROTTLE_MS = 500;
+
+function isActiveStatus(status: AgentVisualStatus): boolean {
+  return status === "thinking" || status === "tool_calling" || status === "speaking" || status === "spawning";
+}
 
 function getInitialChatDockHeight(): number {
   if (typeof window === "undefined") return DEFAULT_CHAT_DOCK_HEIGHT;
@@ -63,7 +88,31 @@ function createVisualAgent(
   name: string,
   isSubAgent: boolean,
   occupied: Set<string>,
+  confirmed = true,
 ): VisualAgent {
+  if (!confirmed) {
+    // Unconfirmed agent: place at corridor entrance, not assigned to any zone yet
+    return {
+      id,
+      name,
+      status: "idle" as AgentVisualStatus,
+      position: { ...CORRIDOR_ENTRANCE },
+      currentTool: null,
+      speechBubble: null,
+      lastActiveAt: Date.now(),
+      toolCallCount: 0,
+      toolCallHistory: [],
+      runId: null,
+      isSubAgent: false,
+      isPlaceholder: false,
+      parentAgentId: null,
+      childAgentIds: [],
+      zone: "corridor" as const,
+      originalPosition: null,
+      movement: null,
+      confirmed: false,
+    };
+  }
   const position = allocatePosition(id, isSubAgent, occupied);
   return {
     id,
@@ -77,15 +126,85 @@ function createVisualAgent(
     toolCallHistory: [],
     runId: null,
     isSubAgent,
+    isPlaceholder: false,
     parentAgentId: null,
     childAgentIds: [],
     zone: "desk" as const,
     originalPosition: null,
+    movement: null,
+    confirmed: true,
   };
 }
 
 function positionKey(pos: { x: number; y: number }): string {
   return `${pos.x},${pos.y}`;
+}
+
+function nextPlaceholderIndex(agents: Map<string, VisualAgent>): number {
+  let maxIdx = -1;
+  for (const a of agents.values()) {
+    if (a.id.startsWith("placeholder-")) {
+      const idx = parseInt(a.id.slice("placeholder-".length), 10);
+      if (!Number.isNaN(idx) && idx > maxIdx) maxIdx = idx;
+    }
+  }
+  return maxIdx + 1;
+}
+
+function allocateNextPosition(
+  agents: Map<string, VisualAgent>,
+  toZone: AgentZone,
+  maxSubAgents: number,
+): { x: number; y: number } {
+  if (toZone === "lounge") {
+    const loungePositions = calculateLoungePositions(maxSubAgents);
+    const occupied = new Set<string>();
+    for (const a of agents.values()) {
+      if (a.zone === "lounge") occupied.add(positionKey(a.position));
+    }
+    const free = loungePositions.find((p) => !occupied.has(positionKey(p)));
+    if (free) return free;
+    return loungePositions[0] ?? { x: ZONES.lounge.x + 60, y: ZONES.lounge.y + 40 };
+  }
+
+  // hotDesk or desk — use allocatePosition
+  const occupied = new Set<string>();
+  for (const a of agents.values()) {
+    if (a.zone === toZone) occupied.add(positionKey(a.position));
+  }
+  return allocatePosition("temp-" + Date.now(), toZone === "hotDesk", occupied);
+}
+
+/**
+ * Move an unconfirmed agent to a lounge placeholder position.
+ * Removes one placeholder to make room; if none available, uses first lounge position.
+ */
+function activateFromLoungePlaceholder(
+  state: { agents: Map<string, VisualAgent>; maxSubAgents: number },
+  agent: VisualAgent,
+): void {
+  // Find a placeholder to consume
+  let placeholder: VisualAgent | undefined;
+  for (const a of state.agents.values()) {
+    if (a.isPlaceholder && a.zone === "lounge") {
+      placeholder = a;
+      break;
+    }
+  }
+  if (placeholder) {
+    agent.position = { ...placeholder.position };
+    agent.zone = "lounge";
+    state.agents.delete(placeholder.id);
+  } else {
+    const loungePositions = calculateLoungePositions(state.maxSubAgents);
+    const loungeOccupied = new Set<string>();
+    for (const a of state.agents.values()) {
+      if (a.zone === "lounge") loungeOccupied.add(positionKey(a.position));
+    }
+    const freePos = loungePositions.find((p) => !loungeOccupied.has(positionKey(p)));
+    agent.position = freePos ?? loungePositions[0] ?? { x: ZONES.lounge.x + 60, y: ZONES.lounge.y + 40 };
+    agent.zone = "lounge";
+  }
 }
 
 export const useOfficeStore = create<OfficeStore>()(
@@ -113,6 +232,8 @@ export const useOfficeStore = create<OfficeStore>()(
     agentCosts: {} as Record<string, number>,
     currentPage: "office" as PageId,
     chatDockHeight: getInitialChatDockHeight(),
+    maxSubAgents: 8,
+    agentToAgentConfig: { enabled: false, allow: [] } as AgentToAgentConfig,
     runIdMap: new Map(),
     sessionKeyMap: new Map(),
 
@@ -145,27 +266,91 @@ export const useOfficeStore = create<OfficeStore>()(
 
     addSubAgent: (parentId: string, info: SubAgentInfo) => {
       set((state) => {
-        const occupied = new Set<string>();
-        for (const a of state.agents.values()) {
-          occupied.add(positionKey(a.position));
+        const existingAgent = state.agents.get(info.agentId);
+
+        if (existingAgent && !existingAgent.confirmed) {
+          // Agent was created as unconfirmed by processAgentEvent — now confirm as sub-agent.
+          // Cancel its confirmation timeout.
+          const timer = confirmationTimers.get(info.agentId);
+          if (timer) {
+            clearTimeout(timer);
+            confirmationTimers.delete(info.agentId);
+          }
+          existingAgent.confirmed = true;
+          existingAgent.isSubAgent = true;
+          existingAgent.parentAgentId = parentId;
+          existingAgent.name = info.label || existingAgent.name;
+          // Transfer status/tool/speech to a lounge placeholder position for walk animation
+          activateFromLoungePlaceholder(state, existingAgent);
+        } else if (existingAgent && existingAgent.confirmed) {
+          // Already confirmed (e.g. second poll cycle) — just update parent/name
+          if (!existingAgent.isSubAgent) existingAgent.isSubAgent = true;
+          existingAgent.parentAgentId = parentId;
+          existingAgent.name = info.label || existingAgent.name;
+        } else {
+          // Not yet seen — activate a lounge placeholder or create fresh
+          let placeholder: VisualAgent | undefined;
+          for (const a of state.agents.values()) {
+            if (a.isPlaceholder && a.zone === "lounge") {
+              placeholder = a;
+              break;
+            }
+          }
+
+          if (placeholder) {
+            const oldId = placeholder.id;
+            const startPos = { ...placeholder.position };
+            state.agents.delete(oldId);
+
+            placeholder.id = info.agentId;
+            placeholder.name = info.label || `Sub-${info.agentId.slice(0, 6)}`;
+            placeholder.isPlaceholder = false;
+            placeholder.isSubAgent = true;
+            placeholder.parentAgentId = parentId;
+            placeholder.runId = info.sessionKey;
+            placeholder.status = "idle";
+            placeholder.position = startPos;
+            placeholder.confirmed = true;
+            state.agents.set(info.agentId, placeholder);
+          } else {
+            const occupied = new Set<string>();
+            for (const a of state.agents.values()) {
+              occupied.add(positionKey(a.position));
+            }
+            const agent = createVisualAgent(
+              info.agentId,
+              info.label || `Sub-${info.agentId.slice(0, 6)}`,
+              true,
+              occupied,
+            );
+            agent.parentAgentId = parentId;
+            agent.runId = info.sessionKey;
+            agent.zone = "hotDesk";
+            state.agents.set(info.agentId, agent);
+          }
         }
-        const agent = createVisualAgent(
-          info.agentId,
-          info.label || `Sub-${info.agentId.slice(0, 6)}`,
-          true,
-          occupied,
-        );
-        agent.parentAgentId = parentId;
-        agent.zone = "hotDesk";
-        agent.runId = info.sessionKey;
-        state.agents.set(info.agentId, agent);
 
         const parent = state.agents.get(parentId);
-        if (parent) {
+        if (parent && !parent.childAgentIds.includes(info.agentId)) {
           parent.childAgentIds.push(info.agentId);
         }
+
+        // Establish sessionKey → agentId mapping so subsequent events route correctly
+        if (info.sessionKey) {
+          const existing = state.sessionKeyMap.get(info.sessionKey) ?? [];
+          if (!existing.includes(info.agentId)) {
+            existing.push(info.agentId);
+            state.sessionKeyMap.set(info.sessionKey, existing);
+          }
+        }
+
         state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
       });
+      // Post-set: trigger walk animation lounge → hotDesk
+      const agent = useOfficeStore.getState().agents.get(info.agentId);
+      if (agent && (agent.zone === "lounge" || agent.zone === "corridor") && !agent.movement) {
+        useOfficeStore.getState().startMovement(info.agentId, "hotDesk");
+      }
     },
 
     removeSubAgent: (subAgentId: string) => {
@@ -177,10 +362,67 @@ export const useOfficeStore = create<OfficeStore>()(
             parent.childAgentIds = parent.childAgentIds.filter((id) => id !== subAgentId);
           }
         }
+
+        // Track removed IDs and associated runIds/sessionKeys to prevent ghost recreation
+        removedAgentIds.add(subAgentId);
+        setTimeout(() => removedAgentIds.delete(subAgentId), REMOVED_IDS_TTL_MS);
+
+        for (const [runId, aId] of state.runIdMap) {
+          if (aId === subAgentId) {
+            state.runIdMap.delete(runId);
+            // Also block the runId itself as a fallback agentId
+            removedAgentIds.add(runId);
+            setTimeout(() => removedAgentIds.delete(runId), REMOVED_IDS_TTL_MS);
+          }
+        }
+        for (const [sk, ids] of state.sessionKeyMap) {
+          const filtered = ids.filter((id) => id !== subAgentId);
+          if (filtered.length === 0) state.sessionKeyMap.delete(sk);
+          else state.sessionKeyMap.set(sk, filtered);
+        }
+
+        // Restore as a new placeholder in lounge
+        const loungePositions = calculateLoungePositions(state.maxSubAgents);
+        const loungeOccupied = new Set<string>();
+        for (const a of state.agents.values()) {
+          if (a.zone === "lounge" && a.id !== subAgentId) {
+            loungeOccupied.add(positionKey(a.position));
+          }
+        }
+        const freeLounge = loungePositions.find((p) => !loungeOccupied.has(positionKey(p)));
+
         state.agents.delete(subAgentId);
         if (state.selectedAgentId === subAgentId) {
           state.selectedAgentId = null;
         }
+
+        // Create replacement placeholder if lounge has room
+        if (freeLounge) {
+          const phIdx = nextPlaceholderIndex(state.agents);
+          const phId = `placeholder-${phIdx}`;
+          const ph: VisualAgent = {
+            id: phId,
+            name: `待命-${phIdx}`,
+            status: "idle",
+            position: freeLounge,
+            currentTool: null,
+            speechBubble: null,
+            lastActiveAt: Date.now(),
+            toolCallCount: 0,
+            toolCallHistory: [],
+            runId: null,
+            isSubAgent: true,
+            isPlaceholder: true,
+            parentAgentId: null,
+            childAgentIds: [],
+            zone: "lounge",
+            originalPosition: null,
+            movement: null,
+            confirmed: true,
+          };
+          state.agents.set(phId, ph);
+        }
+
         state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
       });
     },
@@ -189,22 +431,154 @@ export const useOfficeStore = create<OfficeStore>()(
       set((state) => {
         const agent = state.agents.get(agentId);
         if (agent) {
-          agent.originalPosition = { ...agent.position };
-          agent.position = meetingPosition;
-          agent.zone = "meeting";
+          if (!agent.originalPosition) {
+            agent.originalPosition = { ...agent.position };
+          }
+        }
+      });
+      // Trigger walk animation to meeting position
+      useOfficeStore.getState().startMovement(agentId, "meeting", meetingPosition);
+    },
+
+    returnFromMeeting: (agentId: string) => {
+      const agent = useOfficeStore.getState().agents.get(agentId);
+      if (!agent?.originalPosition) return;
+      const returnZone = agent.isSubAgent ? "hotDesk" : "desk";
+      const returnPos = { ...agent.originalPosition };
+      set((state) => {
+        const a = state.agents.get(agentId);
+        if (a) {
+          a.originalPosition = null;
+        }
+      });
+      useOfficeStore.getState().startMovement(agentId, returnZone, returnPos);
+    },
+
+    startMovement: (agentId: string, toZone: AgentZone, targetPos?: { x: number; y: number }) => {
+      set((state) => {
+        const agent = state.agents.get(agentId);
+        if (!agent) return;
+        // Don't start if already walking to the same zone
+        if (agent.movement && agent.movement.toZone === toZone) return;
+
+        const fromZone = agent.zone;
+        const to =
+          targetPos ??
+          allocateNextPosition(state.agents, toZone, state.maxSubAgents);
+        const path = planWalkPath(agent.position, to, fromZone, toZone);
+        const duration = calculateWalkDuration(path);
+
+        agent.movement = {
+          path,
+          progress: 0,
+          duration,
+          startTime: Date.now(),
+          fromZone,
+          toZone,
+        };
+      });
+    },
+
+    tickMovement: (agentId: string, deltaTime: number) => {
+      set((state) => {
+        const agent = state.agents.get(agentId);
+        if (!agent?.movement) return;
+
+        const progressDelta = deltaTime / agent.movement.duration;
+        agent.movement.progress = Math.min(agent.movement.progress + progressDelta, 1);
+        const pos = interpolatePathPosition(agent.movement.path, agent.movement.progress);
+        agent.position = pos;
+
+        if (agent.movement.progress >= 1) {
+          const finalZone = agent.movement.toZone;
+          const finalPos = agent.movement.path[agent.movement.path.length - 1];
+          agent.movement = null;
+          agent.zone = finalZone;
+          agent.position = { ...finalPos };
         }
       });
     },
 
-    returnFromMeeting: (agentId: string) => {
+    completeMovement: (agentId: string) => {
       set((state) => {
         const agent = state.agents.get(agentId);
-        if (agent?.originalPosition) {
-          agent.position = { ...agent.originalPosition };
-          agent.zone = "desk";
-          agent.originalPosition = null;
+        if (!agent?.movement) return;
+        const finalZone = agent.movement.toZone;
+        const finalPos = agent.movement.path[agent.movement.path.length - 1];
+        agent.movement = null;
+        agent.zone = finalZone;
+        agent.position = { ...finalPos };
+      });
+    },
+
+    prefillLoungePlaceholders: (count: number) => {
+      set((state) => {
+        const loungePositions = calculateLoungePositions(count);
+        for (let i = 0; i < Math.min(count, loungePositions.length); i++) {
+          const phId = `placeholder-${i}`;
+          if (state.agents.has(phId)) continue;
+          const ph: VisualAgent = {
+            id: phId,
+            name: `待命-${i}`,
+            status: "idle",
+            position: { ...loungePositions[i] },
+            currentTool: null,
+            speechBubble: null,
+            lastActiveAt: Date.now(),
+            toolCallCount: 0,
+            toolCallHistory: [],
+            runId: null,
+            isSubAgent: true,
+            isPlaceholder: true,
+            parentAgentId: null,
+            childAgentIds: [],
+            zone: "lounge",
+            originalPosition: null,
+            movement: null,
+            confirmed: true,
+          };
+          state.agents.set(phId, ph);
         }
       });
+    },
+
+    confirmAgent: (agentId: string, role: "main" | "sub", parentId?: string) => {
+      set((state) => {
+        const agent = state.agents.get(agentId);
+        if (!agent || agent.confirmed) return;
+        agent.confirmed = true;
+
+        const timer = confirmationTimers.get(agentId);
+        if (timer) {
+          clearTimeout(timer);
+          confirmationTimers.delete(agentId);
+        }
+
+        if (role === "sub") {
+          agent.isSubAgent = true;
+          if (parentId) agent.parentAgentId = parentId;
+          activateFromLoungePlaceholder(state, agent);
+        } else {
+          // Confirmed as main agent — assign to desk zone
+          const occupied = new Set<string>();
+          for (const a of state.agents.values()) {
+            if (a.zone === "desk" && a.id !== agentId) occupied.add(positionKey(a.position));
+          }
+          agent.position = allocatePosition(agentId, false, occupied);
+          agent.zone = "desk";
+        }
+
+        state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
+      });
+      // Post-set: trigger walk animation from corridor to target zone
+      const agent = useOfficeStore.getState().agents.get(agentId);
+      if (agent && !agent.movement) {
+        if (role === "sub") {
+          useOfficeStore.getState().startMovement(agentId, "hotDesk");
+        } else {
+          useOfficeStore.getState().startMovement(agentId, "desk");
+        }
+      }
     },
 
     setSessionsSnapshot: (snapshot: SessionSnapshot) => {
@@ -229,38 +603,87 @@ export const useOfficeStore = create<OfficeStore>()(
 
         state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
       });
+      // Prefill lounge with placeholder sub-agents
+      useOfficeStore.getState().prefillLoungePlaceholders(
+        useOfficeStore.getState().maxSubAgents,
+      );
     },
 
     processAgentEvent: (event: AgentEventPayload) => {
+      const pendingSubAgentRef: {
+        value: { parentId: string; info: SubAgentInfo } | null;
+      } = { value: null };
+      let newUnconfirmedId: string | null = null;
+
       set((state) => {
         const parsed = parseAgentEvent(event);
 
-        // Resolve agentId from runId
-        let agentId = state.runIdMap.get(event.runId);
+        const dataAgentId = event.data.agentId as string | undefined;
+        const parentAgentId = event.data.parentAgentId as string | undefined;
+        const isSubAgentStart =
+          Boolean(dataAgentId) &&
+          Boolean(parentAgentId) &&
+          event.stream === "lifecycle" &&
+          event.data.phase === "start";
 
+        // Resolve agentId:
+        // 1) runIdMap (streaming chunks for known agent)
+        // 2) explicit payload agentId
+        // 3) sessionKeyMap (only if the session is associated with a confirmed agent)
+        // 4) runId itself (fallback)
+        let agentId = state.runIdMap.get(event.runId);
+        if (!agentId && dataAgentId) {
+          agentId = dataAgentId;
+        }
         if (!agentId && event.sessionKey) {
           const sessionAgents = state.sessionKeyMap.get(event.sessionKey);
           if (sessionAgents && sessionAgents.length > 0) {
             agentId = sessionAgents[0];
           }
         }
-
         if (!agentId) {
-          // Create temporary agent for unknown runId
           agentId = event.runId;
-          if (!state.agents.has(agentId)) {
+        }
+
+        // Skip events for recently removed agents (stale scheduled events)
+        if (removedAgentIds.has(agentId)) {
+          return;
+        }
+
+        if (isSubAgentStart && dataAgentId && parentAgentId && !state.agents.has(dataAgentId)) {
+          // Mock adapter provides explicit sub-agent info — create via addSubAgent post-set
+          pendingSubAgentRef.value = {
+            parentId: parentAgentId,
+            info: {
+              sessionKey: event.sessionKey ?? event.runId,
+              agentId: dataAgentId,
+              label: `Sub-${dataAgentId.slice(0, 8)}`,
+              task: "",
+              requesterSessionKey: event.sessionKey ?? "",
+              startedAt: event.ts,
+            },
+          };
+        } else if (!state.agents.has(agentId)) {
+          // Unknown agent — check if this is from an initAgents-known agent ID
+          // (i.e. a confirmed main agent whose ID we know from agents.list).
+          // If the agentId matches a known main agent name pattern, create as confirmed.
+          // Otherwise create as UNCONFIRMED in the corridor — poller will confirm.
+          const isKnownMainAgent = isRegisteredMainAgentId(state, agentId, event.sessionKey);
+
+          if (isKnownMainAgent) {
             const occupied = new Set<string>();
             for (const a of state.agents.values()) {
               occupied.add(positionKey(a.position));
             }
-            const agent = createVisualAgent(
-              agentId,
-              `Agent-${agentId.slice(0, 6)}`,
-              true,
-              occupied,
-            );
+            const agent = createVisualAgent(agentId, `Agent-${agentId.slice(0, 6)}`, false, occupied, true);
             agent.runId = event.runId;
             state.agents.set(agentId, agent);
+          } else {
+            // Create as unconfirmed — will be confirmed by poller or timeout
+            const agent = createVisualAgent(agentId, `Agent-${agentId.slice(0, 6)}`, false, new Set(), false);
+            agent.runId = event.runId;
+            state.agents.set(agentId, agent);
+            newUnconfirmedId = agentId;
           }
         }
 
@@ -273,11 +696,21 @@ export const useOfficeStore = create<OfficeStore>()(
             state.sessionKeyMap.set(event.sessionKey, existing);
           }
           updateCollaborationLinks(state, event.sessionKey, agentId);
+
+          if (state.agentToAgentConfig.enabled) {
+            scheduleMeetingGathering();
+          }
         }
 
         const agent = state.agents.get(agentId);
         if (agent) {
+          const prevStatus = agent.status;
           applyEventToAgent(agent, parsed);
+
+          // Zone migration: lounge ↔ hotDesk for confirmed sub-agents only
+          if (agent.isSubAgent && agent.confirmed && agent.zone !== "meeting") {
+            scheduleZoneMigration(agent.id, prevStatus, agent.status);
+          }
         }
 
         // Event history
@@ -293,8 +726,46 @@ export const useOfficeStore = create<OfficeStore>()(
           state.eventHistory = state.eventHistory.slice(-EVENT_HISTORY_LIMIT);
         }
 
+        // Non-blocking persistence to IndexedDB
+        queueMicrotask(() => {
+          localPersistence.saveEvent(historyItem).catch(() => {});
+        });
+
         state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
       });
+
+      // Post-set: create sub-agent via addSubAgent (mock adapter path)
+      const subToCreate = pendingSubAgentRef.value;
+      if (subToCreate) {
+        useOfficeStore.getState().addSubAgent(subToCreate.parentId, subToCreate.info);
+      }
+
+      // Schedule auto-confirmation timeout for unconfirmed agents
+      if (newUnconfirmedId) {
+        const id = newUnconfirmedId;
+        const timer = setTimeout(() => {
+          confirmationTimers.delete(id);
+          const store = useOfficeStore.getState();
+          const a = store.agents.get(id);
+          if (a && !a.confirmed) {
+            store.confirmAgent(id, "main");
+          }
+        }, UNCONFIRMED_TIMEOUT_MS);
+        confirmationTimers.set(id, timer);
+      }
+
+      // Sub-agent lifecycle end via explicit payload (mock adapter)
+      if (
+        event.stream === "lifecycle" &&
+        event.data.phase === "end" &&
+        event.data.agentId
+      ) {
+        const endId = event.data.agentId as string;
+        const sub = useOfficeStore.getState().agents.get(endId);
+        if (sub?.isSubAgent && !sub.isPlaceholder) {
+          useOfficeStore.getState().removeSubAgent(endId);
+        }
+      }
     },
 
     selectAgent: (id: string | null) => {
@@ -377,6 +848,36 @@ export const useOfficeStore = create<OfficeStore>()(
       }
     },
 
+    setMaxSubAgents: (n: number) => {
+      set((state) => {
+        if (n >= 1 && n <= 50) {
+          state.maxSubAgents = n;
+        }
+      });
+    },
+
+    setAgentToAgentConfig: (config: AgentToAgentConfig) => {
+      set((state) => {
+        state.agentToAgentConfig = config;
+      });
+    },
+
+    initEventHistory: async () => {
+      try {
+        await localPersistence.open();
+        const cached = await localPersistence.getEvents(EVENT_HISTORY_LIMIT);
+        if (cached.length > 0) {
+          set((state) => {
+            state.eventHistory = cached;
+          });
+        }
+        // Schedule cleanup for stale data
+        localPersistence.cleanup().catch(() => {});
+      } catch {
+        // IndexedDB unavailable — pure memory mode
+      }
+    },
+
     updateMetrics: () => {
       set((state) => {
         state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
@@ -384,6 +885,41 @@ export const useOfficeStore = create<OfficeStore>()(
     },
   })),
 );
+
+/**
+ * Check if the given agentId is likely a registered main agent.
+ * A main agent's sessionKey typically appears in the sessionKeyMap pointing
+ * to an existing confirmed agent, or the agentId itself matches a known agent.
+ * This prevents main agents with new runIds from becoming unconfirmed.
+ */
+function isRegisteredMainAgentId(
+  state: { agents: Map<string, VisualAgent>; sessionKeyMap: Map<string, string[]> },
+  agentId: string,
+  sessionKey?: string,
+): boolean {
+  // If the sessionKey already maps to a confirmed main agent, this is likely the same agent
+  // with a new runId. But the agentId is different from what we know → it's a new agent.
+  // However, if the agentId looks like one of our known agent IDs, trust it.
+  for (const a of state.agents.values()) {
+    if (!a.isSubAgent && !a.isPlaceholder && a.confirmed && a.id === agentId) {
+      return true;
+    }
+  }
+  // If sessionKey maps to a known main agent, this could be a sub-agent sharing the same session
+  if (sessionKey) {
+    const mapped = state.sessionKeyMap.get(sessionKey);
+    if (mapped) {
+      for (const mid of mapped) {
+        const ma = state.agents.get(mid);
+        if (ma && !ma.isSubAgent && ma.confirmed) {
+          // Session belongs to a known main agent but agentId differs → likely sub-agent
+          return false;
+        }
+      }
+    }
+  }
+  return false;
+}
 
 function updateCollaborationLinks(
   state: { links: CollaborationLink[]; sessionKeyMap: Map<string, string[]> },
@@ -425,4 +961,79 @@ function updateCollaborationLinks(
 
   // Decay stale links
   state.links = state.links.filter((l) => now - l.lastActivityAt < LINK_TIMEOUT_MS);
+}
+
+function scheduleMeetingGathering(): void {
+  if (meetingGatheringTimer) return;
+  meetingGatheringTimer = setTimeout(() => {
+    meetingGatheringTimer = null;
+    const state = useOfficeStore.getState();
+    if (!state.agentToAgentConfig.enabled) return;
+
+    const groups = detectMeetingGroups(
+      state.links,
+      state.agents,
+      state.agentToAgentConfig.allow,
+    );
+    const hash = JSON.stringify(groups.map((g) => g.agentIds.sort()));
+    if (hash === lastMeetingGroupsHash) return;
+    lastMeetingGroupsHash = hash;
+
+    applyMeetingGathering(
+      state.agents,
+      groups,
+      (id, pos) => useOfficeStore.getState().moveToMeeting(id, pos),
+      (id) => useOfficeStore.getState().returnFromMeeting(id),
+    );
+  }, MEETING_GATHERING_THROTTLE_MS);
+}
+
+function scheduleZoneMigration(
+  agentId: string,
+  prevStatus: AgentVisualStatus,
+  newStatus: AgentVisualStatus,
+): void {
+  const existingTimer = zoneMigrationTimers.get(agentId);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+    zoneMigrationTimers.delete(agentId);
+  }
+
+  const wasActive = isActiveStatus(prevStatus);
+  const nowActive = isActiveStatus(newStatus);
+
+  if (!wasActive && nowActive) {
+    // lounge → hotDesk with debounce
+    const timer = setTimeout(() => {
+      zoneMigrationTimers.delete(agentId);
+      migrateAgentToHotDesk(agentId);
+    }, LOUNGE_TO_HOTDESK_DEBOUNCE_MS);
+    zoneMigrationTimers.set(agentId, timer);
+  } else if (wasActive && !nowActive && newStatus === "idle") {
+    // hotDesk → lounge after sustained idle
+    const timer = setTimeout(() => {
+      zoneMigrationTimers.delete(agentId);
+      migrateAgentToLounge(agentId);
+    }, HOTDESK_TO_LOUNGE_DELAY_MS);
+    zoneMigrationTimers.set(agentId, timer);
+  }
+}
+
+function migrateAgentToHotDesk(agentId: string): void {
+  const state = useOfficeStore.getState();
+  const agent = state.agents.get(agentId);
+  if (!agent || !agent.isSubAgent || agent.zone !== "lounge") return;
+  if (agent.movement?.toZone === "hotDesk") return;
+
+  useOfficeStore.getState().startMovement(agentId, "hotDesk");
+}
+
+function migrateAgentToLounge(agentId: string): void {
+  const state = useOfficeStore.getState();
+  const agent = state.agents.get(agentId);
+  if (!agent || !agent.isSubAgent || agent.zone !== "hotDesk") return;
+  if (isActiveStatus(agent.status)) return;
+  if (agent.movement?.toZone === "lounge") return;
+
+  useOfficeStore.getState().startMovement(agentId, "lounge");
 }

@@ -1,6 +1,8 @@
 import { create } from "zustand";
-import type { SkillInfo } from "@/gateway/adapter-types";
 import { getAdapter, waitForAdapter } from "@/gateway/adapter-provider";
+import type { SkillInfo, SkillInstallResult } from "@/gateway/adapter-types";
+import i18n from "@/i18n";
+import { toastSuccess, toastError } from "@/store/toast-store";
 
 export type SkillTab = "installed" | "marketplace";
 export type SkillSourceFilter = "all" | "built-in" | "marketplace";
@@ -22,7 +24,7 @@ interface SkillsStoreState {
   openDetail: (skill: SkillInfo) => void;
   closeDetail: () => void;
   toggleSkill: (skillKey: string, enabled: boolean) => Promise<void>;
-  installSkill: (name: string, installId: string) => Promise<{ ok: boolean; message: string }>;
+  installSkill: (name: string, installId: string) => Promise<SkillInstallResult>;
 }
 
 function compareSkillPriority(a: SkillInfo, b: SkillInfo): number {
@@ -113,8 +115,16 @@ export const useSkillsStore = create<SkillsStoreState>((set, get) => ({
         set((s) => ({
           skills: s.skills.map((sk) => (sk.id === skillKey ? { ...sk, enabled } : sk)),
         }));
+        const skill = get().skills.find((s) => s.id === skillKey);
+        const label = skill?.name ?? skillKey;
+        toastSuccess(
+          enabled
+            ? i18n.t("console:skills.toast.enabled", { name: label })
+            : i18n.t("console:skills.toast.disabled", { name: label }),
+        );
       }
     } catch (err) {
+      toastError(i18n.t("console:skills.toast.toggleFailed"), String(err));
       set({ error: String(err) });
     }
   },
@@ -128,9 +138,23 @@ export const useSkillsStore = create<SkillsStoreState>((set, get) => ({
       const result = await getAdapter().skillsInstall(name, installId);
       if (result.ok) {
         await get().fetchSkills();
+        toastSuccess(i18n.t("console:skills.toast.installSuccess", { name }));
+      } else {
+        const detail = [result.stdout, result.stderr].filter(Boolean).join("\n\n");
+        toastError(
+          i18n.t("console:skills.toast.installFailed", { name }),
+          result.message,
+          detail || undefined,
+        );
+      }
+      if (result.warnings?.length) {
+        for (const w of result.warnings) {
+          toastError(i18n.t("console:skills.toast.installWarning"), w);
+        }
       }
       return result;
     } catch (err) {
+      toastError(i18n.t("console:skills.toast.installFailed", { name }), String(err));
       return { ok: false, message: String(err) };
     } finally {
       const updated = new Set(get().installing);

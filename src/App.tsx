@@ -1,19 +1,19 @@
 import { lazy, Suspense, useState, useEffect } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConsoleLayout } from "@/components/layout/ConsoleLayout";
 import { FloorPlan } from "@/components/office-2d/FloorPlan";
-import { DashboardPage } from "@/components/pages/DashboardPage";
-import { ChannelsPage } from "@/components/pages/ChannelsPage";
-import { SkillsPage } from "@/components/pages/SkillsPage";
-import { CronPage } from "@/components/pages/CronPage";
-import { SettingsPage } from "@/components/pages/SettingsPage";
 import { AgentsPage } from "@/components/pages/AgentsPage";
+import { ChannelsPage } from "@/components/pages/ChannelsPage";
+import { CronPage } from "@/components/pages/CronPage";
+import { DashboardPage } from "@/components/pages/DashboardPage";
+import { SettingsPage } from "@/components/pages/SettingsPage";
+import { SkillsPage } from "@/components/pages/SkillsPage";
+import type { PageId } from "@/gateway/types";
 import { useGatewayConnection } from "@/hooks/useGatewayConnection";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useOfficeStore } from "@/store/office-store";
-import type { PageId } from "@/gateway/types";
 
 const Scene3D = lazy(() => import("@/components/office-3d/Scene3D"));
 
@@ -102,7 +102,8 @@ export function App() {
   const injected = (window as unknown as Record<string, unknown>).__OPENCLAW_CONFIG__ as
     | { gatewayUrl?: string; gatewayToken?: string }
     | undefined;
-  const gatewayUrl = injected?.gatewayUrl || import.meta.env.VITE_GATEWAY_URL || "ws://localhost:18789";
+  const gatewayUrl =
+    injected?.gatewayUrl || import.meta.env.VITE_GATEWAY_URL || "ws://localhost:18789";
   const gatewayToken = injected?.gatewayToken || import.meta.env.VITE_GATEWAY_TOKEN || "";
   const { isMobile } = useResponsive();
   const setViewMode = useOfficeStore((s) => s.setViewMode);

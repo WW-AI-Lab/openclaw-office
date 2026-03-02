@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { Play, Pencil, Trash2, Check, XCircle, Minus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { CronTask } from "@/gateway/adapter-types";
 import { toCronTaskCardVM } from "@/lib/view-models";
 
@@ -31,7 +31,9 @@ export function CronTaskCard({ task, onToggle, onRun, onEdit, onDelete }: CronTa
   const nextRun = vm.nextRunAt ? new Date(vm.nextRunAt).toLocaleString() : "—";
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-4 transition-opacity dark:border-gray-700 dark:bg-gray-800 ${!task.enabled ? "opacity-60" : ""}`}>
+    <div
+      className={`rounded-lg border border-gray-200 bg-white p-4 transition-opacity dark:border-gray-700 dark:bg-gray-800 ${!task.enabled ? "opacity-60" : ""}`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <label className="relative mt-0.5 inline-flex cursor-pointer items-center">
@@ -51,7 +53,9 @@ export function CronTaskCard({ task, onToggle, onRun, onEdit, onDelete }: CronTa
               </span>
             </div>
             {message && (
-              <p className="mt-1 line-clamp-1 text-sm text-gray-500 dark:text-gray-400">{message}</p>
+              <p className="mt-1 line-clamp-1 text-sm text-gray-500 dark:text-gray-400">
+                {message}
+              </p>
             )}
             <div className="mt-2 flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
               <span className="flex items-center gap-1">
@@ -60,7 +64,9 @@ export function CronTaskCard({ task, onToggle, onRun, onEdit, onDelete }: CronTa
                   <span className="ml-1">{STATUS_ICON[task.state.lastRunStatus] ?? null}</span>
                 )}
               </span>
-              <span>{t("cron.card.nextRun")}: {nextRun}</span>
+              <span>
+                {t("cron.card.nextRun")}: {nextRun}
+              </span>
             </div>
             {task.state.lastError && (
               <p className="mt-1 text-xs text-red-500">{task.state.lastError}</p>
@@ -69,13 +75,28 @@ export function CronTaskCard({ task, onToggle, onRun, onEdit, onDelete }: CronTa
         </div>
 
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => onRun(task.id)} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors" title={t("cron.card.runNow")}>
+          <button
+            type="button"
+            onClick={() => onRun(task.id)}
+            className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors"
+            title={t("cron.card.runNow")}
+          >
             <Play className="h-4 w-4" />
           </button>
-          <button type="button" onClick={() => onEdit(task)} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors" title={t("common:actions.edit")}>
+          <button
+            type="button"
+            onClick={() => onEdit(task)}
+            className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors"
+            title={t("common:actions.edit")}
+          >
             <Pencil className="h-4 w-4" />
           </button>
-          <button type="button" onClick={() => onDelete(task.id)} className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors" title={t("common:actions.delete")}>
+          <button
+            type="button"
+            onClick={() => onDelete(task.id)}
+            className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
+            title={t("common:actions.delete")}
+          >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>

@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import { getAdapter } from "@/gateway/adapter-provider";
-import i18n from "@/i18n";
 import type { GatewayAdapter } from "@/gateway/adapter";
+import { getAdapter } from "@/gateway/adapter-provider";
 import type { SessionInfo } from "@/gateway/adapter-types";
 import type { GatewayEventFrame } from "@/gateway/types";
+import i18n from "@/i18n";
+import { localPersistence } from "@/lib/local-persistence";
 import { generateMessageId } from "@/lib/message-utils";
 
 export type MessageRole = "user" | "assistant";
@@ -26,6 +27,8 @@ interface ChatDockState {
   error: string | null;
   activeRunId: string | null;
   streamingMessage: Record<string, unknown> | null;
+  isHistoryLoaded: boolean;
+  isHistoryLoading: boolean;
 
   sendMessage: (text: string) => Promise<void>;
   abort: () => Promise<void>;
@@ -35,10 +38,15 @@ interface ChatDockState {
   newSession: () => void;
   loadSessions: () => Promise<void>;
   loadHistory: () => Promise<void>;
+  initializeHistory: () => Promise<void>;
   setTargetAgent: (agentId: string) => void;
   handleChatEvent: (event: Record<string, unknown>) => void;
   clearError: () => void;
-  initEventListeners: (wsClient: { onEvent: (name: string, handler: (frame: GatewayEventFrame) => void) => () => void } | null) => () => void;
+  initEventListeners: (
+    wsClient: {
+      onEvent: (name: string, handler: (frame: GatewayEventFrame) => void) => () => void;
+    } | null,
+  ) => () => void;
 }
 
 function buildSessionKey(agentId: string): string {
@@ -56,6 +64,9 @@ function extractText(content: unknown): string {
   return "";
 }
 
+// Ensure IndexedDB is opened at module load (non-blocking)
+localPersistence.open().catch(() => {});
+
 export const useChatDockStore = create<ChatDockState>((set, get) => ({
   messages: [],
   isStreaming: false,
@@ -66,6 +77,8 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
   error: null,
   activeRunId: null,
   streamingMessage: null,
+  isHistoryLoaded: false,
+  isHistoryLoading: false,
 
   sendMessage: async (text) => {
     const trimmed = text.trim();
@@ -83,9 +96,12 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
     set((s) => ({
       messages: [...s.messages, userMsg],
       isStreaming: true,
+      dockExpanded: true,
       error: null,
       streamingMessage: null,
     }));
+
+    localPersistence.saveMessage(currentSessionKey, userMsg).catch(() => {});
 
     try {
       let adapter: GatewayAdapter;
@@ -96,7 +112,10 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
         set({ error: i18n.t("common:errors.adapterNotInitialized"), isStreaming: false });
         return;
       }
-      console.log("[ChatDock] Sending chat.send:", { text: trimmed, sessionKey: currentSessionKey });
+      console.log("[ChatDock] Sending chat.send:", {
+        text: trimmed,
+        sessionKey: currentSessionKey,
+      });
       await adapter.chatSend({
         text: trimmed,
         sessionKey: currentSessionKey,
@@ -139,8 +158,9 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
       activeRunId: null,
       error: null,
       isStreaming: false,
+      isHistoryLoaded: false,
     });
-    get().loadHistory();
+    get().initializeHistory();
   },
 
   newSession: () => {
@@ -179,8 +199,34 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
         timestamp: m.timestamp,
       }));
       set({ messages });
+      localPersistence.saveMessages(currentSessionKey, messages).catch(() => {});
     } catch {
       set({ messages: [] });
+    }
+  },
+
+  initializeHistory: async () => {
+    const { currentSessionKey } = get();
+    set({ isHistoryLoading: true });
+    try {
+      const adapter = getAdapter();
+      const rawMessages = await adapter.chatHistory(currentSessionKey);
+      const messages: ChatDockMessage[] = rawMessages.map((m) => ({
+        id: m.id,
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.content,
+        timestamp: m.timestamp,
+      }));
+      set({ messages, isHistoryLoaded: true, isHistoryLoading: false });
+      localPersistence.saveMessages(currentSessionKey, messages).catch(() => {});
+    } catch {
+      // Gateway unavailable — fallback to IndexedDB
+      try {
+        const cached = await localPersistence.getMessages(currentSessionKey);
+        set({ messages: cached, isHistoryLoaded: true, isHistoryLoading: false });
+      } catch {
+        set({ messages: [], isHistoryLoaded: true, isHistoryLoading: false });
+      }
     }
   },
 
@@ -194,8 +240,9 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
       activeRunId: null,
       error: null,
       isStreaming: false,
+      isHistoryLoaded: false,
     });
-    get().loadHistory();
+    get().initializeHistory();
   },
 
   handleChatEvent: (event) => {
@@ -206,7 +253,9 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
     // Infer state if missing
     let resolvedState = eventState;
     if (!resolvedState && message) {
-      const stopReason = (message as Record<string, unknown>).stopReason ?? (message as Record<string, unknown>).stop_reason;
+      const stopReason =
+        (message as Record<string, unknown>).stopReason ??
+        (message as Record<string, unknown>).stop_reason;
       if (stopReason) {
         resolvedState = "final";
       } else if (message.role || message.content) {
@@ -240,13 +289,14 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
               streamingMessage: null,
               activeRunId: null,
             }));
+            const { currentSessionKey } = get();
+            localPersistence.saveMessage(currentSessionKey, assistantMsg).catch(() => {});
           } else {
             set({
               isStreaming: false,
               streamingMessage: null,
               activeRunId: null,
             });
-            // Reload history to get all messages
             get().loadHistory();
           }
         } else {

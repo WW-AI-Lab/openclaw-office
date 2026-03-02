@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { RefreshCw, Plus, Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAgentsStore } from "@/store/console-stores/agents-store";
 import { AgentListItem } from "./AgentListItem";
 
@@ -28,7 +28,9 @@ export function AgentListPanel() {
     <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t("agents.panelTitle")}</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {t("agents.panelTitle")}
+          </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {t("agents.configured", { count: agents.length })}
           </p>

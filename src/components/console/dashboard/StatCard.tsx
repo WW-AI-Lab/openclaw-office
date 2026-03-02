@@ -9,7 +9,14 @@ interface StatCardProps {
   color?: string;
 }
 
-export function StatCard({ icon: Icon, title, value, subtitle, progress, color = "text-blue-500" }: StatCardProps) {
+export function StatCard({
+  icon: Icon,
+  title,
+  value,
+  subtitle,
+  progress,
+  color = "text-blue-500",
+}: StatCardProps) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
       <div className="mb-2 flex items-center gap-2">

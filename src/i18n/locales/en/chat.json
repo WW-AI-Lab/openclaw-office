@@ -17,6 +17,14 @@
     "killWarning": "Are you sure you want to kill <strong>{{name}}</strong>'s current run? This cannot be undone.",
     "kill": "Kill"
   },
+  "chatDialog": {
+    "loadingHistory": "Loading history...",
+    "scrollToBottom": "Scroll to bottom"
+  },
+  "sessionSwitcher": {
+    "noSessions": "No other sessions",
+    "newSession": "New session"
+  },
   "contextMenu": {
     "pause": "Pause",
     "resume": "Resume",

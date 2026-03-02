@@ -1,12 +1,32 @@
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { Radio, Wrench, Clock, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 const NAV_ITEMS = [
-  { path: "/channels", icon: Radio, titleKey: "console:channels.title", descKey: "console:channels.description" },
-  { path: "/skills", icon: Wrench, titleKey: "console:skills.title", descKey: "console:skills.description" },
-  { path: "/cron", icon: Clock, titleKey: "console:cron.title", descKey: "console:cron.description" },
-  { path: "/settings", icon: Settings, titleKey: "console:settings.title", descKey: "console:settings.description" },
+  {
+    path: "/channels",
+    icon: Radio,
+    titleKey: "console:channels.title",
+    descKey: "console:channels.description",
+  },
+  {
+    path: "/skills",
+    icon: Wrench,
+    titleKey: "console:skills.title",
+    descKey: "console:skills.description",
+  },
+  {
+    path: "/cron",
+    icon: Clock,
+    titleKey: "console:cron.title",
+    descKey: "console:cron.description",
+  },
+  {
+    path: "/settings",
+    icon: Settings,
+    titleKey: "console:settings.title",
+    descKey: "console:settings.description",
+  },
 ];
 
 export function QuickNavGrid() {
@@ -24,8 +44,12 @@ export function QuickNavGrid() {
         >
           <item.icon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           <div>
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{t(item.titleKey)}</div>
-            <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{t(item.descKey)}</div>
+            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {t(item.titleKey)}
+            </div>
+            <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+              {t(item.descKey)}
+            </div>
           </div>
         </button>
       ))}

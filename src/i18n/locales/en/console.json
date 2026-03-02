@@ -170,10 +170,50 @@
       "author": "Author {{author}}",
       "learnMore": "Details"
     },
+    "toast": {
+      "enabled": "{{name}} enabled",
+      "disabled": "{{name}} disabled",
+      "toggleFailed": "Failed to toggle skill",
+      "installSuccess": "{{name}} installed successfully",
+      "installFailed": "Failed to install {{name}}",
+      "installWarning": "Install warning"
+    },
     "empty": {
       "title": "No skills found",
       "description": "Try switching tabs or adjusting filters"
     }
+  },
+  "clawhub": {
+    "searchPlaceholder": "Search skills on ClawHub...",
+    "offlineNotice": "Cannot connect to ClawHub, showing locally installed skills",
+    "noSearchResults": "No matching skills found",
+    "tryDifferentQuery": "Try different search keywords",
+    "noSkills": "No skills available",
+    "noSkillsDescription": "ClawHub has no skills at the moment",
+    "loadMore": "Load More",
+    "downloads": "downloads",
+    "stars": "stars",
+    "viewOnClawHub": "View on ClawHub",
+    "notFound": "Skill not found",
+    "installTitle": "Install {{name}}",
+    "securityWarning": "Please review the skill source code and permissions before installing. Third-party skills may access your system.",
+    "installCommand": "Run this command in your terminal:",
+    "cancel": "Cancel",
+    "installDone": "I've installed it"
+  },
+  "toast": {
+    "showDetail": "Show details",
+    "hideDetail": "Hide details"
+  },
+  "commandResult": {
+    "exitCode": "Exit code",
+    "copyAll": "Copy all"
+  },
+  "restart": {
+    "pending": "Gateway restarting in {{seconds}}s...",
+    "disconnected": "Gateway disconnected, waiting for restart...",
+    "reconnecting": "Reconnecting...",
+    "complete": "Gateway is back online"
   },
   "cron": {
     "title": "Cron Tasks",
@@ -244,6 +284,7 @@
       "emptyHint": "Click the button above to add your first provider",
       "apiKeyConfigured": "Configured",
       "apiKeyNotConfigured": "Not configured",
+      "systemDiscovered": "System",
       "modelCount": "{{count}} model(s)",
       "deleteTitle": "Delete Provider",
       "deleteDescription": "Are you sure you want to delete provider \"{{name}}\"? You will need to reconfigure it.",

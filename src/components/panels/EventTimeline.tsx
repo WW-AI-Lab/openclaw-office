@@ -83,7 +83,9 @@ export function EventTimeline() {
         </button>
       ))}
       {displayEvents.length === 0 && (
-        <div className="py-3 text-center text-xs text-gray-400 dark:text-gray-500">{t("common:empty.noEvents")}</div>
+        <div className="py-3 text-center text-xs text-gray-400 dark:text-gray-500">
+          {t("common:empty.noEvents")}
+        </div>
       )}
     </div>
   );

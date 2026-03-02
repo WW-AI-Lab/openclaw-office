@@ -8,9 +8,7 @@ export function ChannelsTab() {
       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
         {t("agents.channels.title")}
       </h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        {t("agents.channels.noBindings")}
-      </p>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{t("agents.channels.noBindings")}</p>
     </div>
   );
 }

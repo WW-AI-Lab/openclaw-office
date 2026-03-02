@@ -9,6 +9,7 @@ import {
   SCALE_Z_2D_TO_3D,
   MEETING_SEAT_RADIUS,
   DESK_UNIT,
+  MIN_DESK_WIDTH,
 } from "./constants";
 
 function hashString(str: string): number {
@@ -111,21 +112,26 @@ export interface DeskSlot {
   unitY: number;
 }
 
-/** Adaptive column count based on agent count */
-function adaptiveCols(agentCount: number): number {
-  if (agentCount <= 8) {
-    return 2;
-  }
-  if (agentCount <= 12) {
-    return 3;
-  }
-  return 4;
+/**
+ * Adaptive column count: horizontal-first strategy.
+ * Fills as many columns as the zone width allows (min desk width = 100px),
+ * defaulting to at least 4 columns, then grows rows as needed.
+ */
+export function adaptiveCols(
+  zoneWidth: number,
+  slotCount: number,
+  padX = 40,
+): number {
+  const availW = zoneWidth - padX * 2;
+  const maxCols = Math.max(1, Math.floor(availW / MIN_DESK_WIDTH));
+  return Math.min(maxCols, Math.max(slotCount, 4));
 }
 
 /**
  * Calculate desk-unit positions inside a zone.
  * Returns an array of (x,y) center-points for DeskUnit placement.
  * `slotCount` is the total number of slots to create (>= agentCount to show empty desks).
+ * Uses horizontal-first layout: fills columns first, then expands rows.
  */
 export function calculateDeskSlots(
   zone: { x: number; y: number; width: number; height: number },
@@ -136,10 +142,10 @@ export function calculateDeskSlots(
   if (total === 0) {
     return [];
   }
-  const cols = adaptiveCols(agentCount);
-  const rows = Math.ceil(total / cols);
   const padX = 40;
   const padY = 50;
+  const cols = adaptiveCols(zone.width, total, padX);
+  const rows = Math.ceil(total / cols);
   const availW = zone.width - padX * 2;
   const availH = zone.height - padY * 2;
   const cellW = Math.min(DESK_UNIT.width, availW / cols);
@@ -163,6 +169,29 @@ export function calculateDeskSlots(
  */
 export function agentSlotIndex(agentId: string, totalSlots: number): number {
   return hashString(agentId) % totalSlots;
+}
+
+/**
+ * Pre-defined anchor points in the lounge zone for idle sub-agents.
+ * Positioned near sofas and coffee tables, avoiding overlap with decorative elements.
+ */
+export function calculateLoungePositions(maxCount: number): Array<{ x: number; y: number }> {
+  const lz = ZONES.lounge;
+  const anchors = [
+    { x: lz.x + 60, y: lz.y + 40 },
+    { x: lz.x + 160, y: lz.y + 40 },
+    { x: lz.x + 260, y: lz.y + 40 },
+    { x: lz.x + 360, y: lz.y + 40 },
+    { x: lz.x + 60, y: lz.y + 120 },
+    { x: lz.x + 160, y: lz.y + 120 },
+    { x: lz.x + 260, y: lz.y + 120 },
+    { x: lz.x + 360, y: lz.y + 120 },
+    { x: lz.x + 440, y: lz.y + 60 },
+    { x: lz.x + 440, y: lz.y + 130 },
+    { x: lz.x + 100, y: lz.y + 180 },
+    { x: lz.x + 280, y: lz.y + 180 },
+  ];
+  return anchors.slice(0, Math.min(maxCount, anchors.length));
 }
 
 /** Meeting-zone seat positions (SVG coords, circular layout) */

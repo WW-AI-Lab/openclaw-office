@@ -35,7 +35,10 @@ describe("Config Store - Phase D", () => {
   it("fetchConfig populates models.providers", async () => {
     await useConfigStore.getState().fetchConfig();
     const { config } = useConfigStore.getState();
-    const providers = (config?.models as Record<string, unknown>)?.providers as Record<string, unknown>;
+    const providers = (config?.models as Record<string, unknown>)?.providers as Record<
+      string,
+      unknown
+    >;
     expect(providers).toBeTruthy();
     expect(providers.anthropic).toBeTruthy();
     expect(providers.openai).toBeTruthy();
@@ -46,13 +49,20 @@ describe("Config Store - Phase D", () => {
     const oldHash = useConfigStore.getState().hash;
 
     const result = await useConfigStore.getState().patchConfig({
-      models: { providers: { "my-ollama": { baseUrl: "http://localhost:11434", api: "openai-completions", models: [] } } },
+      models: {
+        providers: {
+          "my-ollama": { baseUrl: "http://localhost:11434", api: "openai-completions", models: [] },
+        },
+      },
     });
     expect(result.ok).toBe(true);
 
     const state = useConfigStore.getState();
     expect(state.hash).not.toBe(oldHash);
-    const providers = (state.config?.models as Record<string, unknown>)?.providers as Record<string, unknown>;
+    const providers = (state.config?.models as Record<string, unknown>)?.providers as Record<
+      string,
+      unknown
+    >;
     expect(providers["my-ollama"]).toBeTruthy();
   });
 
@@ -63,7 +73,10 @@ describe("Config Store - Phase D", () => {
     });
 
     const { config } = useConfigStore.getState();
-    const providers = (config?.models as Record<string, unknown>)?.providers as Record<string, unknown>;
+    const providers = (config?.models as Record<string, unknown>)?.providers as Record<
+      string,
+      unknown
+    >;
     expect(providers.openai).toBeUndefined();
     expect(providers.anthropic).toBeTruthy();
   });

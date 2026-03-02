@@ -1,8 +1,8 @@
+import { Download, Loader2, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Loader2, CheckCircle, AlertTriangle, Info } from "lucide-react";
-import { useConfigStore } from "@/store/console-stores/config-store";
 import { ConfirmDialog } from "@/components/console/shared/ConfirmDialog";
+import { useConfigStore } from "@/store/console-stores/config-store";
 
 export function UpdateSection() {
   const { t } = useTranslation("console");
@@ -14,7 +14,9 @@ export function UpdateSection() {
 
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const channel = (config?.update as Record<string, unknown> | undefined)?.channel as string | undefined;
+  const channel = (config?.update as Record<string, unknown> | undefined)?.channel as
+    | string
+    | undefined;
 
   const handleUpdate = async () => {
     setConfirmOpen(false);
@@ -70,22 +72,33 @@ export function UpdateSection() {
         </div>
 
         {updateResult && (
-          <div className={`mt-3 flex items-start gap-2 rounded-lg px-4 py-3 text-sm ${
-            updateResult.result.status === "ok"
-              ? "bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300"
-              : updateResult.result.status === "noop"
-                ? "bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
-                : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300"
-          }`}>
-            {updateResult.result.status === "ok" && <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />}
+          <div
+            className={`mt-3 flex items-start gap-2 rounded-lg px-4 py-3 text-sm ${
+              updateResult.result.status === "ok"
+                ? "bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300"
+                : updateResult.result.status === "noop"
+                  ? "bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
+                  : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300"
+            }`}
+          >
+            {updateResult.result.status === "ok" && (
+              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
             {updateResult.result.status === "noop" && <Info className="mt-0.5 h-4 w-4 shrink-0" />}
-            {updateResult.result.status === "error" && <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />}
+            {updateResult.result.status === "error" && (
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
             <span>
               {updateResult.result.status === "ok" &&
-                t("settings.update.resultOk", { before: updateResult.result.before ?? "?", after: updateResult.result.after ?? "?" })}
+                t("settings.update.resultOk", {
+                  before: updateResult.result.before ?? "?",
+                  after: updateResult.result.after ?? "?",
+                })}
               {updateResult.result.status === "noop" && t("settings.update.resultNoop")}
               {updateResult.result.status === "error" &&
-                t("settings.update.resultError", { reason: updateResult.result.reason ?? "Unknown error" })}
+                t("settings.update.resultError", {
+                  reason: updateResult.result.reason ?? "Unknown error",
+                })}
             </span>
           </div>
         )}

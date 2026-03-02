@@ -79,6 +79,7 @@ export function useSubAgentPoller(rpcClient: React.RefObject<GatewayRpcClient | 
         for (const sub of added) {
           const parentId = resolveParentAgent(sub.requesterSessionKey);
           if (parentId) {
+            // addSubAgent handles: unconfirmed→confirm, placeholder activation, walk animation
             addSubAgent(parentId, sub);
           }
         }

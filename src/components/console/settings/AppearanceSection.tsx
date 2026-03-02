@@ -1,5 +1,5 @@
-import { useTranslation } from "react-i18next";
 import { Sun, Moon, Monitor } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useConsoleSettingsStore } from "@/store/console-stores/settings-store";
 import { useOfficeStore } from "@/store/office-store";
 

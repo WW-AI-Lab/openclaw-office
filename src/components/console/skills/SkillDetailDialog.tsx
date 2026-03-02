@@ -1,8 +1,19 @@
+import {
+  ExternalLink,
+  Check,
+  X,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Lock,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, Check, X, Eye, EyeOff, ChevronDown, ChevronRight, Plus, Trash2, Lock } from "lucide-react";
-import type { SkillInfo } from "@/gateway/adapter-types";
 import { getAdapter } from "@/gateway/adapter-provider";
+import type { SkillInfo } from "@/gateway/adapter-types";
 
 interface SkillDetailDialogProps {
   open: boolean;
@@ -82,7 +93,9 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
     setEnvVars((current) => current.filter((_, idx) => idx !== index));
   };
   const handleUpdateEnv = (index: number, field: "key" | "value", value: string) => {
-    setEnvVars((current) => current.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)));
+    setEnvVars((current) =>
+      current.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)),
+    );
   };
 
   return (
@@ -98,7 +111,9 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
               <span className="text-3xl">{skill.icon || "📦"}</span>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{skill.name}</h3>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    {skill.name}
+                  </h3>
                   {isCoreLocked && <Lock className="h-4 w-4 text-gray-400" />}
                 </div>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -124,7 +139,11 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
               </div>
             </div>
 
-            <button type="button" onClick={onClose} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -144,8 +163,15 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
 
               {skill.homepage && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">{t("skills.detail.homepage")}:</span>
-                  <a href={skill.homepage} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline dark:text-blue-400">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {t("skills.detail.homepage")}:
+                  </span>
+                  <a
+                    href={skill.homepage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-600 hover:underline dark:text-blue-400"
+                  >
                     {skill.homepage}
                     <ExternalLink className="h-3 w-3" />
                   </a>
@@ -154,13 +180,19 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
 
               {skill.requirements && (
                 <div>
-                  <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">{t("skills.detail.requirements")}</h4>
+                  <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("skills.detail.requirements")}
+                  </h4>
                   <div className="space-y-2">
                     {skill.requirements.bins?.map((bin) => {
                       const isMissing = skill.missing?.bins?.includes(bin);
                       return (
                         <div key={bin} className="flex items-center gap-2 text-sm">
-                          {isMissing ? <X className="h-4 w-4 text-red-500" /> : <Check className="h-4 w-4 text-green-500" />}
+                          {isMissing ? (
+                            <X className="h-4 w-4 text-red-500" />
+                          ) : (
+                            <Check className="h-4 w-4 text-green-500" />
+                          )}
                           <code className="text-xs">{bin}</code>
                         </div>
                       );
@@ -184,7 +216,11 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
                       placeholder={t("skills.detail.apiKeyPlaceholder")}
                       className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     />
-                    <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
                       {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
@@ -193,11 +229,23 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
 
               <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <button type="button" onClick={() => setEnvExpanded((value) => !value)} className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {envExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <button
+                    type="button"
+                    onClick={() => setEnvExpanded((value) => !value)}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {envExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
                     {t("skills.detail.envVars")}
                   </button>
-                  <button type="button" onClick={handleAddEnv} className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                  <button
+                    type="button"
+                    onClick={handleAddEnv}
+                    className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
                     <Plus className="h-3 w-3" />
                     {t("skills.detail.addVariable")}
                   </button>
@@ -223,7 +271,11 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
                             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-mono dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                             placeholder={t("skills.detail.valuePlaceholder")}
                           />
-                          <button type="button" onClick={() => handleRemoveEnv(index)} className="rounded-md p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEnv(index)}
+                            className="rounded-md p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -235,11 +287,17 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
 
               {skill.configChecks && skill.configChecks.length > 0 && (
                 <div>
-                  <label className="mb-2 block text-xs text-gray-500 dark:text-gray-400">{t("skills.detail.configChecks")}</label>
+                  <label className="mb-2 block text-xs text-gray-500 dark:text-gray-400">
+                    {t("skills.detail.configChecks")}
+                  </label>
                   <div className="space-y-1">
                     {skill.configChecks.map((check) => (
                       <div key={check.path} className="flex items-center gap-2 text-sm">
-                        {check.satisfied ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
+                        {check.satisfied ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <X className="h-4 w-4 text-red-500" />
+                        )}
                         <code className="text-xs">{check.path}</code>
                       </div>
                     ))}
@@ -248,7 +306,12 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
               )}
 
               <div className="flex justify-end">
-                <button type="button" onClick={handleSave} disabled={saving} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
                   {saving ? t("skills.detail.saving") : t("common:actions.save")}
                 </button>
               </div>
@@ -260,21 +323,40 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
 
         <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4 dark:border-gray-700">
           <div className="flex items-center gap-2 text-sm">
-            {skill.enabled ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-gray-400" />}
-            <span className={skill.enabled ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}>
+            {skill.enabled ? (
+              <Check className="h-4 w-4 text-green-500" />
+            ) : (
+              <X className="h-4 w-4 text-gray-400" />
+            )}
+            <span
+              className={
+                skill.enabled
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-gray-500 dark:text-gray-400"
+              }
+            >
               {skill.enabled ? t("skills.detail.enabled") : t("skills.detail.disabled")}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <button type="button" onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+            >
               {t("common:actions.close")}
             </button>
-            <label className="relative inline-flex cursor-pointer items-center" title={isCoreLocked ? t("skills.card.coreProtected") : undefined}>
+            <label
+              className="relative inline-flex cursor-pointer items-center"
+              title={isCoreLocked ? t("skills.card.coreProtected") : undefined}
+            >
               <input
                 type="checkbox"
                 checked={skill.enabled}
-                onChange={() => getAdapter().skillsUpdate(skill.id, { enabled: !skill.enabled }).then(onSaved)}
+                onChange={() =>
+                  getAdapter().skillsUpdate(skill.id, { enabled: !skill.enabled }).then(onSaved)
+                }
                 disabled={isCoreLocked}
                 className="peer sr-only"
               />

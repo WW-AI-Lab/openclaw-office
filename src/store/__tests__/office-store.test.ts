@@ -48,7 +48,9 @@ describe("office-store", () => {
       ]);
 
       const state = useOfficeStore.getState();
-      expect(state.agents.size).toBe(2);
+      // 2 real agents + 8 placeholder agents (maxSubAgents default)
+      const realAgents = Array.from(state.agents.values()).filter((a) => !a.isPlaceholder);
+      expect(realAgents).toHaveLength(2);
       expect(state.agents.get("agent-1")?.name).toBe("Coder");
       expect(state.agents.get("agent-2")?.name).toBe("Rev");
       expect(state.globalMetrics.totalAgents).toBe(2);
@@ -111,7 +113,7 @@ describe("office-store", () => {
       }
     });
 
-    it("creates temporary agent for unknown runId", () => {
+    it("creates unconfirmed agent for unknown runId in corridor zone", () => {
       useOfficeStore.getState().processAgentEvent({
         runId: "unknown-run",
         seq: 1,
@@ -123,7 +125,8 @@ describe("office-store", () => {
       const state = useOfficeStore.getState();
       const agent = state.agents.get("unknown-run");
       expect(agent).toBeDefined();
-      expect(agent?.isSubAgent).toBe(true);
+      expect(agent?.confirmed).toBe(false);
+      expect(agent?.zone).toBe("corridor");
       expect(agent?.status).toBe("thinking");
     });
   });

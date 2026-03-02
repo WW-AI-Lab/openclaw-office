@@ -1,8 +1,8 @@
+import { Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
-import { useConfigStore } from "@/store/console-stores/config-store";
 import { REDACTED_SENTINEL } from "@/lib/provider-types";
+import { useConfigStore } from "@/store/console-stores/config-store";
 
 export function DeveloperSection() {
   const { t } = useTranslation("console");
@@ -15,7 +15,9 @@ export function DeveloperSection() {
   const [showRaw, setShowRaw] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const gatewayAuth = (config?.gateway as Record<string, unknown> | undefined)?.auth as Record<string, unknown> | undefined;
+  const gatewayAuth = (config?.gateway as Record<string, unknown> | undefined)?.auth as
+    | Record<string, unknown>
+    | undefined;
   const tokenConfigured = gatewayAuth?.token === REDACTED_SENTINEL;
   const wsUrl = import.meta.env.VITE_GATEWAY_URL || "ws://localhost:18789";
 
@@ -64,7 +66,10 @@ export function DeveloperSection() {
               className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline dark:text-blue-400"
             >
               {showRaw ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              {showRaw ? t("settings.developer.hideConfig") : t("settings.developer.showConfig")} {t("settings.developer.rawConfig")}
+              {showRaw
+                ? t("settings.developer.hideConfig")
+                : t("settings.developer.showConfig")}{" "}
+              {t("settings.developer.rawConfig")}
             </button>
             {showRaw && (
               <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-100 p-3 text-xs text-gray-800 dark:bg-gray-900 dark:text-gray-300">
@@ -78,7 +83,15 @@ export function DeveloperSection() {
   );
 }
 
-function DevRow({ label, value, hint, copyable, onCopy, copied, copiedLabel }: {
+function DevRow({
+  label,
+  value,
+  hint,
+  copyable,
+  onCopy,
+  copied,
+  copiedLabel,
+}: {
   label: string;
   value: string;
   hint?: string;

@@ -1,22 +1,31 @@
+import { RefreshCw, Plus, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, Plus, Clock } from "lucide-react";
-import { useCronStore } from "@/store/console-stores/cron-store";
-import { LoadingState } from "@/components/console/shared/LoadingState";
-import { ErrorState } from "@/components/console/shared/ErrorState";
-import { EmptyState } from "@/components/console/shared/EmptyState";
-import { ConfirmDialog } from "@/components/console/shared/ConfirmDialog";
 import { CronStatsBar } from "@/components/console/cron/CronStatsBar";
 import { CronTaskCard } from "@/components/console/cron/CronTaskCard";
 import { CronTaskDialog } from "@/components/console/cron/CronTaskDialog";
+import { ConfirmDialog } from "@/components/console/shared/ConfirmDialog";
+import { EmptyState } from "@/components/console/shared/EmptyState";
+import { ErrorState } from "@/components/console/shared/ErrorState";
+import { LoadingState } from "@/components/console/shared/LoadingState";
+import { useCronStore } from "@/store/console-stores/cron-store";
 
 export function CronPage() {
   const { t } = useTranslation("console");
   const {
-    tasks, isLoading, error,
-    dialogOpen, editingTask,
-    fetchTasks, addTask, updateTask, removeTask, runTask,
-    openDialog, closeDialog, initEventListeners,
+    tasks,
+    isLoading,
+    error,
+    dialogOpen,
+    editingTask,
+    fetchTasks,
+    addTask,
+    updateTask,
+    removeTask,
+    runTask,
+    openDialog,
+    closeDialog,
+    initEventListeners,
   } = useCronStore();
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -50,7 +59,12 @@ export function CronPage() {
   if (isLoading && tasks.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("cron.title")} description={t("cron.description")} onRefresh={fetchTasks} onCreate={() => openDialog()} />
+        <PageHeader
+          title={t("cron.title")}
+          description={t("cron.description")}
+          onRefresh={fetchTasks}
+          onCreate={() => openDialog()}
+        />
         <LoadingState />
       </div>
     );
@@ -59,7 +73,12 @@ export function CronPage() {
   if (error && tasks.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("cron.title")} description={t("cron.description")} onRefresh={fetchTasks} onCreate={() => openDialog()} />
+        <PageHeader
+          title={t("cron.title")}
+          description={t("cron.description")}
+          onRefresh={fetchTasks}
+          onCreate={() => openDialog()}
+        />
         <ErrorState message={error} onRetry={fetchTasks} />
       </div>
     );
@@ -73,7 +92,13 @@ export function CronPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("cron.title")} description={t("cron.description")} onRefresh={fetchTasks} loading={isLoading} onCreate={() => openDialog()} />
+      <PageHeader
+        title={t("cron.title")}
+        description={t("cron.description")}
+        onRefresh={fetchTasks}
+        loading={isLoading}
+        onCreate={() => openDialog()}
+      />
       <CronStatsBar tasks={tasks} />
 
       {tasks.length === 0 ? (
@@ -125,7 +150,19 @@ export function CronPage() {
   );
 }
 
-function PageHeader({ title, description, onRefresh, loading, onCreate }: { title: string; description: string; onRefresh: () => void; loading?: boolean; onCreate: () => void }) {
+function PageHeader({
+  title,
+  description,
+  onRefresh,
+  loading,
+  onCreate,
+}: {
+  title: string;
+  description: string;
+  onRefresh: () => void;
+  loading?: boolean;
+  onCreate: () => void;
+}) {
   const { t } = useTranslation("common");
   return (
     <div className="flex items-start justify-between">

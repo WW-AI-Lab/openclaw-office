@@ -123,7 +123,16 @@ export interface SpeechBubble {
   timestamp: number;
 }
 
-export type AgentZone = "desk" | "meeting" | "hotDesk" | "lounge";
+export type AgentZone = "desk" | "meeting" | "hotDesk" | "lounge" | "corridor";
+
+export interface MovementState {
+  path: Array<{ x: number; y: number }>;
+  progress: number;
+  duration: number;
+  startTime: number;
+  fromZone: AgentZone;
+  toZone: AgentZone;
+}
 
 export interface VisualAgent {
   id: string;
@@ -137,10 +146,13 @@ export interface VisualAgent {
   toolCallHistory: ToolCallRecord[];
   runId: string | null;
   isSubAgent: boolean;
+  isPlaceholder: boolean;
   parentAgentId: string | null;
   childAgentIds: string[];
   zone: AgentZone;
   originalPosition: { x: number; y: number } | null;
+  movement: MovementState | null;
+  confirmed: boolean;
 }
 
 export interface ToolCallRecord {
@@ -199,11 +211,25 @@ export type ConnectionStatus =
   | "disconnected"
   | "error";
 
+// --- 配置感知 ---
+
+export interface AgentToAgentConfig {
+  enabled: boolean;
+  allow: string[];
+}
+
 // --- Store ---
 
 export type ViewMode = "2d" | "3d";
 export type ThemeMode = "light" | "dark";
-export type PageId = "office" | "dashboard" | "agents" | "channels" | "skills" | "cron" | "settings";
+export type PageId =
+  | "office"
+  | "dashboard"
+  | "agents"
+  | "channels"
+  | "skills"
+  | "cron"
+  | "settings";
 
 export interface TokenSnapshot {
   timestamp: number;
@@ -230,6 +256,10 @@ export interface OfficeStore {
   currentPage: PageId;
   chatDockHeight: number;
 
+  // 配置感知
+  maxSubAgents: number;
+  agentToAgentConfig: AgentToAgentConfig;
+
   // runId → agentId 映射
   runIdMap: Map<string, string>;
   // sessionKey → agentId[] 映射
@@ -249,11 +279,23 @@ export interface OfficeStore {
   moveToMeeting: (agentId: string, meetingPosition: { x: number; y: number }) => void;
   returnFromMeeting: (agentId: string) => void;
 
+  // 行走动画
+  startMovement: (agentId: string, toZone: AgentZone, targetPos?: { x: number; y: number }) => void;
+  tickMovement: (agentId: string, deltaTime: number) => void;
+  completeMovement: (agentId: string) => void;
+
+  // Agent 确认（unconfirmed → confirmed）
+  confirmAgent: (agentId: string, role: "main" | "sub", parentId?: string) => void;
+
+  // 休息区预填充
+  prefillLoungePlaceholders: (count: number) => void;
+
   // Sessions 轮询
   setSessionsSnapshot: (snapshot: SessionSnapshot) => void;
 
   // 事件处理
   processAgentEvent: (event: AgentEventPayload) => void;
+  initEventHistory: () => Promise<void>;
 
   // UI actions
   selectAgent: (id: string | null) => void;
@@ -262,6 +304,10 @@ export interface OfficeStore {
   setSidebarCollapsed: (collapsed: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   setBloomEnabled: (enabled: boolean) => void;
+
+  // 配置感知
+  setMaxSubAgents: (n: number) => void;
+  setAgentToAgentConfig: (config: AgentToAgentConfig) => void;
 
   // Scopes & Metrics
   setOperatorScopes: (scopes: string[]) => void;

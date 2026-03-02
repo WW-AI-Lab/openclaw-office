@@ -170,10 +170,50 @@
       "author": "作者 {{author}}",
       "learnMore": "详情"
     },
+    "toast": {
+      "enabled": "{{name}} 已启用",
+      "disabled": "{{name}} 已禁用",
+      "toggleFailed": "切换技能失败",
+      "installSuccess": "{{name}} 安装成功",
+      "installFailed": "{{name}} 安装失败",
+      "installWarning": "安装警告"
+    },
     "empty": {
       "title": "暂无技能",
       "description": "切换 Tab 或修改筛选条件"
     }
+  },
+  "clawhub": {
+    "searchPlaceholder": "在 ClawHub 上搜索技能...",
+    "offlineNotice": "无法连接 ClawHub，显示本地已安装技能",
+    "noSearchResults": "未找到匹配的技能",
+    "tryDifferentQuery": "试试不同的搜索关键词",
+    "noSkills": "暂无可用技能",
+    "noSkillsDescription": "ClawHub 当前暂无技能",
+    "loadMore": "加载更多",
+    "downloads": "次下载",
+    "stars": "个星标",
+    "viewOnClawHub": "在 ClawHub 上查看",
+    "notFound": "技能未找到",
+    "installTitle": "安装 {{name}}",
+    "securityWarning": "安装前请审查技能源代码和权限要求。第三方技能可能会访问您的系统。",
+    "installCommand": "在终端中运行以下命令：",
+    "cancel": "取消",
+    "installDone": "我已完成安装"
+  },
+  "toast": {
+    "showDetail": "查看详情",
+    "hideDetail": "收起详情"
+  },
+  "commandResult": {
+    "exitCode": "退出码",
+    "copyAll": "复制全部"
+  },
+  "restart": {
+    "pending": "Gateway 将在 {{seconds}} 秒后重启...",
+    "disconnected": "Gateway 已断开，等待重启...",
+    "reconnecting": "正在重新连接...",
+    "complete": "Gateway 已恢复"
   },
   "cron": {
     "title": "定时任务",
@@ -244,6 +284,7 @@
       "emptyHint": "点击上方按钮添加第一个 AI 提供方",
       "apiKeyConfigured": "已配置",
       "apiKeyNotConfigured": "未配置",
+      "systemDiscovered": "系统发现",
       "modelCount": "{{count}} 个模型",
       "deleteTitle": "删除提供方",
       "deleteDescription": "确认要删除提供方「{{name}}」吗？删除后需要重新配置。",

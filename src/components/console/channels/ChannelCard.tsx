@@ -1,7 +1,7 @@
-import { useTranslation } from "react-i18next";
 import { LogOut, Info } from "lucide-react";
-import type { ChannelInfo } from "@/gateway/adapter-types";
+import { useTranslation } from "react-i18next";
 import { StatusBadge } from "@/components/console/shared/StatusBadge";
+import type { ChannelInfo } from "@/gateway/adapter-types";
 import { CHANNEL_SCHEMAS } from "@/lib/channel-schemas";
 
 interface ChannelCardProps {
@@ -27,23 +27,27 @@ export function ChannelCard({ channel, onLogout, onDetail }: ChannelCardProps) {
     : null;
 
   return (
-    <div className={`flex items-center justify-between rounded-lg border border-l-4 bg-white p-4 dark:bg-gray-800 ${borderColor} border-gray-200 dark:border-gray-700`}>
+    <div
+      className={`flex items-center justify-between rounded-lg border border-l-4 bg-white p-4 dark:bg-gray-800 ${borderColor} border-gray-200 dark:border-gray-700`}
+    >
       <div className="flex items-center gap-3">
         <span className="text-2xl">{schema?.icon ?? "📡"}</span>
         <div>
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-900 dark:text-gray-100">{channel.name}</span>
-            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-400">{channel.type}</span>
+            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+              {channel.type}
+            </span>
           </div>
           <div className="mt-1 flex items-center gap-3">
             <StatusBadge status={channel.status} />
             {lastConnected && (
-              <span className="text-xs text-gray-400 dark:text-gray-500">{t("channels.card.lastConnected", { time: lastConnected })}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                {t("channels.card.lastConnected", { time: lastConnected })}
+              </span>
             )}
           </div>
-          {channel.error && (
-            <p className="mt-1 text-xs text-red-500">{channel.error}</p>
-          )}
+          {channel.error && <p className="mt-1 text-xs text-red-500">{channel.error}</p>}
         </div>
       </div>
       <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
+import { ArrowLeft, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Eye, EyeOff, ChevronDown } from "lucide-react";
 import {
   PROVIDER_TYPE_INFO,
   MODEL_APIS,
@@ -95,7 +95,9 @@ export function AddProviderDialog({ open, existingIds, onSave, onCancel }: AddPr
                   className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 px-4 py-5 text-center hover:border-blue-400 hover:bg-blue-50/80 dark:border-gray-600 dark:hover:border-blue-500 dark:hover:bg-blue-900/20 transition-all"
                 >
                   <span className="text-2xl">{meta.icon}</span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{meta.name}</span>
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                    {meta.name}
+                  </span>
                 </button>
               ))}
             </div>
@@ -140,7 +142,9 @@ export function AddProviderDialog({ open, existingIds, onSave, onCancel }: AddPr
                   <input
                     type="text"
                     value={providerId}
-                    onChange={(e) => setProviderId(e.target.value.replace(/\s/g, "-").toLowerCase())}
+                    onChange={(e) =>
+                      setProviderId(e.target.value.replace(/\s/g, "-").toLowerCase())
+                    }
                     className={inputCls}
                     placeholder={selectedType.id}
                   />
@@ -148,7 +152,9 @@ export function AddProviderDialog({ open, existingIds, onSave, onCancel }: AddPr
                     {t("settings.providers.addDialog.providerIdHint")}
                   </p>
                   {idConflict && (
-                    <p className="mt-1 text-xs text-red-500">{t("settings.providers.addDialog.idConflict")}</p>
+                    <p className="mt-1 text-xs text-red-500">
+                      {t("settings.providers.addDialog.idConflict")}
+                    </p>
                   )}
                 </div>
 
@@ -164,7 +170,9 @@ export function AddProviderDialog({ open, existingIds, onSave, onCancel }: AddPr
                       className={selectCls}
                     >
                       {MODEL_APIS.map((api) => (
-                        <option key={api} value={api}>{api}</option>
+                        <option key={api} value={api}>
+                          {api}
+                        </option>
                       ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

@@ -1,6 +1,6 @@
+import { Eye, EyeOff, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, EyeOff, ChevronDown } from "lucide-react";
 import {
   inferProviderType,
   REDACTED_SENTINEL,
@@ -20,14 +20,26 @@ interface EditProviderDialogProps {
   onCancel: () => void;
 }
 
-export function EditProviderDialog({ open, providerId, config, onSave, onCancel }: EditProviderDialogProps) {
+export function EditProviderDialog({
+  open,
+  providerId,
+  config,
+  onSave,
+  onCancel,
+}: EditProviderDialogProps) {
   const { t } = useTranslation("console");
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const meta = inferProviderType(providerId, config.api as string | undefined, config.baseUrl as string | undefined);
+  const meta = inferProviderType(
+    providerId,
+    config.api as string | undefined,
+    config.baseUrl as string | undefined,
+  );
 
   const [baseUrl, setBaseUrl] = useState(String(config.baseUrl ?? ""));
   const [apiKey, setApiKey] = useState("");
-  const [apiType, setApiType] = useState<ModelApi>((config.api as ModelApi) ?? "openai-completions");
+  const [apiType, setApiType] = useState<ModelApi>(
+    (config.api as ModelApi) ?? "openai-completions",
+  );
   const [showApiKey, setShowApiKey] = useState(false);
   const [models, setModels] = useState<ModelDefinitionConfig[]>(() => parseModels(config.models));
 
@@ -52,7 +64,10 @@ export function EditProviderDialog({ open, providerId, config, onSave, onCancel 
   };
 
   const hasExistingAuth = typeof config.auth === "string" && config.auth.length > 0;
-  const hasExistingKey = hasExistingAuth || config.apiKey === REDACTED_SENTINEL || (typeof config.apiKey === "string" && config.apiKey.length > 0);
+  const hasExistingKey =
+    hasExistingAuth ||
+    config.apiKey === REDACTED_SENTINEL ||
+    (typeof config.apiKey === "string" && config.apiKey.length > 0);
 
   return (
     <dialog
@@ -87,7 +102,9 @@ export function EditProviderDialog({ open, providerId, config, onSave, onCancel 
                   className={selectCls}
                 >
                   {MODEL_APIS.map((api) => (
-                    <option key={api} value={api}>{api}</option>
+                    <option key={api} value={api}>
+                      {api}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

@@ -36,9 +36,14 @@ export function AgentCharacter({ agent }: AgentCharacterProps) {
   const isSubAgent = agent.isSubAgent;
   const isOffline = agent.status === "offline";
 
+  const isPlaceholder = agent.isPlaceholder;
+  const isUnconfirmed = !agent.confirmed;
+  const isWalking = agent.movement !== null;
+  const tickMovement = useOfficeStore((s) => s.tickMovement);
+
   const baseColor = isSubAgent ? "#60a5fa" : generateAvatar3dColor(agent.id);
-  const bodyOpacity = isOffline ? 0.4 : isSubAgent ? 0.6 : 1;
-  const displayColor = isOffline ? "#6b7280" : baseColor;
+  const bodyOpacity = isPlaceholder ? 0.25 : isUnconfirmed ? 0.35 : isOffline ? 0.4 : isSubAgent ? 0.6 : 1;
+  const displayColor = isOffline || isPlaceholder || isUnconfirmed ? "#6b7280" : baseColor;
 
   const [targetX, , targetZ] = position2dTo3d(agent.position);
 
@@ -60,17 +65,40 @@ export function AgentCharacter({ agent }: AgentCharacterProps) {
       return;
     }
 
-    // Smooth position lerp (for meeting zone transitions)
-    const lerpFactor = 1 - Math.pow(0.05, delta);
-    const pos = groupRef.current.position;
-    pos.x += (targetX - pos.x) * lerpFactor;
-    pos.z += (targetZ - pos.z) * lerpFactor;
+    // Walking animation: tick store, use slower lerp for visible movement
+    if (isWalking) {
+      tickMovement(agent.id, delta);
 
-    if (bodyRef.current) {
-      bodyRef.current.position.y = Math.sin(t * 2) * 0.02;
+      const curAgent = useOfficeStore.getState().agents.get(agent.id);
+      if (curAgent) {
+        const [wx, , wz] = position2dTo3d(curAgent.position);
+        const walkLerp = Math.min(2.5 * delta, 0.1);
+        const pos = groupRef.current.position;
+        pos.x += (wx - pos.x) * walkLerp;
+        pos.z += (wz - pos.z) * walkLerp;
+
+        // Walk body sway ±0.08 rad at 8Hz
+        if (bodyRef.current) {
+          bodyRef.current.rotation.z = Math.sin(t * 8 * Math.PI * 2) * 0.08;
+          // Walk bounce
+          bodyRef.current.position.y = Math.abs(Math.sin(t * 8)) * 0.03;
+        }
+      }
+    } else {
+      // Normal smooth position lerp
+      const lerpFactor = 1 - Math.pow(0.05, delta);
+      const pos = groupRef.current.position;
+      pos.x += (targetX - pos.x) * lerpFactor;
+      pos.z += (targetZ - pos.z) * lerpFactor;
+
+      // Idle breathing
+      if (bodyRef.current) {
+        bodyRef.current.position.y = Math.sin(t * 2) * 0.02;
+        bodyRef.current.rotation.z = 0;
+      }
     }
 
-    if (isSubAgent) {
+    if (isSubAgent && !isPlaceholder) {
       const pulse = 1.0 + Math.sin(t * 3) * 0.05;
       groupRef.current.scale.setScalar(pulse);
     }
@@ -83,12 +111,14 @@ export function AgentCharacter({ agent }: AgentCharacterProps) {
       scale={isSubAgent && !spawnDone.current ? 0 : 1}
       onClick={(e) => {
         e.stopPropagation();
-        selectAgent(agent.id);
+        if (!isPlaceholder) selectAgent(agent.id);
       }}
       onPointerOver={(e) => {
         e.stopPropagation();
-        setHovered(true);
-        document.body.style.cursor = "pointer";
+        if (!isPlaceholder) {
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        }
       }}
       onPointerOut={() => {
         setHovered(false);

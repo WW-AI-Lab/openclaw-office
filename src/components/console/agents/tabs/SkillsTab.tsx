@@ -8,9 +8,7 @@ export function SkillsTab() {
       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
         {t("agents.skills.title")}
       </h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        {t("agents.skills.defaultConfig")}
-      </p>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{t("agents.skills.defaultConfig")}</p>
     </div>
   );
 }

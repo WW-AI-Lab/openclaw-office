@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { ChannelInfo, ChannelType } from "@/gateway/adapter-types";
 import { getAdapter, waitForAdapter } from "@/gateway/adapter-provider";
+import type { ChannelInfo, ChannelType } from "@/gateway/adapter-types";
 
 export type QrState = "idle" | "loading" | "qr" | "scanning" | "success" | "error" | "cancel";
 

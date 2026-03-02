@@ -10,26 +10,27 @@ OpenClaw Office 是 [OpenClaw](https://github.com/openclaw/openclaw) Multi-Agent
 
 ## 技术栈
 
-| 类别 | 技术 |
-|------|------|
-| 语言 | TypeScript (ESM, strict mode) |
-| UI 框架 | React 19 |
-| 构建工具 | Vite 6 |
-| 状态管理 | Zustand 5 + Immer |
-| 样式 | Tailwind CSS 4 |
-| 2D 渲染 | SVG + CSS Animations |
-| 3D 渲染 | React Three Fiber (R3F) + @react-three/drei |
-| 路由 | React Router 7 |
-| 图表 | Recharts |
-| 国际化 | i18next + react-i18next |
-| 测试 | Vitest + @testing-library/react |
-| 实时通信 | 原生 WebSocket API |
+| 类别     | 技术                                        |
+| -------- | ------------------------------------------- |
+| 语言     | TypeScript (ESM, strict mode)               |
+| UI 框架  | React 19                                    |
+| 构建工具 | Vite 6                                      |
+| 状态管理 | Zustand 5 + Immer                           |
+| 样式     | Tailwind CSS 4                              |
+| 2D 渲染  | SVG + CSS Animations                        |
+| 3D 渲染  | React Three Fiber (R3F) + @react-three/drei |
+| 路由     | React Router 7                              |
+| 图表     | Recharts                                    |
+| 国际化   | i18next + react-i18next                     |
+| 测试     | Vitest + @testing-library/react             |
+| 实时通信 | 原生 WebSocket API                          |
 
 ## 功能模块
 
 ### Office 视图（`/`）
 
 等距风格的 2D/3D 虚拟办公室，实时展示 Agent 工作状态：
+
 - **2D 平面图** — SVG 渲染的办公室场景，含工位、家具（桌椅/沙发/植物/咖啡杯）、Agent 头像和状态动画
 - **3D 场景** — R3F 渲染的 3D 办公室，含角色模型、技能全息面板、传送门特效
 - **Agent 头像** — 基于 agentId 确定性生成的 SVG 头像，支持状态指示（idle/working/speaking/error）
@@ -40,12 +41,14 @@ OpenClaw Office 是 [OpenClaw](https://github.com/openclaw/openclaw) Multi-Agent
 ### Chat 功能
 
 底部停靠的聊天栏，支持与 Agent 实时对话：
+
 - Agent 选择器、流式消息展示、Markdown 渲染
 - 聊天历史抽屉、发送/中止控制
 
 ### 控制台（`/dashboard`、`/agents`、`/channels`、`/skills`、`/cron`、`/settings`）
 
 完整的系统管理界面：
+
 - **Dashboard** — 概览统计卡片、告警横幅、Channel/Skill 概览、快捷导航
 - **Agents** — Agent 列表/创建/删除，详情多 Tab（Overview/Channels/Cron/Skills/Tools/Files）
 - **Channels** — 渠道卡片、配置对话框、统计、WhatsApp QR 绑定流程
@@ -122,12 +125,14 @@ pnpm check                # lint + format 检查
 **认证前提配置：**
 
 1. **Gateway Token** — 写入 `.env.local`（在 `.gitignore` 中）：
+
    ```bash
    openclaw config get gateway.auth.token
    # 将 token 写入 .env.local 的 VITE_GATEWAY_TOKEN
    ```
 
 2. **Device Auth Bypass** — Gateway 2026.2.15+ 要求 device identity，Web 端需 bypass：
+
    ```bash
    openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true
    # 需重启 Gateway
@@ -162,22 +167,22 @@ type AgentEventPayload = {
 
 ### Chat 协议
 
-| 方法/事件 | 方向 | 说明 |
-|-----------|------|------|
-| `chat.send` | RPC | 发送消息 `{ sessionKey, message, deliver, idempotencyKey }` |
-| `chat.abort` | RPC | 中止当前 run `{ sessionKey }` |
-| `chat.history` | RPC | 获取历史 `{ sessionKey }` |
-| `chat` | Event | 流式事件，state: `delta` / `final` / `error` / `aborted` |
+| 方法/事件      | 方向  | 说明                                                        |
+| -------------- | ----- | ----------------------------------------------------------- |
+| `chat.send`    | RPC   | 发送消息 `{ sessionKey, message, deliver, idempotencyKey }` |
+| `chat.abort`   | RPC   | 中止当前 run `{ sessionKey }`                               |
+| `chat.history` | RPC   | 获取历史 `{ sessionKey }`                                   |
+| `chat`         | Event | 流式事件，state: `delta` / `final` / `error` / `aborted`    |
 
 ## Agent 状态映射
 
-| Gateway stream | data 关键字段 | 前端状态 | 视觉表现 |
-|---------------|-------------|---------|---------|
-| `lifecycle` | `phase: "start"` | `working` | 加载动画 |
-| `lifecycle` | `phase: "end"` | `idle` | 休闲状态 |
-| `tool` | `name: "xxx"` | `tool_calling` | 工具面板弹出 |
-| `assistant` | `text: "..."` | `speaking` | Markdown 气泡 |
-| `error` | `message: "..."` | `error` | 红色叹号 |
+| Gateway stream | data 关键字段    | 前端状态       | 视觉表现      |
+| -------------- | ---------------- | -------------- | ------------- |
+| `lifecycle`    | `phase: "start"` | `working`      | 加载动画      |
+| `lifecycle`    | `phase: "end"`   | `idle`         | 休闲状态      |
+| `tool`         | `name: "xxx"`    | `tool_calling` | 工具面板弹出  |
+| `assistant`    | `text: "..."`    | `speaking`     | Markdown 气泡 |
+| `error`        | `message: "..."` | `error`        | 红色叹号      |
 
 ## 国际化（i18n）
 

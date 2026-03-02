@@ -26,11 +26,14 @@ const MEETING_TABLE_CENTERS = [
 /**
  * Detect collaboration groups that should trigger meeting zone gathering.
  * Groups agents by sessionKey where 2+ agents are collaborating with strength > threshold.
+ * When allowList is provided, only agents in the list can participate.
  */
 export function detectMeetingGroups(
   links: CollaborationLink[],
   agents: Map<string, VisualAgent>,
+  allowList?: string[],
 ): MeetingGroup[] {
+  const allowSet = allowList && allowList.length > 0 ? new Set(allowList) : null;
   const sessionAgents = new Map<string, Set<string>>();
 
   for (const link of links) {
@@ -38,6 +41,9 @@ export function detectMeetingGroups(
       continue;
     }
     if (!agents.has(link.sourceId) || !agents.has(link.targetId)) {
+      continue;
+    }
+    if (allowSet && (!allowSet.has(link.sourceId) || !allowSet.has(link.targetId))) {
       continue;
     }
 
@@ -98,7 +104,7 @@ export function applyMeetingGathering(
     const seats = calculateMeetingSeats(group, tableIndex);
     for (const [agentId, pos] of seats) {
       const agent = agents.get(agentId);
-      if (agent && agent.zone !== "meeting") {
+      if (agent && agent.zone !== "meeting" && agent.movement?.toZone !== "meeting") {
         moveToMeeting(agentId, pos);
       }
       inMeeting.add(agentId);

@@ -118,3 +118,34 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Chat dialog slide animations */
+@keyframes chat-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes chat-slide-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.animate-slide-up {
+  animation: chat-slide-up 200ms ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: chat-slide-down 150ms ease-in forwards;
+}

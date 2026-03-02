@@ -1,6 +1,6 @@
+import { ChevronDown, ChevronUp, Trash2, Plus, Brain, Image, Type, Zap } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, ChevronUp, Trash2, Plus, Brain, Image, Type, Zap } from "lucide-react";
 import {
   MODEL_APIS,
   MODEL_INPUT_TYPES,
@@ -32,8 +32,7 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const update = (partial: Partial<ModelDefinitionConfig>) =>
-    onChange({ ...model, ...partial });
+  const update = (partial: Partial<ModelDefinitionConfig>) => onChange({ ...model, ...partial });
 
   const updateCost = (field: keyof ModelCost, value: number) => {
     const cost = model.cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -42,9 +41,7 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
 
   const toggleInput = (type: ModelInputType) => {
     const current = model.input ?? ["text"];
-    const next = current.includes(type)
-      ? current.filter((t) => t !== type)
-      : [...current, type];
+    const next = current.includes(type) ? current.filter((t) => t !== type) : [...current, type];
     if (next.length === 0) return;
     update({ input: next });
   };
@@ -66,8 +63,16 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
         >
           {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           <span className="truncate max-w-xs">{label}</span>
-          {model.reasoning && <span title="reasoning"><Brain className="h-3.5 w-3.5 text-purple-500" /></span>}
-          {model.input?.includes("image") && <span title="image"><Image className="h-3.5 w-3.5 text-green-500" /></span>}
+          {model.reasoning && (
+            <span title="reasoning">
+              <Brain className="h-3.5 w-3.5 text-purple-500" />
+            </span>
+          )}
+          {model.input?.includes("image") && (
+            <span title="image">
+              <Image className="h-3.5 w-3.5 text-green-500" />
+            </span>
+          )}
         </button>
         <button
           type="button"
@@ -111,7 +116,11 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
                 active={model.reasoning === true}
                 onClick={() => update({ reasoning: !model.reasoning })}
                 icon={<Brain className="h-4 w-4" />}
-                label={model.reasoning ? t("settings.providers.models.yes") : t("settings.providers.models.no")}
+                label={
+                  model.reasoning
+                    ? t("settings.providers.models.yes")
+                    : t("settings.providers.models.no")
+                }
               />
             </Field>
             <Field label={t("settings.providers.models.inputTypes")}>
@@ -121,7 +130,9 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
                     key={type}
                     active={(model.input ?? ["text"]).includes(type)}
                     onClick={() => toggleInput(type)}
-                    icon={type === "text" ? <Type className="h-4 w-4" /> : <Image className="h-4 w-4" />}
+                    icon={
+                      type === "text" ? <Type className="h-4 w-4" /> : <Image className="h-4 w-4" />
+                    }
                     label={t(`settings.providers.models.input_${type}`)}
                   />
                 ))}
@@ -143,7 +154,9 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
                 >
                   <option value="">{t("settings.providers.models.inheritProvider")}</option>
                   {MODEL_APIS.map((api) => (
-                    <option key={api} value={api}>{api}</option>
+                    <option key={api} value={api}>
+                      {api}
+                    </option>
                   ))}
                 </select>
                 <SelectChevron />
@@ -189,9 +202,7 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
                   <input
                     type="number"
                     value={model.cost?.[field] ?? ""}
-                    onChange={(e) =>
-                      updateCost(field, e.target.value ? Number(e.target.value) : 0)
-                    }
+                    onChange={(e) => updateCost(field, e.target.value ? Number(e.target.value) : 0)}
                     className={inputCls}
                     placeholder="0"
                     min={0}
@@ -234,7 +245,9 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
                       >
                         <option value="">{t("settings.providers.models.default")}</option>
                         {THINKING_FORMATS.map((f) => (
-                          <option key={f} value={f}>{f}</option>
+                          <option key={f} value={f}>
+                            {f}
+                          </option>
                         ))}
                       </select>
                       <SelectChevron />
@@ -256,7 +269,9 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
                       >
                         <option value="">{t("settings.providers.models.default")}</option>
                         {MAX_TOKENS_FIELDS.map((f) => (
-                          <option key={f} value={f}>{f}</option>
+                          <option key={f} value={f}>
+                            {f}
+                          </option>
                         ))}
                       </select>
                       <SelectChevron />
@@ -278,7 +293,10 @@ function ModelForm({ model, onChange, onRemove, defaultCollapsed = false }: Mode
                       "requiresMistralToolIds",
                     ] as const
                   ).map((key) => (
-                    <label key={key} className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                    <label
+                      key={key}
+                      className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300"
+                    >
                       <input
                         type="checkbox"
                         checked={model.compat?.[key] === true}

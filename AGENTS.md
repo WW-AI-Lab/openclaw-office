@@ -10,26 +10,27 @@ OpenClaw Office is the visual monitoring and management frontend for the [OpenCl
 
 ## Tech Stack
 
-| Category | Technology |
-|----------|-----------|
-| Language | TypeScript (ESM, strict mode) |
-| UI Framework | React 19 |
-| Build Tool | Vite 6 |
-| State Management | Zustand 5 + Immer |
-| Styling | Tailwind CSS 4 |
-| 2D Rendering | SVG + CSS Animations |
-| 3D Rendering | React Three Fiber (R3F) + @react-three/drei |
-| Routing | React Router 7 |
-| Charts | Recharts |
-| i18n | i18next + react-i18next |
-| Testing | Vitest + @testing-library/react |
-| Real-time | Native WebSocket API |
+| Category         | Technology                                  |
+| ---------------- | ------------------------------------------- |
+| Language         | TypeScript (ESM, strict mode)               |
+| UI Framework     | React 19                                    |
+| Build Tool       | Vite 6                                      |
+| State Management | Zustand 5 + Immer                           |
+| Styling          | Tailwind CSS 4                              |
+| 2D Rendering     | SVG + CSS Animations                        |
+| 3D Rendering     | React Three Fiber (R3F) + @react-three/drei |
+| Routing          | React Router 7                              |
+| Charts           | Recharts                                    |
+| i18n             | i18next + react-i18next                     |
+| Testing          | Vitest + @testing-library/react             |
+| Real-time        | Native WebSocket API                        |
 
 ## Feature Modules
 
 ### Office View (`/`)
 
 Isometric-style 2D/3D virtual office for real-time Agent status visualization:
+
 - **2D Floor Plan** — SVG office scene with desks, furniture (desk/chair/sofa/plant/coffee cup), Agent avatars, and status animations
 - **3D Scene** — R3F-rendered 3D office with character models, skill holograms, spawn portal effects
 - **Agent Avatars** — Deterministically generated SVG avatars from agentId with status indicators (idle/working/speaking/error)
@@ -40,12 +41,14 @@ Isometric-style 2D/3D virtual office for real-time Agent status visualization:
 ### Chat
 
 Bottom-docked chat bar for real-time Agent conversations:
+
 - Agent selector, streaming message display, Markdown rendering
 - Chat history drawer, send/abort controls
 
 ### Console (`/dashboard`, `/agents`, `/channels`, `/skills`, `/cron`, `/settings`)
 
 Full system management interface:
+
 - **Dashboard** — Overview stat cards, alert banners, Channel/Skill overview, quick navigation
 - **Agents** — Agent list/create/delete, detail tabs (Overview/Channels/Cron/Skills/Tools/Files)
 - **Channels** — Channel cards, config dialogs, stats, WhatsApp QR binding flow
@@ -118,12 +121,14 @@ The frontend connects to Gateway via WebSocket (default `ws://localhost:18789`),
 **Prerequisites:**
 
 1. **Gateway Token** — Write to `.env.local` (gitignored):
+
    ```bash
    openclaw config get gateway.auth.token
    # Write token to VITE_GATEWAY_TOKEN in .env.local
    ```
 
 2. **Device Auth Bypass** — Gateway 2026.2.15+ requires device identity; web clients need bypass:
+
    ```bash
    openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true
    # Restart Gateway after this
@@ -158,22 +163,22 @@ type AgentEventPayload = {
 
 ### Chat Protocol
 
-| Method/Event | Direction | Description |
-|-------------|-----------|-------------|
-| `chat.send` | RPC | Send message `{ sessionKey, message, deliver, idempotencyKey }` |
-| `chat.abort` | RPC | Abort current run `{ sessionKey }` |
-| `chat.history` | RPC | Get history `{ sessionKey }` |
-| `chat` | Event | Streaming event, state: `delta` / `final` / `error` / `aborted` |
+| Method/Event   | Direction | Description                                                     |
+| -------------- | --------- | --------------------------------------------------------------- |
+| `chat.send`    | RPC       | Send message `{ sessionKey, message, deliver, idempotencyKey }` |
+| `chat.abort`   | RPC       | Abort current run `{ sessionKey }`                              |
+| `chat.history` | RPC       | Get history `{ sessionKey }`                                    |
+| `chat`         | Event     | Streaming event, state: `delta` / `final` / `error` / `aborted` |
 
 ## Agent State Mapping
 
-| Gateway stream | Key data field | Frontend state | Visual |
-|---------------|---------------|----------------|--------|
-| `lifecycle` | `phase: "start"` | `working` | Loading animation |
-| `lifecycle` | `phase: "end"` | `idle` | Idle state |
-| `tool` | `name: "xxx"` | `tool_calling` | Tool panel popup |
-| `assistant` | `text: "..."` | `speaking` | Markdown bubble |
-| `error` | `message: "..."` | `error` | Red exclamation |
+| Gateway stream | Key data field   | Frontend state | Visual            |
+| -------------- | ---------------- | -------------- | ----------------- |
+| `lifecycle`    | `phase: "start"` | `working`      | Loading animation |
+| `lifecycle`    | `phase: "end"`   | `idle`         | Idle state        |
+| `tool`         | `name: "xxx"`    | `tool_calling` | Tool panel popup  |
+| `assistant`    | `text: "..."`    | `speaking`     | Markdown bubble   |
+| `error`        | `message: "..."` | `error`        | Red exclamation   |
 
 ## Internationalization (i18n)
 

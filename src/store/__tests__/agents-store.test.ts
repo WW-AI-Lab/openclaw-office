@@ -110,7 +110,9 @@ describe("Agents Store", () => {
   });
 
   it("updateAgentModel() updates model config", async () => {
-    const ok = await useAgentsStore.getState().updateAgentModel("main", "anthropic/claude-sonnet-4");
+    const ok = await useAgentsStore
+      .getState()
+      .updateAgentModel("main", "anthropic/claude-sonnet-4");
     expect(ok).toBe(true);
   });
 

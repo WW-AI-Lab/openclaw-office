@@ -128,7 +128,13 @@ export function NetworkGraph() {
               stroke={isHovered ? "#1e40af" : "transparent"}
               strokeWidth={2}
             />
-            <text x={pos.x} y={pos.y + r + 10} textAnchor="middle" fontSize={9} fill={isDark ? "#e2e8f0" : "#374151"}>
+            <text
+              x={pos.x}
+              y={pos.y + r + 10}
+              textAnchor="middle"
+              fontSize={9}
+              fill={isDark ? "#e2e8f0" : "#374151"}
+            >
               {agent.name.length > 8 ? `${agent.name.slice(0, 6)}…` : agent.name}
             </text>
           </g>

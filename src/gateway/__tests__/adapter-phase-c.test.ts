@@ -145,10 +145,7 @@ describe("WsAdapter Phase C mapping", () => {
       onEvent: () => () => undefined,
     };
 
-    const adapter = new WsAdapter(
-      wsClient as never,
-      rpcClient as never,
-    );
+    const adapter = new WsAdapter(wsClient as never, rpcClient as never);
 
     const channels = await adapter.channelsStatus();
     expect(channels).toHaveLength(1);
@@ -182,10 +179,7 @@ describe("WsAdapter Phase C mapping", () => {
       onEvent: () => () => undefined,
     };
 
-    const adapter = new WsAdapter(
-      wsClient as never,
-      rpcClient as never,
-    );
+    const adapter = new WsAdapter(wsClient as never, rpcClient as never);
 
     const channels = await adapter.channelsStatus();
     expect(channels).toHaveLength(1);

@@ -70,7 +70,13 @@ export type CronSchedule =
 export type CronPayload =
   | { kind: "systemEvent"; text: string }
   | { kind: "agentTurn"; message: string }
-  | { kind: "webhook"; url: string; method?: string; headers?: Record<string, string>; body?: string };
+  | {
+      kind: "webhook";
+      url: string;
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+    };
 
 export interface CronDelivery {
   mode: "none" | "notify" | "webhook";
@@ -193,6 +199,15 @@ export interface UsageInfo {
   providers: UsageProviderInfo[];
 }
 
+export interface SkillInstallResult {
+  ok: boolean;
+  message: string;
+  stdout?: string;
+  stderr?: string;
+  code?: number | null;
+  warnings?: string[];
+}
+
 // Streaming 事件类型（chat 事件的 payload 格式）
 export type ChatStreamEvent =
   | { type: "stream.start"; runId: string; sessionKey?: string }
@@ -215,9 +230,7 @@ export interface AgentCreateResult {
   workspace: string;
 }
 
-export type AgentModelConfig =
-  | string
-  | { primary?: string; fallbacks?: string[] };
+export type AgentModelConfig = string | { primary?: string; fallbacks?: string[] };
 
 export interface AgentUpdateParams {
   agentId: string;
@@ -325,6 +338,15 @@ export interface StatusSummary {
   nodeVersion?: string;
   platform?: string;
   [key: string]: unknown;
+}
+
+export interface ModelCatalogEntry {
+  id: string;
+  name: string;
+  provider: string;
+  contextWindow?: number;
+  reasoning?: boolean;
+  input?: Array<"text" | "image">;
 }
 
 export interface UpdateRunResult {

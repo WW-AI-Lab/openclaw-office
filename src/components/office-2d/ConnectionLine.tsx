@@ -42,7 +42,9 @@ export function ConnectionLine({ x1, y1, x2, y2, strength }: ConnectionLineProps
         strokeDasharray={isStrong ? "12,6" : "6,4"}
         opacity={lineOpacity}
         style={{
-          animation: isStrong ? "connection-pulse 0.8s linear infinite" : "dash-flow 1.5s linear infinite",
+          animation: isStrong
+            ? "connection-pulse 0.8s linear infinite"
+            : "dash-flow 1.5s linear infinite",
           filter: isStrong ? "drop-shadow(0 0 4px rgba(96,165,250,0.8))" : undefined,
         }}
       />

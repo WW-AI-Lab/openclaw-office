@@ -19,9 +19,11 @@ import type {
   ConfigSnapshot,
   CronTask,
   CronTaskInput,
+  ModelCatalogEntry,
   SessionInfo,
   SessionPreview,
   SkillInfo,
+  SkillInstallResult,
   StatusSummary,
   ToolCatalog,
   UpdateRunResult,
@@ -59,7 +61,7 @@ export interface GatewayAdapter {
 
   // Skills
   skillsStatus(): Promise<SkillInfo[]>;
-  skillsInstall(name: string, installId: string): Promise<{ ok: boolean; message: string }>;
+  skillsInstall(name: string, installId: string): Promise<SkillInstallResult>;
   skillsUpdate(skillKey: string, patch: SkillUpdatePatch): Promise<{ ok: boolean }>;
 
   // Cron
@@ -79,6 +81,9 @@ export interface GatewayAdapter {
   agentsFilesSet(agentId: string, name: string, content: string): Promise<AgentFileSetResult>;
   toolsCatalog(): Promise<ToolCatalog>;
   usageStatus(): Promise<UsageInfo>;
+
+  // Models catalog (from pi-ai SDK auto-discovery)
+  modelsList(): Promise<ModelCatalogEntry[]>;
 
   // Config / Status / Update (Phase D)
   configGet(): Promise<ConfigSnapshot>;

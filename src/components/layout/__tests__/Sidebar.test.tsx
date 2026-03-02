@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, beforeEach } from "vitest";
-import i18n from "@/i18n/test-setup";
 import { Sidebar } from "@/components/layout/Sidebar";
+import i18n from "@/i18n/test-setup";
 import { useOfficeStore } from "@/store/office-store";
 
 const t = (key: string) => i18n.t(key);
@@ -64,7 +64,9 @@ describe("Sidebar", () => {
     });
 
     render(<Sidebar />);
-    const searchSection = screen.getByPlaceholderText(t("layout:sidebar.searchPlaceholder")).parentElement;
+    const searchSection = screen.getByPlaceholderText(
+      t("layout:sidebar.searchPlaceholder"),
+    ).parentElement;
     const activeFilter = within(searchSection!).getByText(t("layout:sidebar.filters.active"));
     fireEvent.click(activeFilter);
 

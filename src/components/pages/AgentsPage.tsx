@@ -1,12 +1,12 @@
+import { Bot } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Bot } from "lucide-react";
-import { useAgentsStore } from "@/store/console-stores/agents-store";
-import { AgentListPanel } from "@/components/console/agents/AgentListPanel";
 import { AgentDetailHeader } from "@/components/console/agents/AgentDetailHeader";
 import { AgentDetailTabs } from "@/components/console/agents/AgentDetailTabs";
+import { AgentListPanel } from "@/components/console/agents/AgentListPanel";
 import { CreateAgentDialog } from "@/components/console/agents/CreateAgentDialog";
 import { DeleteAgentDialog } from "@/components/console/agents/DeleteAgentDialog";
+import { useAgentsStore } from "@/store/console-stores/agents-store";
 
 export function AgentsPage() {
   const { t } = useTranslation("console");
@@ -20,12 +20,8 @@ export function AgentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          {t("agents.title")}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {t("agents.description")}
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t("agents.title")}</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t("agents.description")}</p>
       </div>
 
       <div className="flex gap-6">

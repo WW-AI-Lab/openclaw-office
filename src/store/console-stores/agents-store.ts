@@ -1,11 +1,7 @@
 import { create } from "zustand";
-import type {
-  AgentCreateParams,
-  AgentFileInfo,
-  AgentModelConfig,
-} from "@/gateway/adapter-types";
-import type { AgentSummary } from "@/gateway/types";
 import { getAdapter, waitForAdapter } from "@/gateway/adapter-provider";
+import type { AgentCreateParams, AgentFileInfo, AgentModelConfig } from "@/gateway/adapter-types";
+import type { AgentSummary } from "@/gateway/types";
 
 export type AgentTab = "overview" | "files" | "tools" | "skills" | "channels" | "cronJobs";
 
@@ -84,28 +80,50 @@ export const useAgentsStore = create<AgentsStoreState>((set, get) => ({
   fetchSystemModels: async () => {
     try {
       await waitForAdapter();
-      const snap = await getAdapter().configGet();
+      const adapter = getAdapter();
+      const [snap, catalogModels] = await Promise.all([
+        adapter.configGet(),
+        adapter
+          .modelsList()
+          .catch(() => [] as Array<{ id: string; name: string; provider: string }>),
+      ]);
       const config = snap.config;
+
+      const seen = new Set<string>();
+      const options: SystemModelOption[] = [];
+
+      const catalogByProvider = new Map<
+        string,
+        Array<{ id: string; name: string; provider: string }>
+      >();
+      for (const m of catalogModels) {
+        const key = `${m.provider}/${m.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        options.push({ id: key, label: m.name ?? m.id, provider: m.provider });
+        if (!catalogByProvider.has(m.provider)) catalogByProvider.set(m.provider, []);
+        catalogByProvider.get(m.provider)!.push(m);
+      }
 
       const models = config?.models as Record<string, unknown> | undefined;
       const providers = models?.providers as Record<string, Record<string, unknown>> | undefined;
-      const options: SystemModelOption[] = [];
       if (providers) {
         for (const [providerId, provConfig] of Object.entries(providers)) {
           const modelList = provConfig.models as Array<{ id: string; name?: string }> | undefined;
           if (!modelList) continue;
           for (const m of modelList) {
-            options.push({
-              id: `${providerId}/${m.id}`,
-              label: m.name ?? m.id,
-              provider: providerId,
-            });
+            const key = `${providerId}/${m.id}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            options.push({ id: key, label: m.name ?? m.id, provider: providerId });
           }
         }
       }
 
       const agentModelConfigs: Record<string, { primary: string; fallbacks: string[] }> = {};
-      const agentsList = (config?.agents as Record<string, unknown> | undefined)?.list as Array<Record<string, unknown>> | undefined;
+      const agentsList = (config?.agents as Record<string, unknown> | undefined)?.list as
+        | Array<Record<string, unknown>>
+        | undefined;
       if (agentsList) {
         for (const entry of agentsList) {
           const id = entry.id as string | undefined;
@@ -140,7 +158,12 @@ export const useAgentsStore = create<AgentsStoreState>((set, get) => ({
       }));
       const { selectedAgentId } = get();
       const autoSelect = selectedAgentId == null ? result.defaultId : selectedAgentId;
-      set({ agents, defaultAgentId: result.defaultId, selectedAgentId: autoSelect, isLoading: false });
+      set({
+        agents,
+        defaultAgentId: result.defaultId,
+        selectedAgentId: autoSelect,
+        isLoading: false,
+      });
     } catch (err) {
       set({ error: String(err), isLoading: false });
     }
@@ -173,7 +196,12 @@ export const useAgentsStore = create<AgentsStoreState>((set, get) => ({
   },
 
   fetchFileContent: async (agentId, name) => {
-    set({ selectedFileName: name, fileContent: null, originalFileContent: null, isFileDirty: false });
+    set({
+      selectedFileName: name,
+      fileContent: null,
+      originalFileContent: null,
+      isFileDirty: false,
+    });
     try {
       await waitForAdapter();
       const result = await getAdapter().agentsFilesGet(agentId, name);

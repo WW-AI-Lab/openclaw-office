@@ -1,6 +1,6 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { Home, Bot, Radio, Puzzle, Clock, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { TopBar } from "./TopBar";
 
 export function ConsoleLayout() {

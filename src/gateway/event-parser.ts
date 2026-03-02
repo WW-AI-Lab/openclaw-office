@@ -1,5 +1,5 @@
-import type { AgentEventPayload, AgentVisualStatus, SpeechBubble, ToolInfo } from "./types";
 import i18n from "@/i18n";
+import type { AgentEventPayload, AgentVisualStatus, SpeechBubble, ToolInfo } from "./types";
 
 export interface ParsedAgentEvent {
   runId: string;
@@ -50,7 +50,8 @@ function parseLifecycle(result: ParsedAgentEvent, event: AgentEventPayload): Par
     case "start":
     case "thinking":
       result.status = "thinking";
-      result.summary = phase === "start" ? i18n.t("common:events.startRunning") : i18n.t("common:events.thinking");
+      result.summary =
+        phase === "start" ? i18n.t("common:events.startRunning") : i18n.t("common:events.thinking");
       break;
     case "end":
       result.status = "idle";

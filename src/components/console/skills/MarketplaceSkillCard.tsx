@@ -32,15 +32,21 @@ export function MarketplaceSkillCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{skill.name}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {skill.name}
+              </h3>
               <span className="rounded-md bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                 {t("skills.source.marketplace")}
               </span>
             </div>
-            <p className="mt-2 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">{skill.description}</p>
+            <p className="mt-2 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">
+              {skill.description}
+            </p>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
               <span>{t("skills.marketplace.version", { version: skill.version || "—" })}</span>
-              {skill.author && <span>{t("skills.marketplace.author", { author: skill.author })}</span>}
+              {skill.author && (
+                <span>{t("skills.marketplace.author", { author: skill.author })}</span>
+              )}
               {skill.homepage && (
                 <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
                   <ExternalLink className="h-3.5 w-3.5" />

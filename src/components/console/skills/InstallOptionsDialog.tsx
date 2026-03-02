@@ -15,7 +15,13 @@ interface InstallOptionsDialogProps {
   onCancel: () => void;
 }
 
-export function InstallOptionsDialog({ open, skillName, options, onSelect, onCancel }: InstallOptionsDialogProps) {
+export function InstallOptionsDialog({
+  open,
+  skillName,
+  options,
+  onSelect,
+  onCancel,
+}: InstallOptionsDialogProps) {
   const { t } = useTranslation("console");
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -44,13 +50,19 @@ export function InstallOptionsDialog({ open, skillName, options, onSelect, onCan
               onClick={() => onSelect(opt.id)}
               className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/50 dark:border-gray-700 dark:hover:border-blue-600 dark:hover:bg-blue-900/10"
             >
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{opt.label}</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {opt.label}
+              </span>
               <span className="text-xs text-gray-400">({opt.kind})</span>
             </button>
           ))}
         </div>
         <div className="mt-4 flex justify-end">
-          <button type="button" onClick={onCancel} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+          >
             {t("common:actions.cancel")}
           </button>
         </div>

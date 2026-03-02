@@ -35,14 +35,14 @@
 
 Full system management interface with dedicated pages:
 
-| Page | Features |
-|------|----------|
-| **Dashboard** | Overview stats, alert banners, Channel/Skill overview, quick navigation |
-| **Agents** | Agent list/create/delete, detail tabs (Overview, Channels, Cron, Skills, Tools, Files) |
-| **Channels** | Channel cards, configuration dialogs, stats, WhatsApp QR binding |
-| **Skills** | Skill marketplace, install options, skill detail dialogs |
-| **Cron** | Scheduled task management and statistics |
-| **Settings** | Provider management (add/edit/model editor), appearance, Gateway, developer, advanced, about, update |
+| Page          | Features                                                                                                                                                  |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard** | Overview stats, alert banners, Channel/Skill overview, quick navigation                                                                                   |
+| **Agents**    | Agent list/create/delete, detail tabs (Overview, Channels, Cron, Skills, Tools, Files)                                                                    |
+| **Channels**  | Channel cards, configuration dialogs, stats, WhatsApp QR binding                                                                                          |
+| **Skills**    | Skill marketplace, install options, skill detail dialogs                                                                                                  |
+| **Cron**      | Scheduled task management and statistics                                                                                                                  |
+| **Settings**  | Provider management (add/edit/model editor, system-discovered providers like OpenAI Codex OAuth), appearance, Gateway, developer, advanced, about, update |
 
 ![console-dashboard](./assets/console-dashboard.png)
 
@@ -60,18 +60,18 @@ Full system management interface with dedicated pages:
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Build Tool | Vite 6 |
-| UI Framework | React 19 |
-| 2D Rendering | SVG + CSS Animations |
-| 3D Rendering | React Three Fiber (R3F) + @react-three/drei |
-| State Management | Zustand 5 + Immer |
-| Styling | Tailwind CSS 4 |
-| Routing | React Router 7 |
-| Charts | Recharts |
-| i18n | i18next + react-i18next |
-| Real-time | Native WebSocket (connects to OpenClaw Gateway) |
+| Layer            | Technology                                      |
+| ---------------- | ----------------------------------------------- |
+| Build Tool       | Vite 6                                          |
+| UI Framework     | React 19                                        |
+| 2D Rendering     | SVG + CSS Animations                            |
+| 3D Rendering     | React Three Fiber (R3F) + @react-three/drei     |
+| State Management | Zustand 5 + Immer                               |
+| Styling          | Tailwind CSS 4                                  |
+| Routing          | React Router 7                                  |
+| Charts           | Recharts                                        |
+| i18n             | i18next + react-i18next                         |
+| Real-time        | Native WebSocket (connects to OpenClaw Gateway) |
 
 ---
 
@@ -112,13 +112,13 @@ OPENCLAW_GATEWAY_TOKEN=<token> openclaw-office
 
 ### CLI Options
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-t, --token <token>` | Gateway auth token | auto-detected |
+| Flag                  | Description           | Default                |
+| --------------------- | --------------------- | ---------------------- |
+| `-t, --token <token>` | Gateway auth token    | auto-detected          |
 | `-g, --gateway <url>` | Gateway WebSocket URL | `ws://localhost:18789` |
-| `-p, --port <port>` | Server port | `5180` |
-| `--host <host>` | Bind address | `0.0.0.0` |
-| `-h, --help` | Show help | — |
+| `-p, --port <port>`   | Server port           | `5180`                 |
+| `--host <host>`       | Bind address          | `0.0.0.0`              |
+| `-h, --help`          | Show help             | —                      |
 
 > **Note:** This serves the pre-built production bundle. For development with hot reload, see [Development](#development) below.
 
@@ -179,11 +179,11 @@ Open `http://localhost:5180` in your browser.
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `VITE_GATEWAY_URL` | No | `ws://localhost:18789` | Gateway WebSocket address |
-| `VITE_GATEWAY_TOKEN` | Yes (when connecting to real Gateway) | — | Gateway auth token |
-| `VITE_MOCK` | No | `false` | Enable mock mode (no Gateway needed) |
+| Variable             | Required                              | Default                | Description                          |
+| -------------------- | ------------------------------------- | ---------------------- | ------------------------------------ |
+| `VITE_GATEWAY_URL`   | No                                    | `ws://localhost:18789` | Gateway WebSocket address            |
+| `VITE_GATEWAY_TOKEN` | Yes (when connecting to real Gateway) | —                      | Gateway auth token                   |
+| `VITE_MOCK`          | No                                    | `false`                | Enable mock mode (no Gateway needed) |
 
 ### Mock Mode (No Gateway)
 
