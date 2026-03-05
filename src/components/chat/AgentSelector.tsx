@@ -13,8 +13,19 @@ export function AgentSelector() {
   const targetAgentId = useChatDockStore((s) => s.targetAgentId);
   const setTargetAgent = useChatDockStore((s) => s.setTargetAgent);
 
-  const agentList = Array.from(agents.values());
+  const agentList = Array.from(agents.values()).filter(
+    (a) => a.confirmed && !a.isPlaceholder && !a.isSubAgent,
+  );
   const currentAgent = agentList.find((a) => a.id === targetAgentId) ?? agentList[0];
+
+  useEffect(() => {
+    if (agentList.length === 0) return;
+    const valid = targetAgentId && agentList.some((a) => a.id === targetAgentId);
+    if (!valid) {
+      const preferred = agentList.find((a) => a.id === "main") ?? agentList[0];
+      setTargetAgent(preferred.id);
+    }
+  }, [agentList, targetAgentId, setTargetAgent]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

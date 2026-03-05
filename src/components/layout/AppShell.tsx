@@ -53,11 +53,17 @@ export function AppShell({ children, wsClient, isMobile = false }: AppShellProps
   useEffect(() => {
     if (connectionStatus === "connected" && agents.size > 0) {
       const currentTarget = useChatDockStore.getState().targetAgentId;
-      if (!currentTarget) {
-        const mainAgent = Array.from(agents.values()).find((a) => !a.isSubAgent);
-        if (mainAgent) {
-          setTargetAgent(mainAgent.id);
-        }
+      const eligibleAgents = Array.from(agents.values()).filter(
+        (a) => a.confirmed && !a.isPlaceholder && !a.isSubAgent,
+      );
+      if (eligibleAgents.length === 0) return;
+
+      const hasValidTarget =
+        currentTarget != null && eligibleAgents.some((a) => a.id === currentTarget);
+
+      if (!hasValidTarget) {
+        const mainAgent = eligibleAgents.find((a) => a.id === "main") ?? eligibleAgents[0];
+        setTargetAgent(mainAgent.id);
       }
     }
   }, [connectionStatus, agents, setTargetAgent]);
@@ -66,7 +72,12 @@ export function AppShell({ children, wsClient, isMobile = false }: AppShellProps
   useEffect(() => {
     if (!selectedAgentId) return;
     const agent = agents.get(selectedAgentId);
-    if (!agent || agent.isSubAgent) return;
+    if (!agent) return;
+
+    // Never route chat to temporary/unconfirmed placeholder agents
+    const canTarget = agent.confirmed && !agent.isPlaceholder && !agent.isSubAgent;
+    if (!canTarget) return;
+
     const currentTarget = useChatDockStore.getState().targetAgentId;
     if (currentTarget !== selectedAgentId) {
       setTargetAgent(selectedAgentId);
