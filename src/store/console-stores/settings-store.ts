@@ -30,7 +30,7 @@ interface ConsoleSettingsState {
 
 export const useConsoleSettingsStore = create<ConsoleSettingsState>((set) => ({
   theme: readLocal(THEME_KEY, "system") as ThemePreference,
-  language: readLocal(LANG_KEY, "zh"),
+  language: readLocal(LANG_KEY, "ru"),
   devModeUnlocked: readLocalBool(DEV_MODE_KEY, false),
 
   setTheme: (theme) => {

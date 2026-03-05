@@ -274,7 +274,8 @@
       "themeSystem": "跟随系统",
       "language": "语言",
       "langZh": "中文",
-      "langEn": "英文"
+      "langEn": "英文",
+      "langRu": "俄语"
     },
     "providers": {
       "title": "AI 提供方",

@@ -26,7 +26,8 @@
     },
     "language": {
       "switchToEn": "Switch to English",
-      "switchToZh": "Switch to Chinese"
+      "switchToZh": "Switch to Chinese",
+      "switch": "Переключить язык на {{lang}}"
     }
   },
   "sidebar": {

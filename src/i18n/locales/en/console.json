@@ -274,7 +274,8 @@
       "themeSystem": "System",
       "language": "Language",
       "langZh": "中文",
-      "langEn": "English"
+      "langEn": "English",
+      "langRu": "Russian"
     },
     "providers": {
       "title": "AI Providers",

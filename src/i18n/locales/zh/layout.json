@@ -26,7 +26,8 @@
     },
     "language": {
       "switchToEn": "切换到英文",
-      "switchToZh": "切换到中文"
+      "switchToZh": "切换到中文",
+      "switch": "切换语言到 {{lang}}"
     }
   },
   "sidebar": {
