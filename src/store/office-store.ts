@@ -662,7 +662,12 @@ export const useOfficeStore = create<OfficeStore>()(
         if (!agentId && event.sessionKey) {
           const sessionAgents = state.sessionKeyMap.get(event.sessionKey);
           if (sessionAgents && sessionAgents.length > 0) {
-            agentId = sessionAgents[0];
+            // Prefer a confirmed non-sub main agent for stable routing
+            const preferred = sessionAgents.find((id) => {
+              const a = state.agents.get(id);
+              return a && a.confirmed && !a.isSubAgent && !a.isPlaceholder;
+            });
+            agentId = preferred ?? sessionAgents[0];
           }
         }
         if (!agentId) {
@@ -688,6 +693,19 @@ export const useOfficeStore = create<OfficeStore>()(
             },
           };
         } else if (!state.agents.has(agentId)) {
+          // If this looks like a synthetic run-like id, try to collapse it back
+          // to an already-known confirmed main agent for the same session.
+          if (event.sessionKey && looksLikeSyntheticAgentId(agentId)) {
+            const sessionAgents = state.sessionKeyMap.get(event.sessionKey) ?? [];
+            const confirmedMain = sessionAgents.find((id) => {
+              const a = state.agents.get(id);
+              return a && a.confirmed && !a.isSubAgent && !a.isPlaceholder;
+            });
+            if (confirmedMain) {
+              agentId = confirmedMain;
+            }
+          }
+
           // Unknown agent — check if this is from an initAgents-known agent ID
           // (i.e. a confirmed main agent whose ID we know from agents.list).
           // If the agentId matches a known main agent name pattern, create as confirmed.
@@ -771,9 +789,16 @@ export const useOfficeStore = create<OfficeStore>()(
           confirmationTimers.delete(id);
           const store = useOfficeStore.getState();
           const a = store.agents.get(id);
-          if (a && !a.confirmed) {
-            store.confirmAgent(id, "main");
+          if (!a || a.confirmed) return;
+
+          // Do not promote synthetic run-like IDs to persistent main agents.
+          // Keep office clean: remove unresolved temporary ghosts.
+          if (looksLikeSyntheticAgentId(id)) {
+            store.removeAgent(id);
+            return;
           }
+
+          store.confirmAgent(id, "main");
         }, UNCONFIRMED_TIMEOUT_MS);
         confirmationTimers.set(id, timer);
       }
@@ -916,6 +941,16 @@ export const useOfficeStore = create<OfficeStore>()(
  * to an existing confirmed agent, or the agentId itself matches a known agent.
  * This prevents main agents with new runIds from becoming unconfirmed.
  */
+function looksLikeSyntheticAgentId(id: string): boolean {
+  const normalized = (id || "").trim();
+  if (!normalized) return true;
+  // e.g. 2cb7ce / a1b2c3d4 / UUID-like run ids
+  if (/^[a-f0-9]{6,}$/i.test(normalized)) return true;
+  if (/^[a-f0-9-]{12,}$/i.test(normalized)) return true;
+  if (normalized.startsWith("run-") || normalized.startsWith("session-")) return true;
+  return false;
+}
+
 function isRegisteredMainAgentId(
   state: { agents: Map<string, VisualAgent>; sessionKeyMap: Map<string, string[]> },
   agentId: string,
