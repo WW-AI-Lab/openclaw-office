@@ -1,0 +1,60 @@
+{
+  "topbar": {
+    "activeCount": "Active <strong>{{active}}/{{total}}</strong>",
+    "tokens": "Tokens <strong>{{count}}</strong>",
+    "activeCountText": "Active",
+    "tokensLabel": "Tokens",
+    "console": "Console",
+    "office": "Office",
+    "pageTitles": {
+      "dashboard": "Dashboard",
+      "channels": "Channels",
+      "skills": "Skills",
+      "cron": "Cron Tasks",
+      "agents": "Agents",
+      "settings": "Settings",
+      "fallback": "Console"
+    },
+    "viewMode": {
+      "switchTo": "Switch to {{mode}} view",
+      "mobileNotSupported": "3D mode not supported on small screens",
+      "webglNotSupported": "3D rendering not supported in this browser"
+    },
+    "theme": {
+      "switchToDark": "Switch to dark mode",
+      "switchToLight": "Switch to light mode"
+    },
+    "language": {
+      "switchToEn": "Switch to English",
+      "switchToZh": "Switch to Chinese"
+    }
+  },
+  "sidebar": {
+    "agents": "Agents",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "closeSidebar": "Close sidebar",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "metricsTitle": "Overview / Trends",
+    "agentList": "Agent List",
+    "subAgents": "Sub-Agents",
+    "agentDetail": "Agent Detail",
+    "eventTimeline": "Event Timeline",
+    "searchPlaceholder": "Search agents...",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "idle": "Idle",
+      "error": "Error"
+    }
+  },
+  "consoleNav": {
+    "dashboard": "Dashboard",
+    "agents": "Agents",
+    "channels": "Channels",
+    "skills": "Skills",
+    "cron": "Cron Tasks",
+    "settings": "Settings"
+  }
+}

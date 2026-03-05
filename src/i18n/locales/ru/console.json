@@ -1,0 +1,533 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "description": "System overview: Gateway status, channel connections, skill status",
+    "loading": "Loading dashboard data...",
+    "stats": {
+      "channels": "Channels",
+      "skills": "Skills",
+      "usage": "Provider Usage",
+      "uptime": "Uptime",
+      "uptimeOnline": "Online"
+    },
+    "alerts": {
+      "gatewayDisconnected": "Gateway disconnected, data may not be up to date",
+      "channelErrors": "{{count}} channel(s) with errors"
+    },
+    "quickNav": {
+      "title": "Quick Navigation"
+    },
+    "channelOverview": {
+      "title": "Connected Channels",
+      "empty": "No connected channels"
+    },
+    "skillOverview": {
+      "title": "Active Skills",
+      "empty": "No enabled skills"
+    }
+  },
+  "channels": {
+    "title": "Channels",
+    "description": "Manage messaging channels: Telegram, Discord, WhatsApp, etc.",
+    "stats": {
+      "total": "Total",
+      "connected": "Connected",
+      "errors": "Errors"
+    },
+    "card": {
+      "lastConnected": "Last connected: {{time}}",
+      "details": "Details",
+      "logout": "Logout"
+    },
+    "empty": {
+      "title": "No channels configured",
+      "description": "Select a channel type below to get started"
+    },
+    "available": {
+      "title": "Available Channel Types",
+      "configured": "Configured",
+      "add": "Add"
+    },
+    "types": {
+      "telegram": "Telegram",
+      "discord": "Discord",
+      "whatsapp": "WhatsApp",
+      "signal": "Signal",
+      "feishu": "Feishu",
+      "imessage": "iMessage",
+      "matrix": "Matrix",
+      "line": "LINE",
+      "msteams": "MS Teams",
+      "googlechat": "Google Chat",
+      "mattermost": "Mattermost"
+    },
+    "fields": {
+      "botToken": "Bot Token",
+      "applicationId": "Application ID",
+      "phoneNumber": "Phone Number",
+      "appId": "App ID",
+      "appSecret": "App Secret",
+      "homeserver": "Homeserver URL",
+      "accessToken": "Access Token",
+      "channelAccessToken": "Channel Access Token",
+      "channelSecret": "Channel Secret",
+      "appPassword": "App Password",
+      "serviceAccount": "Service Account JSON",
+      "serverUrl": "Server URL"
+    },
+    "placeholders": {
+      "botToken": "Enter Bot Token",
+      "applicationId": "Enter Application ID",
+      "phoneNumber": "+1...",
+      "appId": "Enter App ID",
+      "appSecret": "Enter App Secret",
+      "homeserver": "https://matrix.org",
+      "accessToken": "Enter Access Token",
+      "channelAccessToken": "Enter Channel Access Token",
+      "channelSecret": "Enter Channel Secret",
+      "appPassword": "Enter App Password",
+      "serviceAccount": "Paste Service Account JSON",
+      "serverUrl": "https://mattermost.example.com"
+    },
+    "configDialog": {
+      "required": "This field is required",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "qr": {
+      "description": "Scan the QR code with your WhatsApp mobile app to pair",
+      "startPairing": "Start Pairing",
+      "loading": "Generating QR code...",
+      "scanPrompt": "Scan QR code with your phone",
+      "waitingScan": "Waiting for scan...",
+      "success": "Paired successfully!",
+      "error": "Pairing failed"
+    },
+    "logout": {
+      "title": "Logout Channel",
+      "description": "Are you sure you want to logout \"{{name}}\"? You will need to re-pair."
+    }
+  },
+  "skills": {
+    "title": "Skills",
+    "description": "Manage skills and plugins: install, enable/disable, configure",
+    "tabs": {
+      "installed": "Installed",
+      "marketplace": "Marketplace"
+    },
+    "installed": {
+      "searchPlaceholder": "Search installed skills..."
+    },
+    "filters": {
+      "all": "All ({{count}})",
+      "built-in": "Built-in ({{count}})",
+      "marketplace": "Marketplace ({{count}})"
+    },
+    "source": {
+      "builtIn": "Built-in",
+      "marketplace": "Marketplace"
+    },
+    "card": {
+      "configure": "Configure",
+      "install": "Install",
+      "installing": "Installing...",
+      "missingDeps": "Missing dependencies",
+      "coreProtected": "Core skill cannot be disabled"
+    },
+    "detail": {
+      "info": "Info",
+      "source": "Source",
+      "version": "Version",
+      "author": "Author",
+      "primaryEnv": "Primary environment variable",
+      "homepage": "Homepage",
+      "requirements": "Requirements",
+      "config": "Configuration",
+      "configChecks": "Config Checks",
+      "noConfig": "This skill requires no configuration",
+      "apiKeyPlaceholder": "Enter API Key",
+      "envVars": "Environment Variables",
+      "addVariable": "Add Variable",
+      "noEnvVars": "No environment variables configured",
+      "keyPlaceholder": "Key",
+      "valuePlaceholder": "Value",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "saving": "Saving..."
+    },
+    "install": {
+      "title": "Install {{name}}"
+    },
+    "marketplace": {
+      "securityNote": "Review the skill source, homepage, and dependency requirements before installing. This web marketplace view is built from the installable skills returned by the Gateway.",
+      "searchPlaceholder": "Search marketplace skills...",
+      "searchButton": "Search",
+      "emptyTitle": "No marketplace skills",
+      "emptyDescription": "The current Gateway did not return any marketplace-ready skills",
+      "noResults": "No marketplace skills match your search",
+      "installed": "Installed",
+      "version": "Version {{version}}",
+      "author": "Author {{author}}",
+      "learnMore": "Details"
+    },
+    "toast": {
+      "enabled": "{{name}} enabled",
+      "disabled": "{{name}} disabled",
+      "toggleFailed": "Failed to toggle skill",
+      "installSuccess": "{{name}} installed successfully",
+      "installFailed": "Failed to install {{name}}",
+      "installWarning": "Install warning"
+    },
+    "empty": {
+      "title": "No skills found",
+      "description": "Try switching tabs or adjusting filters"
+    }
+  },
+  "clawhub": {
+    "searchPlaceholder": "Search skills on ClawHub...",
+    "offlineNotice": "Cannot connect to ClawHub, showing locally installed skills",
+    "noSearchResults": "No matching skills found",
+    "tryDifferentQuery": "Try different search keywords",
+    "noSkills": "No skills available",
+    "noSkillsDescription": "ClawHub has no skills at the moment",
+    "loadMore": "Load More",
+    "downloads": "downloads",
+    "stars": "stars",
+    "viewOnClawHub": "View on ClawHub",
+    "notFound": "Skill not found",
+    "installTitle": "Install {{name}}",
+    "securityWarning": "Please review the skill source code and permissions before installing. Third-party skills may access your system.",
+    "installCommand": "Run this command in your terminal:",
+    "cancel": "Cancel",
+    "installDone": "I've installed it"
+  },
+  "toast": {
+    "showDetail": "Show details",
+    "hideDetail": "Hide details"
+  },
+  "commandResult": {
+    "exitCode": "Exit code",
+    "copyAll": "Copy all"
+  },
+  "restart": {
+    "pending": "Gateway restarting in {{seconds}}s...",
+    "disconnected": "Gateway disconnected, waiting for restart...",
+    "reconnecting": "Reconnecting...",
+    "complete": "Gateway is back online"
+  },
+  "cron": {
+    "title": "Cron Tasks",
+    "description": "Manage cron tasks: create, edit, enable/disable, run immediately",
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "paused": "Paused",
+      "failed": "Failed"
+    },
+    "card": {
+      "lastRun": "Last run",
+      "nextRun": "Next run",
+      "runNow": "Run now"
+    },
+    "presets": {
+      "everyHour": "Every hour",
+      "daily9am": "Daily 9 AM",
+      "daily6pm": "Daily 6 PM",
+      "weeklyMon": "Weekly Monday 9 AM",
+      "monthlyFirst": "Monthly 1st",
+      "every30min": "Every 30 min"
+    },
+    "dialog": {
+      "createTitle": "Create Cron Task",
+      "editTitle": "Edit Cron Task",
+      "name": "Task Name",
+      "namePlaceholder": "Enter task name",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional task description",
+      "schedule": "Schedule",
+      "cronHelp": "Standard cron expression: min hour day month weekday",
+      "message": "Message",
+      "messagePlaceholder": "Enter message to send to the agent",
+      "required": "This field is required"
+    },
+    "empty": {
+      "title": "No cron tasks",
+      "createFirst": "Create your first task"
+    },
+    "delete": {
+      "title": "Delete Cron Task",
+      "description": "Are you sure you want to delete this cron task? This cannot be undone."
+    },
+    "run": {
+      "title": "Run Now",
+      "description": "Are you sure you want to run this cron task immediately?"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "App settings: theme, provider, gateway, updates",
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "language": "Language",
+      "langZh": "中文",
+      "langEn": "English"
+    },
+    "providers": {
+      "title": "AI Providers",
+      "description": "Manage AI model provider configurations",
+      "add": "Add Provider",
+      "empty": "No AI Providers configured",
+      "emptyHint": "Click the button above to add your first provider",
+      "apiKeyConfigured": "Configured",
+      "apiKeyNotConfigured": "Not configured",
+      "systemDiscovered": "System",
+      "modelCount": "{{count}} model(s)",
+      "deleteTitle": "Delete Provider",
+      "deleteDescription": "Are you sure you want to delete provider \"{{name}}\"? You will need to reconfigure it.",
+      "addDialog": {
+        "title": "Add Provider",
+        "selectType": "Select Provider Type",
+        "backToSelect": "Back to type selection",
+        "providerId": "Provider ID",
+        "providerIdHint": "Unique identifier in the config file",
+        "baseUrl": "Base URL",
+        "apiKey": "API Key",
+        "apiType": "API Type",
+        "idConflict": "This Provider ID already exists",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "editDialog": {
+        "title": "Edit Provider",
+        "apiKeyPlaceholder": "Leave empty to keep unchanged",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "models": {
+        "title": "Models",
+        "add": "Add Model",
+        "remove": "Remove Model",
+        "empty": "No models configured. Click above to add one.",
+        "untitled": "Untitled Model",
+        "id": "Model ID",
+        "name": "Display Name",
+        "reasoning": "Reasoning",
+        "inputTypes": "Input Types",
+        "input_text": "Text",
+        "input_image": "Image",
+        "yes": "Yes",
+        "no": "No",
+        "apiOverride": "API Override",
+        "inheritProvider": "Inherit from provider",
+        "contextWindow": "Context Window",
+        "maxTokens": "Max Output Tokens",
+        "cost": "Cost ($/M tokens)",
+        "costHint": "In USD per million tokens. 0 means free.",
+        "cost_input": "Input",
+        "cost_output": "Output",
+        "cost_cacheRead": "Cache Read",
+        "cost_cacheWrite": "Cache Write",
+        "showAdvanced": "Advanced compatibility options",
+        "hideAdvanced": "Hide advanced options",
+        "default": "Default",
+        "thinkingFormat": "Thinking Format",
+        "maxTokensField": "maxTokens Field Name",
+        "compat_supportsStore": "Supports store/memory",
+        "compat_supportsDeveloperRole": "Supports developer role",
+        "compat_supportsReasoningEffort": "Supports reasoning effort",
+        "compat_supportsUsageInStreaming": "Usage in streaming",
+        "compat_supportsStrictMode": "Supports strict mode",
+        "compat_requiresToolResultName": "Requires tool result name",
+        "compat_requiresAssistantAfterToolResult": "Requires assistant after tool result",
+        "compat_requiresThinkingAsText": "Thinking as text",
+        "compat_requiresMistralToolIds": "Mistral tool IDs"
+      }
+    },
+    "gateway": {
+      "title": "Gateway",
+      "description": "Gateway runtime status",
+      "version": "Version",
+      "port": "Port",
+      "uptime": "Uptime",
+      "mode": "Mode",
+      "nodeVersion": "Node.js",
+      "platform": "Platform",
+      "refresh": "Refresh",
+      "notConnected": "Gateway not connected",
+      "notConnectedHint": "Make sure OpenClaw Gateway is running",
+      "uptimeFormat": "{{hours}}h {{minutes}}m"
+    },
+    "update": {
+      "title": "Updates",
+      "currentVersion": "Current Version",
+      "channel": "Update Channel",
+      "checkUpdate": "Check for Updates",
+      "updating": "Updating...",
+      "confirmTitle": "Confirm Update",
+      "confirmDescription": "The Gateway will restart during the update and the connection will be briefly interrupted. Continue?",
+      "resultOk": "Update successful, version upgraded from {{before}} to {{after}}, Gateway is restarting",
+      "resultNoop": "Already up to date",
+      "resultError": "Update failed: {{reason}}"
+    },
+    "advanced": {
+      "title": "Advanced",
+      "devMode": "Developer Mode",
+      "devModeHint": "Enable to show developer tools"
+    },
+    "developer": {
+      "title": "Developer Tools",
+      "gatewayToken": "Gateway Token",
+      "tokenConfigured": "Configured",
+      "tokenHint": "Use CLI `openclaw config get gateway.auth.token` to view the full token",
+      "configPath": "Config File Path",
+      "rawConfig": "Raw Configuration",
+      "showConfig": "Show",
+      "hideConfig": "Hide",
+      "wsUrl": "WebSocket URL",
+      "connectionStatus": "Connection Status",
+      "copied": "Copied"
+    },
+    "about": {
+      "title": "About",
+      "appName": "OpenClaw Office",
+      "tagline": "Multi-Agent collaboration visual monitoring",
+      "version": "Version",
+      "docs": "Documentation",
+      "github": "GitHub"
+    },
+    "restartWarning": "Gateway will automatically restart after saving configuration, connection will be briefly interrupted",
+    "configConflict": "Configuration was modified by another client, automatically reloaded"
+  },
+  "viewModels": {
+    "statusLabels": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connecting": "Connecting",
+      "error": "Error"
+    },
+    "taskStatus": {
+      "active": "Active",
+      "paused": "Paused"
+    },
+    "schedule": {
+      "daily": "Daily at {{time}}",
+      "weekly": "Weekly {{day}} at {{time}}",
+      "every": "every {{minutes}}m",
+      "at": "at {{time}}",
+      "unknown": "unknown"
+    },
+    "skillSource": {
+      "builtIn": "built-in",
+      "marketplace": "marketplace"
+    }
+  },
+  "agents": {
+    "title": "Agent Management",
+    "description": "Manage agent configuration, core files, and model settings",
+    "panelTitle": "Agents",
+    "detailDescription": "Workspace and routing for agent {{id}}",
+    "configured": "{{count}} configured.",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search agents...",
+    "noAgents": "No agents",
+    "noAgentsDesc": "No agents configured yet",
+    "selectAgent": "Select an agent",
+    "selectAgentDesc": "Select an agent from the list to view details",
+    "defaultBadge": "DEFAULT",
+    "addAgent": "Add Agent",
+    "tabs": {
+      "overview": "Overview",
+      "files": "Files",
+      "tools": "Tools",
+      "skills": "Skills",
+      "channels": "Channels",
+      "cronJobs": "Cron Jobs"
+    },
+    "overview": {
+      "title": "Basic Info",
+      "agentId": "Agent ID",
+      "name": "Name",
+      "workspace": "Workspace",
+      "isDefault": "Default Agent",
+      "yes": "Yes",
+      "no": "No",
+      "modelConfig": "Model Configuration",
+      "primaryModel": "Primary Model",
+      "primaryModelPlaceholder": "Select primary model...",
+      "fallbackModels": "Fallback Models",
+      "fallbackPlaceholder": "Select fallback model...",
+      "addFallback": "Add Fallback",
+      "save": "Save",
+      "saving": "Saving...",
+      "saveSuccess": "Saved successfully",
+      "saveError": "Failed to save",
+      "deleteAgent": "Delete Agent",
+      "cannotDeleteDefault": "Cannot delete default agent"
+    },
+    "files": {
+      "title": "Core Files",
+      "description": "Bootstrap persona, identity, and tool guidance.",
+      "workspace": "Workspace",
+      "noFiles": "No files",
+      "selectFile": "Select a file to view its content",
+      "content": "Content",
+      "reset": "Reset",
+      "save": "Save",
+      "saving": "Saving...",
+      "saveSuccess": "File saved",
+      "saveError": "Failed to save",
+      "unsavedChanges": "Unsaved changes",
+      "justNow": "just now",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
+    },
+    "tools": {
+      "title": "Tool Policy",
+      "profile": "Profile",
+      "allowList": "Allow List",
+      "denyList": "Deny List",
+      "noConfig": "No tool policy configured for this agent",
+      "all": "All"
+    },
+    "skills": {
+      "title": "Skills Configuration",
+      "noRestriction": "No skill restrictions (uses all enabled skills)",
+      "defaultConfig": "Uses default skill configuration",
+      "allowedSkills": "Allowed Skills"
+    },
+    "channels": {
+      "title": "Channel Routing",
+      "noBindings": "No channels bound to this agent"
+    },
+    "cronJobs": {
+      "title": "Cron Jobs",
+      "noCronJobs": "No cron jobs for this agent"
+    },
+    "createDialog": {
+      "title": "Add New Agent",
+      "name": "Name",
+      "namePlaceholder": "Enter agent name",
+      "nameRequired": "Name is required",
+      "workspace": "Workspace Path",
+      "workspacePlaceholder": "e.g. ~/.openclaw/workspace-myagent",
+      "workspaceRequired": "Workspace path is required",
+      "emoji": "Emoji",
+      "emojiPlaceholder": "e.g. 🤖",
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating..."
+    },
+    "deleteDialog": {
+      "title": "Delete Agent",
+      "confirm": "Are you sure you want to delete agent \"{{name}}\"? This action cannot be undone.",
+      "deleteFiles": "Also delete workspace files",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleting": "Deleting..."
+    }
+  }
+}
