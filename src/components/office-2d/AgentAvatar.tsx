@@ -34,10 +34,16 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const clipId = `avatar-clip-${agent.id}`;
   const groupOpacity = isPlaceholder ? 0.3 : isUnconfirmed ? 0.5 : 1;
 
-  const displayName =
-    agent.name.length > AVATAR.nameLabelMaxChars
-      ? `${agent.name.slice(0, AVATAR.nameLabelMaxChars)}…`
+  const resolvedName = isPlaceholder
+    ? t("agent.placeholderSlot")
+    : isUnconfirmed
+      ? t("agent.connecting")
       : agent.name;
+
+  const displayName =
+    resolvedName.length > AVATAR.nameLabelMaxChars
+      ? `${resolvedName.slice(0, AVATAR.nameLabelMaxChars)}…`
+      : resolvedName;
 
   // Walk animation loop via requestAnimationFrame
   const agentIdRef = useRef(agent.id);
@@ -101,7 +107,7 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
       style={{ cursor: isPlaceholder ? "default" : "pointer" }}
       opacity={groupOpacity}
       onClick={() => !isPlaceholder && selectAgent(agent.id)}
-      onMouseEnter={() => !isPlaceholder && setHovered(true)}
+      onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {/* Selected glow */}
@@ -204,7 +210,7 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
           }}
         >
           <span
-            title={agent.name}
+            title={resolvedName}
             style={{
               fontSize: "11px",
               fontWeight: 500,
@@ -251,7 +257,9 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
                 border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
               }}
             >
-              {agent.name} · {t(`agent.statusLabels.${agent.status}`)}
+              {isPlaceholder
+                ? t("agent.placeholderHint")
+                : `${resolvedName} · ${t(`agent.statusLabels.${agent.status}`)}`}
             </span>
           </div>
         </foreignObject>

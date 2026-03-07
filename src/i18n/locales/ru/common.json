@@ -53,7 +53,10 @@
       "spawning": "Spawning",
       "error": "Error",
       "offline": "Offline"
-    }
+    },
+    "placeholderSlot": "Свободный слот",
+    "placeholderHint": "Свободный слот: здесь появится новый агент",
+    "connecting": "Подключается..."
   },
   "zones": {
     "desk": "Зона рабочих столов",

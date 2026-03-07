@@ -53,7 +53,10 @@
       "spawning": "创建中",
       "error": "错误",
       "offline": "离线"
-    }
+    },
+    "placeholderSlot": "空闲位置",
+    "placeholderHint": "空闲位置：新子代理会出现在这里",
+    "connecting": "连接中..."
   },
   "zones": {
     "desk": "固定工位区",
