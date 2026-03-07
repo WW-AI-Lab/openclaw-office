@@ -2,6 +2,7 @@ import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import Markdown from "react-markdown";
 
 import type { Group } from "three";
 import type { VisualAgent } from "@/gateway/types";
@@ -151,22 +152,12 @@ export function AgentCharacter({ agent }: AgentCharacterProps) {
       )}
       {agent.status === "error" && <ErrorIndicator />}
 
-      {/* Speaking indicator — collapsed icon; full bubble shown via 2D overlay */}
+      {/* Speaking bubble — uses transform={false} to render at fixed screen size */}
       {agent.status === "speaking" && agent.speechBubble && (
-        <Html position={[0, 1.0, 0]} center transform={false}>
-          <div className="flex items-center justify-center">
-            <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-purple-500 text-white shadow-md">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
-                <path
-                  fillRule="evenodd"
-                  d="M3.43 2.524A41.29 41.29 0 0110 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.102 41.102 0 01-3.55.414c-.28.02-.521.18-.643.413l-1.712 3.293a.75.75 0 01-1.33 0l-1.713-3.293a.783.783 0 00-.642-.413 41.108 41.108 0 01-3.55-.414C1.993 13.245 1 11.986 1 10.574V5.426c0-1.413.993-2.67 2.43-2.902z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-300 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-purple-400" />
-              </span>
+        <Html position={[0, 1.2, 0]} center transform={false} style={{ pointerEvents: "none" }}>
+          <div className="speech-bubble-3d pointer-events-none min-w-[320px] w-[min(52vw,500px)] max-w-[min(92vw,540px)] max-h-[36vh] overflow-y-auto rounded-2xl border border-slate-300/80 bg-white px-4 py-3.5 text-[14px] leading-7 text-slate-900 shadow-2xl [overflow-wrap:anywhere]">
+            <div className="[&_p]:my-0 [&_p+*]:mt-2.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5">
+              <Markdown>{agent.speechBubble.text}</Markdown>
             </div>
           </div>
         </Html>

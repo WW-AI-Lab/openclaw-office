@@ -5,6 +5,7 @@ import { AdvancedSection } from "@/components/console/settings/AdvancedSection";
 import { AppearanceSection } from "@/components/console/settings/AppearanceSection";
 import { DeveloperSection } from "@/components/console/settings/DeveloperSection";
 import { GatewaySection } from "@/components/console/settings/GatewaySection";
+import { OfficeSection } from "@/components/console/settings/OfficeSection";
 import { ProvidersSection } from "@/components/console/settings/ProvidersSection";
 import { UpdateSection } from "@/components/console/settings/UpdateSection";
 import { LoadingState } from "@/components/console/shared/LoadingState";
@@ -37,6 +38,7 @@ export function SettingsPage() {
       ) : (
         <div className="space-y-4">
           <AppearanceSection />
+          <OfficeSection />
           <ProvidersSection />
           <GatewaySection />
           <UpdateSection />

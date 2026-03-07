@@ -14,15 +14,6 @@
       "gatewayDisconnected": "Gateway disconnected, data may not be up to date",
       "channelErrors": "{{count}} channel(s) with errors"
     },
-    "connectionGuide": {
-      "title": "Cannot connect to Gateway",
-      "subtitle": "Please check the following",
-      "reconnecting": "Attempting to reconnect...",
-      "step1": "Make sure OpenClaw Gateway is running (default port 18789)",
-      "step2": "Verify the Gateway token is configured (use --token flag or install openclaw CLI for auto-detection)",
-      "step3": "If Gateway is on another host, use --gateway ws://host:port",
-      "cmdComment": "Example: start with token"
-    },
     "quickNav": {
       "title": "Quick Navigation"
     },
@@ -224,22 +215,6 @@
     "reconnecting": "Reconnecting...",
     "complete": "Gateway is back online"
   },
-  "configLifecycle": {
-    "effectiveNow": "Changes are active now.",
-    "savedHotReload": "Configuration saved. Gateway will apply its built-in reload handling automatically.",
-    "savedRestartRequired": "Configuration saved. Some changes require a Gateway restart to be fully applied.",
-    "savedCliRestartRequired": "Configuration saved. Run the command below to restart Gateway and apply the changes.",
-    "applyRestarting": "Configuration saved. Gateway will restart in {{seconds}}s.",
-    "disconnected": "Gateway disconnected while restart is in progress.",
-    "reconnecting": "Reconnecting to Gateway.",
-    "complete": "Gateway is back online and the latest configuration is active.",
-    "copyCommand": "Copy command",
-    "copiedCommand": "Copied",
-    "runtimeAgentModel": "Default model updated. New requests use the new model; current runs keep their existing model.",
-    "runtimeAgentModelSessionsReset": "Default model updated. Existing external channel sessions were cleared, so the next message on Feishu and similar channels will rebuild the session with the new model.",
-    "runtimeSkill": "Skill configuration updated and active immediately.",
-    "runtimeCron": "Scheduled task changes are active immediately."
-  },
   "cron": {
     "title": "Cron Tasks",
     "description": "Manage cron tasks: create, edit, enable/disable, run immediately",
@@ -300,12 +275,12 @@
       "language": "Language",
       "langZh": "中文",
       "langEn": "English",
-      "langRu": "Russian"
+      "langRu": "Русский"
     },
     "office": {
-      "title": "Office View",
-      "showLoungeSlots": "Show free sub-agent slots in lounge",
-      "showLoungeSlotsHint": "When disabled, placeholder avatars in the lounge are hidden"
+      "title": "Вид офиса",
+      "showLoungeSlots": "Показывать свободные слоты саб-агентов в лаунже",
+      "showLoungeSlotsHint": "Если выключить, серые placeholder-аватары в лаунже скрываются"
     },
     "providers": {
       "title": "AI Providers",
@@ -327,19 +302,17 @@
         "providerIdHint": "Unique identifier in the config file",
         "baseUrl": "Base URL",
         "apiKey": "API Key",
-      "apiType": "API Type",
-      "idConflict": "This Provider ID already exists",
-      "cancel": "Cancel",
-      "save": "Save",
-      "saveAndRestart": "Save and Restart"
-    },
-    "editDialog": {
-      "title": "Edit Provider",
-      "apiKeyPlaceholder": "Leave empty to keep unchanged",
-      "cancel": "Cancel",
-      "save": "Save",
-      "saveAndRestart": "Save and Restart"
-    },
+        "apiType": "API Type",
+        "idConflict": "This Provider ID already exists",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "editDialog": {
+        "title": "Edit Provider",
+        "apiKeyPlaceholder": "Leave empty to keep unchanged",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
       "models": {
         "title": "Models",
         "add": "Add Model",
@@ -498,7 +471,6 @@
       "saving": "Saving...",
       "saveSuccess": "Saved successfully",
       "saveError": "Failed to save",
-      "runtimeHint": "Only affects new requests; in-progress runs keep their current model.",
       "deleteAgent": "Delete Agent",
       "cannotDeleteDefault": "Cannot delete default agent"
     },
@@ -521,84 +493,25 @@
     },
     "tools": {
       "title": "Tool Policy",
-      "noConfig": "No tool policy configured for this agent",
-      "profile": "Policy Profile",
-      "profileDefault": "Default (full)",
-      "profileFull": "Full",
-      "profileMinimal": "Minimal",
-      "profileCustom": "Custom",
-      "alsoAllow": "Also Allow",
-      "deny": "Deny",
-      "addTool": "Add Tool",
-      "removeTool": "Remove",
-      "enabledCount": "{{enabled}}/{{total}} enabled",
-      "catalogTitle": "Tool Catalog",
-      "sourceBuiltIn": "Built-in",
-      "sourcePlugin": "Plugin",
-      "sourceWorkspace": "Workspace",
-      "save": "Save",
-      "saving": "Saving...",
-      "saveSuccess": "Saved successfully",
-      "saveError": "Save failed",
-      "saveConflict": "Config changed, please reload and retry",
-      "refresh": "Refresh",
-      "noTools": "No tools available",
+      "profile": "Profile",
       "allowList": "Allow List",
       "denyList": "Deny List",
+      "noConfig": "No tool policy configured for this agent",
       "all": "All"
     },
     "skills": {
-      "title": "Skill Configuration",
-      "noRestriction": "Using default skill configuration",
-      "defaultConfig": "Using default skill configuration",
-      "allowedSkills": "Allowed Skills",
-      "total": "Total",
-      "enabled": "Enabled",
-      "blocked": "Blocked",
-      "modeAll": "Use all skills",
-      "modeSelected": "Use selected skills only",
-      "modeAllDesc": "No restriction, all available skills can be used",
-      "modeSelectedDesc": "Only selected skills are allowed",
-      "coreProtected": "Core skill, cannot be deselected",
-      "blockedByAllowlist": "Blocked by allowlist",
-      "missingDeps": "Missing dependencies",
-      "sourceBuiltIn": "Built-in",
-      "sourceMarketplace": "Marketplace",
-      "selectAll": "Select All",
-      "deselectAll": "Deselect All",
-      "save": "Save",
-      "saving": "Saving...",
-      "saveSuccess": "Saved successfully",
-      "saveError": "Save failed",
-      "refresh": "Refresh"
-    },
-    "restart": {
-      "required": "Configuration saved. A Gateway restart is required for changes to take effect.",
-      "restartNow": "Restart Now",
-      "restarting": "Restarting...",
-      "done": "Gateway restarted. Configuration is now active."
+      "title": "Skills Configuration",
+      "noRestriction": "No skill restrictions (uses all enabled skills)",
+      "defaultConfig": "Uses default skill configuration",
+      "allowedSkills": "Allowed Skills"
     },
     "channels": {
-      "title": "Channel Status",
-      "noBindings": "No channels configured",
-      "gatewayInfo": "Showing Gateway-level channel status. Channel-agent bindings are managed in the config file.",
-      "connected": "Connected",
-      "disconnected": "Disconnected",
-      "connecting": "Connecting",
-      "error": "Error",
-      "configured": "Configured",
-      "notConfigured": "Not configured",
-      "refresh": "Refresh"
+      "title": "Channel Routing",
+      "noBindings": "No channels bound to this agent"
     },
     "cronJobs": {
-      "title": "Scheduled Tasks",
-      "noCronJobs": "No scheduled tasks for this agent",
-      "addTask": "New Scheduled Task",
-      "total": "Total",
-      "enabled": "Enabled",
-      "errors": "Errors",
-      "refresh": "Refresh",
-      "confirmDelete": "Are you sure you want to delete this task?"
+      "title": "Cron Jobs",
+      "noCronJobs": "No cron jobs for this agent"
     },
     "createDialog": {
       "title": "Add New Agent",

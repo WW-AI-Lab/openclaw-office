@@ -10,6 +10,16 @@
       "trend": "趋势",
       "topology": "拓扑",
       "activity": "活跃"
+    },
+    "topology": {
+      "demoMode": "演示模式",
+      "forceDemo": "强制生成协作演示",
+      "clearDemo": "清除演示",
+      "source": {
+        "live": "来源：实时",
+        "demo": "来源：演示",
+        "noData": "来源：无数据"
+      }
     }
   },
   "agentDetail": {

@@ -1,0 +1,37 @@
+{
+  "dock": {
+    "collapseDock": "Collapse chat",
+    "expandDock": "Expand chat",
+    "attachmentWip": "Attachments (coming soon)",
+    "placeholder": "Type a message... (Enter to send, Shift+Enter for new line)",
+    "startNewChat": "Start a new conversation",
+    "thinkingStatus": "Thinking..."
+  },
+  "agentSelector": {
+    "defaultLabel": "Agent"
+  },
+  "dialog": {
+    "sendMessage": "Send Message",
+    "killConfirm": "Kill Confirmation",
+    "inputPlaceholder": "Enter command...",
+    "killWarning": "Are you sure you want to kill <strong>{{name}}</strong>'s current run? This cannot be undone.",
+    "kill": "Kill"
+  },
+  "chatDialog": {
+    "loadingHistory": "Loading history...",
+    "scrollToBottom": "Scroll to bottom"
+  },
+  "sessionSwitcher": {
+    "noSessions": "No other sessions",
+    "newSession": "New session"
+  },
+  "contextMenu": {
+    "pause": "Pause",
+    "resume": "Resume",
+    "notSupported": "Not supported yet",
+    "kill": "Kill",
+    "sendMessage": "Send Message",
+    "viewDetail": "View Detail",
+    "operatorRequired": "Operator permission required"
+  }
+}

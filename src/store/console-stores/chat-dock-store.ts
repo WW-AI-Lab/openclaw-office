@@ -40,7 +40,7 @@ interface ChatDockState {
   loadHistory: () => Promise<void>;
   initializeHistory: () => Promise<void>;
   setTargetAgent: (agentId: string) => void;
-  handleChatEvent: (event: Record<string, unknown>) => void;
+  handleChatEvent: (event: Record<string, unknown>, frameSessionKey?: string) => void;
   clearError: () => void;
   initEventListeners: (
     wsClient: {
@@ -51,6 +51,14 @@ interface ChatDockState {
 
 function buildSessionKey(agentId: string): string {
   return `agent:${agentId}:main`;
+}
+
+function pickLatestAgentSessionKey(agentId: string, sessions: SessionInfo[]): string {
+  const prefix = `agent:${agentId}:`;
+  const matched = sessions
+    .filter((s) => s.key.startsWith(prefix))
+    .sort((a, b) => b.lastActiveAt - a.lastActiveAt);
+  return matched[0]?.key ?? buildSessionKey(agentId);
 }
 
 function extractText(content: unknown): string {
@@ -181,7 +189,17 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
     try {
       const adapter = getAdapter();
       const result = await adapter.sessionsList();
-      set({ sessions: Array.isArray(result) ? result : [] });
+      const sessions = Array.isArray(result) ? result : [];
+      set({ sessions });
+
+      const { targetAgentId, currentSessionKey } = get();
+      if (targetAgentId) {
+        const preferred = pickLatestAgentSessionKey(targetAgentId, sessions);
+        if (preferred !== currentSessionKey) {
+          set({ currentSessionKey: preferred, messages: [], isHistoryLoaded: false });
+          get().initializeHistory();
+        }
+      }
     } catch {
       // Silently handle — sessions not critical
     }
@@ -231,7 +249,8 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
   },
 
   setTargetAgent: (agentId) => {
-    const sessionKey = buildSessionKey(agentId);
+    const { sessions } = get();
+    const sessionKey = pickLatestAgentSessionKey(agentId, sessions);
     set({
       targetAgentId: agentId,
       currentSessionKey: sessionKey,
@@ -245,7 +264,15 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
     get().initializeHistory();
   },
 
-  handleChatEvent: (event) => {
+  handleChatEvent: (event, frameSessionKey) => {
+    const storeSessionKey = get().currentSessionKey;
+    const payloadSessionKey = String(event.sessionKey || frameSessionKey || "");
+
+    // Critical: ignore chat events from other sessions/agents
+    if (payloadSessionKey && payloadSessionKey !== storeSessionKey) {
+      return;
+    }
+
     const eventState = String(event.state || "");
     const runId = String(event.runId || "");
     const message = event.message as Record<string, unknown> | undefined;

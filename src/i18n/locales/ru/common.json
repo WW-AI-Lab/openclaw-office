@@ -54,15 +54,15 @@
       "error": "Error",
       "offline": "Offline"
     },
-    "placeholderSlot": "Free slot",
-    "placeholderHint": "Free slot: a new sub-agent will appear here",
-    "connecting": "Connecting..."
+    "placeholderSlot": "Свободный слот",
+    "placeholderHint": "Свободный слот: здесь появится новый агент",
+    "connecting": "Подключается..."
   },
   "zones": {
-    "desk": "Desk Zone",
-    "meeting": "Meeting Zone",
-    "hotDesk": "Hot Desk Zone",
-    "lounge": "Lounge Zone"
+    "desk": "Зона рабочих столов",
+    "meeting": "Переговорная",
+    "hotDesk": "Гибкие места",
+    "lounge": "Лаунж-зона"
   },
   "errors": {
     "notConnected": "Not connected to Gateway",

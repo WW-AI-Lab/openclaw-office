@@ -38,6 +38,7 @@ const EVENT_HISTORY_LIMIT = 200;
 const LINK_TIMEOUT_MS = 60_000;
 const THEME_STORAGE_KEY = "openclaw-theme";
 const CHAT_DOCK_HEIGHT_KEY = "openclaw-chat-dock-height";
+const SHOW_LOUNGE_PLACEHOLDERS_KEY = "openclaw-show-lounge-placeholders";
 const DEFAULT_CHAT_DOCK_HEIGHT = 300;
 const LOUNGE_TO_HOTDESK_DEBOUNCE_MS = 500;
 const HOTDESK_TO_LOUNGE_DELAY_MS = 30_000;
@@ -50,6 +51,29 @@ const UNCONFIRMED_TIMEOUT_MS = 5_000;
 let meetingGatheringTimer: ReturnType<typeof setTimeout> | null = null;
 let lastMeetingGroupsHash = "";
 const MEETING_GATHERING_THROTTLE_MS = 500;
+
+function displayAgentName(rawName: string | undefined, fallbackId: string): string {
+  const n = (rawName || "").trim();
+  const lower = n.toLowerCase();
+
+  const byId: Record<string, string> = {
+    main: "Аркадий · Главный ИИ",
+    analyst: "Марина · Аналитик",
+    builder: "Илья · Техлид",
+    reviewer: "Анна · Ревьюер",
+    research: "Лев · Исследователь",
+    growth: "Ева · Маркетинг",
+    ops: "Макс · Операции",
+  };
+
+  if (byId[fallbackId]) return byId[fallbackId];
+  if (byId[lower]) return byId[lower];
+  if (n.startsWith("Agent-")) return n.replace(/^Agent-/, "Агент-");
+  if (n.startsWith("Sub-")) return n.replace(/^Sub-/, "Подагент-");
+  if (!n) return `Агент-${fallbackId.slice(0, 6)}`;
+
+  return n;
+}
 
 function isActiveStatus(status: AgentVisualStatus): boolean {
   return status === "thinking" || status === "tool_calling" || status === "speaking" || status === "spawning";
@@ -81,6 +105,14 @@ function getInitialBloom(): boolean {
     return true;
   }
   return window.devicePixelRatio >= 1.5;
+}
+
+function getInitialShowLoungePlaceholders(): boolean {
+  if (typeof window === "undefined") return true;
+  const stored = localStorage.getItem(SHOW_LOUNGE_PLACEHOLDERS_KEY);
+  if (stored === "true") return true;
+  if (stored === "false") return false;
+  return true;
 }
 
 function createVisualAgent(
@@ -211,6 +243,8 @@ export const useOfficeStore = create<OfficeStore>()(
   immer((set) => ({
     agents: new Map(),
     links: [],
+    demoLinks: [],
+    demoTopologyEnabled: false,
     globalMetrics: {
       activeAgents: 0,
       totalAgents: 0,
@@ -227,6 +261,7 @@ export const useOfficeStore = create<OfficeStore>()(
     lastSessionsSnapshot: null,
     theme: getInitialTheme(),
     bloomEnabled: getInitialBloom(),
+    showLoungePlaceholders: getInitialShowLoungePlaceholders(),
     operatorScopes: [] as string[],
     tokenHistory: [] as TokenSnapshot[],
     agentCosts: {} as Record<string, number>,
@@ -279,7 +314,7 @@ export const useOfficeStore = create<OfficeStore>()(
           existingAgent.confirmed = true;
           existingAgent.isSubAgent = true;
           existingAgent.parentAgentId = parentId;
-          existingAgent.name = info.label || existingAgent.name;
+          existingAgent.name = displayAgentName(info.label, info.agentId) || existingAgent.name;
           // Transfer status/tool/speech to a lounge placeholder position for walk animation
           activateFromLoungePlaceholder(state, existingAgent);
         } else if (existingAgent && existingAgent.confirmed) {
@@ -288,7 +323,7 @@ export const useOfficeStore = create<OfficeStore>()(
           const wasMisclassified = !existingAgent.isSubAgent;
           existingAgent.isSubAgent = true;
           existingAgent.parentAgentId = parentId;
-          existingAgent.name = info.label || existingAgent.name;
+          existingAgent.name = displayAgentName(info.label, info.agentId) || existingAgent.name;
           if (wasMisclassified) {
             // Cancel any in-flight walk to desk
             existingAgent.movement = null;
@@ -310,7 +345,7 @@ export const useOfficeStore = create<OfficeStore>()(
             state.agents.delete(oldId);
 
             placeholder.id = info.agentId;
-            placeholder.name = info.label || `Sub-${info.agentId.slice(0, 6)}`;
+            placeholder.name = displayAgentName(info.label || `Подагент-${info.agentId.slice(0, 6)}`, info.agentId);
             placeholder.isPlaceholder = false;
             placeholder.isSubAgent = true;
             placeholder.parentAgentId = parentId;
@@ -326,7 +361,7 @@ export const useOfficeStore = create<OfficeStore>()(
             }
             const agent = createVisualAgent(
               info.agentId,
-              info.label || `Sub-${info.agentId.slice(0, 6)}`,
+              displayAgentName(info.label || `Подагент-${info.agentId.slice(0, 6)}`, info.agentId),
               true,
               occupied,
             );
@@ -409,7 +444,7 @@ export const useOfficeStore = create<OfficeStore>()(
           const phId = `placeholder-${phIdx}`;
           const ph: VisualAgent = {
             id: phId,
-            name: `待命-${phIdx}`,
+            name: `Free Slot ${phIdx + 1}`,
             status: "idle",
             position: freeLounge,
             currentTool: null,
@@ -526,7 +561,7 @@ export const useOfficeStore = create<OfficeStore>()(
           if (state.agents.has(phId)) continue;
           const ph: VisualAgent = {
             id: phId,
-            name: `待命-${i}`,
+            name: `Free Slot ${i + 1}`,
             status: "idle",
             position: { ...loungePositions[i] },
             currentTool: null,
@@ -599,10 +634,13 @@ export const useOfficeStore = create<OfficeStore>()(
         state.agents.clear();
         state.runIdMap.clear();
         state.sessionKeyMap.clear();
+        state.links = [];
+        state.demoLinks = [];
 
         const occupied = new Set<string>();
         for (const summary of summaries) {
-          const name = summary.identity?.name ?? summary.name ?? summary.id;
+          const rawName = summary.identity?.name ?? summary.name ?? summary.id;
+          const name = displayAgentName(rawName, summary.id);
           const agent = createVisualAgent(summary.id, name, false, occupied);
           occupied.add(positionKey(agent.position));
           state.agents.set(summary.id, agent);
@@ -673,11 +711,15 @@ export const useOfficeStore = create<OfficeStore>()(
           if (!agentId && dataAgentId) {
             agentId = dataAgentId;
           }
-          // 3) sessionKeyMap (only if the session is associated with a confirmed agent)
+          // 3) sessionKeyMap
           if (!agentId && event.sessionKey) {
             const sessionAgents = state.sessionKeyMap.get(event.sessionKey);
             if (sessionAgents && sessionAgents.length > 0) {
-              agentId = sessionAgents[0];
+              const preferred = sessionAgents.find((id) => {
+                const a = state.agents.get(id);
+                return a && a.confirmed && !a.isSubAgent && !a.isPlaceholder;
+              });
+              agentId = preferred ?? sessionAgents[0];
             }
           }
           // 4) sessionKey pattern: "agent:<name>:main" → resolve <name> to a known agent
@@ -722,7 +764,7 @@ export const useOfficeStore = create<OfficeStore>()(
             info: {
               sessionKey: event.sessionKey ?? event.runId,
               agentId: dataAgentId,
-              label: `Sub-${dataAgentId.slice(0, 8)}`,
+              label: `Подагент-${dataAgentId.slice(0, 8)}`,
               task: "",
               requesterSessionKey: event.sessionKey ?? "",
               startedAt: event.ts,
@@ -742,6 +784,19 @@ export const useOfficeStore = create<OfficeStore>()(
             },
           };
         } else if (!state.agents.has(agentId)) {
+          // If this looks like a synthetic run-like id, try to collapse it back
+          // to an already-known confirmed main agent for the same session.
+          if (event.sessionKey && looksLikeSyntheticAgentId(agentId)) {
+            const sessionAgents = state.sessionKeyMap.get(event.sessionKey) ?? [];
+            const confirmedMain = sessionAgents.find((id) => {
+              const a = state.agents.get(id);
+              return a && a.confirmed && !a.isSubAgent && !a.isPlaceholder;
+            });
+            if (confirmedMain) {
+              agentId = confirmedMain;
+            }
+          }
+
           // Unknown agent — check if this is from an initAgents-known agent ID
           const isKnownMainAgent = isRegisteredMainAgentId(state, agentId, event.sessionKey);
 
@@ -750,12 +805,12 @@ export const useOfficeStore = create<OfficeStore>()(
             for (const a of state.agents.values()) {
               occupied.add(positionKey(a.position));
             }
-            const agent = createVisualAgent(agentId, `Agent-${agentId.slice(0, 6)}`, false, occupied, true);
+            const agent = createVisualAgent(agentId, `Агент-${agentId.slice(0, 6)}`, false, occupied, true);
             agent.runId = event.runId;
             state.agents.set(agentId, agent);
           } else {
             // Create as unconfirmed — will be confirmed by poller or timeout
-            const agent = createVisualAgent(agentId, `Agent-${agentId.slice(0, 6)}`, false, new Set(), false);
+            const agent = createVisualAgent(agentId, `Агент-${agentId.slice(0, 6)}`, false, new Set(), false);
             agent.runId = event.runId;
             state.agents.set(agentId, agent);
             newUnconfirmedId = agentId;
@@ -823,9 +878,16 @@ export const useOfficeStore = create<OfficeStore>()(
           confirmationTimers.delete(id);
           const store = useOfficeStore.getState();
           const a = store.agents.get(id);
-          if (a && !a.confirmed) {
-            store.confirmAgent(id, "main");
+          if (!a || a.confirmed) return;
+
+          // Do not promote synthetic run-like IDs to persistent main agents.
+          // Keep office clean: remove unresolved temporary ghosts.
+          if (looksLikeSyntheticAgentId(id)) {
+            store.removeAgent(id);
+            return;
           }
+
+          store.confirmAgent(id, "main");
         }, UNCONFIRMED_TIMEOUT_MS);
         confirmationTimers.set(id, timer);
       }
@@ -898,6 +960,36 @@ export const useOfficeStore = create<OfficeStore>()(
       });
     },
 
+    setShowLoungePlaceholders: (enabled: boolean) => {
+      set((state) => {
+        state.showLoungePlaceholders = enabled;
+      });
+      try {
+        localStorage.setItem(SHOW_LOUNGE_PLACEHOLDERS_KEY, String(enabled));
+      } catch {
+        // localStorage unavailable
+      }
+    },
+
+    setDemoTopologyEnabled: (enabled: boolean) => {
+      set((state) => {
+        state.demoTopologyEnabled = enabled;
+      });
+    },
+
+    forceCollaborationDemo: () => {
+      set((state) => {
+        state.demoLinks = buildDemoLinks(state.agents);
+        state.demoTopologyEnabled = true;
+      });
+    },
+
+    clearDemoTopology: () => {
+      set((state) => {
+        state.demoLinks = [];
+      });
+    },
+
     setOperatorScopes: (scopes: string[]) => {
       set((state) => {
         state.operatorScopes = scopes;
@@ -906,10 +998,29 @@ export const useOfficeStore = create<OfficeStore>()(
 
     pushTokenSnapshot: (snapshot: TokenSnapshot) => {
       set((state) => {
+        const prev = state.tokenHistory[state.tokenHistory.length - 1];
+
         state.tokenHistory.push(snapshot);
         if (state.tokenHistory.length > 30) {
           state.tokenHistory = state.tokenHistory.slice(-30);
         }
+
+        const totalTokens = Math.max(0, Math.round(snapshot.total || 0));
+
+        let tokenRate = state.globalMetrics.tokenRate;
+        if (prev) {
+          const dtMs = Math.max(1, snapshot.timestamp - prev.timestamp);
+          const dtMin = dtMs / 60000;
+          const dTokens = snapshot.total - prev.total;
+          const instantRate = dTokens > 0 ? dTokens / dtMin : 0;
+          tokenRate = Number.isFinite(instantRate) ? instantRate : 0;
+        }
+
+        state.globalMetrics = {
+          ...state.globalMetrics,
+          totalTokens,
+          tokenRate,
+        };
       });
     },
 
@@ -980,6 +1091,16 @@ export const useOfficeStore = create<OfficeStore>()(
  * to an existing confirmed agent, or the agentId itself matches a known agent.
  * This prevents main agents with new runIds from becoming unconfirmed.
  */
+function looksLikeSyntheticAgentId(id: string): boolean {
+  const normalized = (id || "").trim();
+  if (!normalized) return true;
+  // e.g. 2cb7ce / a1b2c3d4 / UUID-like run ids
+  if (/^[a-f0-9]{6,}$/i.test(normalized)) return true;
+  if (/^[a-f0-9-]{12,}$/i.test(normalized)) return true;
+  if (normalized.startsWith("run-") || normalized.startsWith("session-")) return true;
+  return false;
+}
+
 function isRegisteredMainAgentId(
   state: { agents: Map<string, VisualAgent>; sessionKeyMap: Map<string, string[]> },
   agentId: string,
@@ -1088,6 +1209,28 @@ function updateCollaborationLinks(
 
   // Decay stale links
   state.links = state.links.filter((l) => now - l.lastActivityAt < LINK_TIMEOUT_MS);
+}
+
+function buildDemoLinks(agents: Map<string, VisualAgent>): CollaborationLink[] {
+  const now = Date.now();
+  const eligible = Array.from(agents.values())
+    .filter((a) => a.confirmed && !a.isPlaceholder)
+    .slice(0, 4);
+
+  if (eligible.length < 2) return [];
+
+  const links: CollaborationLink[] = [];
+  for (let i = 0; i < eligible.length - 1; i++) {
+    links.push({
+      sourceId: eligible[i].id,
+      targetId: eligible[i + 1].id,
+      sessionKey: `demo:${now}`,
+      strength: 0.75,
+      lastActivityAt: now,
+    });
+  }
+
+  return links;
 }
 
 function scheduleMeetingGathering(): void {

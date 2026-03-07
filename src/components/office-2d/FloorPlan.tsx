@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { SpeechBubbleOverlay } from "@/components/overlays/SpeechBubble";
 import type { VisualAgent } from "@/gateway/types";
 import {
   SVG_WIDTH,
@@ -19,7 +20,10 @@ import { ZoneLabel } from "./ZoneLabel";
 export function FloorPlan() {
   const agents = useOfficeStore((s) => s.agents);
   const links = useOfficeStore((s) => s.links);
+  const demoLinks = useOfficeStore((s) => s.demoLinks);
+  const demoTopologyEnabled = useOfficeStore((s) => s.demoTopologyEnabled);
   const theme = useOfficeStore((s) => s.theme);
+  const showLoungePlaceholders = useOfficeStore((s) => s.showLoungePlaceholders);
 
   const agentList = Array.from(agents.values());
   const isDark = theme === "dark";
@@ -34,8 +38,11 @@ export function FloorPlan() {
     [agentList],
   );
   const loungeAgents = useMemo(
-    () => agentList.filter((a) => a.zone === "lounge" && !a.movement),
-    [agentList],
+    () =>
+      agentList.filter(
+        (a) => a.zone === "lounge" && !a.movement && (showLoungePlaceholders || !a.isPlaceholder),
+      ),
+    [agentList, showLoungePlaceholders],
   );
   const meetingAgents = useMemo(
     () => agentList.filter((a) => a.zone === "meeting" && !a.movement),
@@ -81,6 +88,8 @@ export function FloorPlan() {
     () => calculateMeetingSeatsSvg(meetingAgents.length, meetingCenter, meetingTableRadius + 36),
     [meetingAgents.length, meetingCenter.x, meetingCenter.y, meetingTableRadius],
   );
+
+  const effectiveLinks = demoTopologyEnabled && demoLinks.length > 0 ? demoLinks : links;
 
   return (
     <div className="relative h-full w-full bg-gray-100 dark:bg-gray-950">
@@ -186,7 +195,7 @@ export function FloorPlan() {
         <EntranceDoor isDark={isDark} />
 
         {/* ── Layer 6: Collaboration lines ── */}
-        {links.map((link) => {
+        {effectiveLinks.map((link) => {
           const source = agents.get(link.sourceId);
           const target = agents.get(link.targetId);
           if (!source || !target) return null;
@@ -220,7 +229,18 @@ export function FloorPlan() {
         ))}
       </svg>
 
-      {/* Speaking indicators now rendered inside AgentAvatar SVG (SpeakingIndicator) */}
+      {/* ── Layer 9: HTML Overlay speech bubbles ── */}
+      {agentList
+        .filter((a) => a.speechBubble)
+        .map((agent) => (
+          <SpeechBubbleOverlay key={`bubble-${agent.id}`} agent={agent} />
+        ))}
+
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 rounded-lg border border-slate-300/80 bg-white/90 px-3 py-2 text-xs text-slate-700 shadow-md backdrop-blur dark:border-slate-600/80 dark:bg-slate-900/85 dark:text-slate-200">
+        {showLoungePlaceholders
+          ? "Лаунж: серые аватары — свободные слоты саб-агентов"
+          : "Лаунж: свободные слоты скрыты (включаются в Settings)"}
+      </div>
     </div>
   );
 }
@@ -518,7 +538,7 @@ function LoungeDecor({ isDark }: { isDark: boolean }) {
         rx={1.5}
         fill={isDark ? "#64748b" : "#7a9bc0"}
       />
-      {/* "OpenClaw" logo text */}
+      {/* "BUILDGEN" logo text */}
       <text
         x={cx}
         y={bgWallY + bgWallH / 2 + 5}
@@ -529,7 +549,7 @@ function LoungeDecor({ isDark }: { isDark: boolean }) {
         fontFamily="system-ui, sans-serif"
         letterSpacing="0.12em"
       >
-        OpenClaw
+        BUILDGEN
       </text>
 
       {/* ── Reception desk (rounded front) ── */}
@@ -618,7 +638,7 @@ function EntranceDoor({ isDark }: { isDark: boolean }) {
         fill={matColor}
         opacity={0.5}
       />
-      {/* "ENTRANCE" label outside */}
+      {/* "ВХОД" label outside */}
       <text
         x={doorCX}
         y={doorY + 14}
@@ -629,7 +649,7 @@ function EntranceDoor({ isDark }: { isDark: boolean }) {
         fontFamily="system-ui, sans-serif"
         letterSpacing="0.15em"
       >
-        ENTRANCE
+        ВХОД
       </text>
     </g>
   );

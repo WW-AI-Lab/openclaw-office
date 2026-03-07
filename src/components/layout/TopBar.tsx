@@ -85,8 +85,11 @@ function OfficeTopBarContent({
   return (
     <>
       <div className="flex items-center gap-3">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-blue-500 to-cyan-400 text-[10px] font-black text-white shadow-sm">
+          BG
+        </div>
         <h1 className="text-lg font-semibold tracking-tight text-gray-800 dark:text-gray-100">
-          OpenClaw Office
+          BUILDGEN Office
         </h1>
         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
           v{APP_VERSION}

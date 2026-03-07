@@ -13,8 +13,14 @@ import zhConsole from "./locales/zh/console.json";
 import zhLayout from "./locales/zh/layout.json";
 import zhOffice from "./locales/zh/office.json";
 import zhPanels from "./locales/zh/panels.json";
+import ruChat from "./locales/ru/chat.json";
+import ruCommon from "./locales/ru/common.json";
+import ruConsole from "./locales/ru/console.json";
+import ruLayout from "./locales/ru/layout.json";
+import ruOffice from "./locales/ru/office.json";
+import ruPanels from "./locales/ru/panels.json";
 
-export const supportedLngs = ["zh", "en"] as const;
+export const supportedLngs = ["ru", "zh", "en"] as const;
 export type SupportedLng = (typeof supportedLngs)[number];
 
 export const namespaces = ["common", "layout", "office", "panels", "chat", "console"] as const;
@@ -24,6 +30,14 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
+      ru: {
+        common: ruCommon,
+        layout: ruLayout,
+        office: ruOffice,
+        panels: ruPanels,
+        chat: ruChat,
+        console: ruConsole,
+      },
       zh: {
         common: zhCommon,
         layout: zhLayout,
@@ -42,7 +56,7 @@ i18n
       },
     },
     supportedLngs: [...supportedLngs],
-    fallbackLng: "zh",
+    fallbackLng: "ru",
     defaultNS: "common",
     ns: [...namespaces],
     interpolation: {

@@ -12,13 +12,13 @@
       "activity": "Activity"
     },
     "topology": {
-      "demoMode": "Demo mode",
-      "forceDemo": "Force collaboration demo",
-      "clearDemo": "Clear demo",
+      "demoMode": "Демо-режим",
+      "forceDemo": "Смоделировать коллаборацию",
+      "clearDemo": "Очистить демо",
       "source": {
-        "live": "Source: Live",
-        "demo": "Source: Demo",
-        "noData": "Source: No data"
+        "live": "Источник: Live",
+        "demo": "Источник: Demo",
+        "noData": "Источник: нет данных"
       }
     }
   },
