@@ -15,6 +15,7 @@
       "demoMode": "演示模式",
       "forceDemo": "强制生成协作演示",
       "clearDemo": "清除演示",
+      "meetingReason": "会议区已触发（{{count}} 个代理）：最强连接 {{sessionKey}}（强度 {{strength}}）",
       "source": {
         "live": "来源：实时",
         "demo": "来源：演示",

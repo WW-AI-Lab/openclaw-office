@@ -50,6 +50,20 @@ export function MetricsPanel() {
         ? "live"
         : "noData";
 
+  const effectiveLinks = demoTopologyEnabled && demoLinks.length > 0 ? demoLinks : links;
+  const inMeetingCount = useOfficeStore(
+    (s) => Array.from(s.agents.values()).filter((a) => a.zone === "meeting" && a.confirmed).length,
+  );
+  const topLink = [...effectiveLinks].sort((a, b) => b.strength - a.strength)[0];
+  const meetingReason =
+    inMeetingCount > 0 && topLink
+      ? t("metrics.topology.meetingReason", {
+          count: inMeetingCount,
+          sessionKey: topLink.sessionKey,
+          strength: topLink.strength.toFixed(2),
+        })
+      : null;
+
   const cards = [
     {
       label: t("metrics.activeAgents"),
@@ -157,6 +171,11 @@ export function MetricsPanel() {
                 </button>
               )}
             </div>
+            {meetingReason && (
+              <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-300">
+                {meetingReason}
+              </div>
+            )}
             <Suspense fallback={<TabSpinner />}>
               <NetworkGraph />
             </Suspense>

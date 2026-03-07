@@ -38,6 +38,16 @@ function mapToolCountToRadius(count: number, maxCount: number): number {
   return NODE_MIN_R + t * (NODE_MAX_R - NODE_MIN_R);
 }
 
+function formatAge(ts: number): string {
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+}
+
 export function NetworkGraph() {
   const { t } = useTranslation();
   const agents = useOfficeStore((s) => s.agents);
@@ -105,7 +115,9 @@ export function NetworkGraph() {
               y2={tgt.y}
               stroke={isHovered ? "#3b82f6" : "rgba(107,114,128,0.4)"}
               strokeWidth={strokeWidth}
-            />
+            >
+              <title>{`session: ${l.sessionKey}\nstrength: ${l.strength.toFixed(2)}\nlast activity: ${formatAge(l.lastActivityAt)}`}</title>
+            </line>
           );
         })}
       {topAgents.map((agent) => {

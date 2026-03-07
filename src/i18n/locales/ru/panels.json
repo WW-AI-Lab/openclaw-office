@@ -15,6 +15,7 @@
       "demoMode": "Демо-режим",
       "forceDemo": "Смоделировать коллаборацию",
       "clearDemo": "Очистить демо",
+      "meetingReason": "Переговорка активирована для {{count}} агент(ов): сильнейшая связь {{sessionKey}} (сила {{strength}})",
       "source": {
         "live": "Источник: Live",
         "demo": "Источник: Demo",
