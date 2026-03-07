@@ -154,8 +154,10 @@ export function AgentCharacter({ agent }: AgentCharacterProps) {
       {/* Speaking bubble — uses transform={false} to render at fixed screen size */}
       {agent.status === "speaking" && agent.speechBubble && (
         <Html position={[0, 1.2, 0]} center transform={false} style={{ pointerEvents: "none" }}>
-          <div className="speech-bubble-3d pointer-events-none w-[280px] max-w-[320px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs leading-relaxed text-gray-800 shadow-lg">
-            <Markdown>{agent.speechBubble.text.slice(0, 400)}</Markdown>
+          <div className="speech-bubble-3d pointer-events-none min-w-[300px] w-[340px] max-w-[min(88vw,420px)] max-h-[240px] overflow-y-auto rounded-xl border border-gray-200 bg-white/95 px-4 py-3 text-[13px] leading-6 text-gray-900 shadow-xl [overflow-wrap:anywhere]">
+            <div className="[&_p]:my-0 [&_p+*]:mt-2 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5">
+              <Markdown>{agent.speechBubble.text.slice(0, 1200)}</Markdown>
+            </div>
           </div>
         </Html>
       )}
