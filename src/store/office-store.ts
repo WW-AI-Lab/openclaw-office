@@ -243,6 +243,8 @@ export const useOfficeStore = create<OfficeStore>()(
   immer((set) => ({
     agents: new Map(),
     links: [],
+    demoLinks: [],
+    demoTopologyEnabled: false,
     globalMetrics: {
       activeAgents: 0,
       totalAgents: 0,
@@ -632,6 +634,8 @@ export const useOfficeStore = create<OfficeStore>()(
         state.agents.clear();
         state.runIdMap.clear();
         state.sessionKeyMap.clear();
+        state.links = [];
+        state.demoLinks = [];
 
         const occupied = new Set<string>();
         for (const summary of summaries) {
@@ -967,6 +971,25 @@ export const useOfficeStore = create<OfficeStore>()(
       }
     },
 
+    setDemoTopologyEnabled: (enabled: boolean) => {
+      set((state) => {
+        state.demoTopologyEnabled = enabled;
+      });
+    },
+
+    forceCollaborationDemo: () => {
+      set((state) => {
+        state.demoLinks = buildDemoLinks(state.agents);
+        state.demoTopologyEnabled = true;
+      });
+    },
+
+    clearDemoTopology: () => {
+      set((state) => {
+        state.demoLinks = [];
+      });
+    },
+
     setOperatorScopes: (scopes: string[]) => {
       set((state) => {
         state.operatorScopes = scopes;
@@ -1186,6 +1209,28 @@ function updateCollaborationLinks(
 
   // Decay stale links
   state.links = state.links.filter((l) => now - l.lastActivityAt < LINK_TIMEOUT_MS);
+}
+
+function buildDemoLinks(agents: Map<string, VisualAgent>): CollaborationLink[] {
+  const now = Date.now();
+  const eligible = Array.from(agents.values())
+    .filter((a) => a.confirmed && !a.isPlaceholder)
+    .slice(0, 4);
+
+  if (eligible.length < 2) return [];
+
+  const links: CollaborationLink[] = [];
+  for (let i = 0; i < eligible.length - 1; i++) {
+    links.push({
+      sourceId: eligible[i].id,
+      targetId: eligible[i + 1].id,
+      sessionKey: `demo:${now}`,
+      strength: 0.75,
+      lastActivityAt: now,
+    });
+  }
+
+  return links;
 }
 
 function scheduleMeetingGathering(): void {

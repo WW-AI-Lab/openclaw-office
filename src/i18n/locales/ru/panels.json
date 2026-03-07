@@ -10,6 +10,16 @@
       "trend": "Trend",
       "topology": "Topology",
       "activity": "Activity"
+    },
+    "topology": {
+      "demoMode": "Демо-режим",
+      "forceDemo": "Смоделировать коллаборацию",
+      "clearDemo": "Очистить демо",
+      "source": {
+        "live": "Источник: Live",
+        "demo": "Источник: Demo",
+        "noData": "Источник: нет данных"
+      }
     }
   },
   "agentDetail": {

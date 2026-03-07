@@ -42,9 +42,12 @@ export function NetworkGraph() {
   const { t } = useTranslation();
   const agents = useOfficeStore((s) => s.agents);
   const links = useOfficeStore((s) => s.links);
+  const demoLinks = useOfficeStore((s) => s.demoLinks);
+  const demoTopologyEnabled = useOfficeStore((s) => s.demoTopologyEnabled);
   const theme = useOfficeStore((s) => s.theme);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const isDark = theme === "dark";
+  const effectiveLinks = demoTopologyEnabled && demoLinks.length > 0 ? demoLinks : links;
 
   const { topAgents, positions, maxToolCount } = useMemo(() => {
     const list = Array.from(agents.values())
@@ -61,15 +64,15 @@ export function NetworkGraph() {
       return new Set<string>();
     }
     const s = new Set<string>();
-    for (const l of links) {
+    for (const l of effectiveLinks) {
       if (l.sourceId === hoverId || l.targetId === hoverId) {
         s.add(`${l.sourceId}-${l.targetId}`);
       }
     }
     return s;
-  }, [links, hoverId]);
+  }, [effectiveLinks, hoverId]);
 
-  if (topAgents.length === 0 && links.length === 0) {
+  if (topAgents.length === 0 && effectiveLinks.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-gray-500 dark:text-gray-400">
         {t("empty.noRelationData")}
@@ -85,7 +88,7 @@ export function NetworkGraph() {
       className="overflow-visible"
       onMouseLeave={() => setHoverId(null)}
     >
-      {links
+      {effectiveLinks
         .filter((l) => positions.has(l.sourceId) && positions.has(l.targetId))
         .map((l) => {
           const src = positions.get(l.sourceId)!;

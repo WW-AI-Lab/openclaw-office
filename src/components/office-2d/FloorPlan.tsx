@@ -20,6 +20,8 @@ import { ZoneLabel } from "./ZoneLabel";
 export function FloorPlan() {
   const agents = useOfficeStore((s) => s.agents);
   const links = useOfficeStore((s) => s.links);
+  const demoLinks = useOfficeStore((s) => s.demoLinks);
+  const demoTopologyEnabled = useOfficeStore((s) => s.demoTopologyEnabled);
   const theme = useOfficeStore((s) => s.theme);
   const showLoungePlaceholders = useOfficeStore((s) => s.showLoungePlaceholders);
 
@@ -86,6 +88,8 @@ export function FloorPlan() {
     () => calculateMeetingSeatsSvg(meetingAgents.length, meetingCenter, meetingTableRadius + 36),
     [meetingAgents.length, meetingCenter.x, meetingCenter.y, meetingTableRadius],
   );
+
+  const effectiveLinks = demoTopologyEnabled && demoLinks.length > 0 ? demoLinks : links;
 
   return (
     <div className="relative h-full w-full bg-gray-100 dark:bg-gray-950">
@@ -191,7 +195,7 @@ export function FloorPlan() {
         <EntranceDoor isDark={isDark} />
 
         {/* ── Layer 6: Collaboration lines ── */}
-        {links.map((link) => {
+        {effectiveLinks.map((link) => {
           const source = agents.get(link.sourceId);
           const target = agents.get(link.targetId);
           if (!source || !target) return null;

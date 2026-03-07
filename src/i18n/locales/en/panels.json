@@ -10,6 +10,16 @@
       "trend": "Trend",
       "topology": "Topology",
       "activity": "Activity"
+    },
+    "topology": {
+      "demoMode": "Demo mode",
+      "forceDemo": "Force collaboration demo",
+      "clearDemo": "Clear demo",
+      "source": {
+        "live": "Source: Live",
+        "demo": "Source: Demo",
+        "noData": "Source: No data"
+      }
     }
   },
   "agentDetail": {
