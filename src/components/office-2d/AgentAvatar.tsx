@@ -157,14 +157,8 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
         </g>
       )}
 
-      {/* Speaking indicator */}
-      {agent.status === "speaking" && (
-        <g transform={`translate(${r * 0.7}, ${-r * 0.55})`}>
-          <circle r={5} fill="#a855f7" opacity={0.8}>
-            <animate attributeName="r" values="4;6;4" dur="1s" repeatCount="indefinite" />
-          </circle>
-        </g>
-      )}
+      {/* Speaking indicator — chat bubble icon with pulse (mirrors ThinkingDots placement) */}
+      {agent.status === "speaking" && <SpeakingIndicator r={r} />}
 
       {/* Tool name label */}
       {agent.status === "tool_calling" && agent.currentTool && (
@@ -335,6 +329,28 @@ function ThinkingDots({ r }: { r: number }) {
           }}
         />
       ))}
+    </g>
+  );
+}
+
+/* --- Speaking indicator (chat bubble icon at avatar top, same position as ThinkingDots) --- */
+
+function SpeakingIndicator({ r }: { r: number }) {
+  return (
+    <g transform={`translate(${r * 0.55}, ${-r * 0.75})`}>
+      <circle r={7} fill="#a855f7" opacity={0.9}>
+        <animate attributeName="r" values="6;8;6" dur="1.5s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.9;0.5;0.9" dur="1.5s" repeatCount="indefinite" />
+      </circle>
+      {/* Tiny chat-bubble path scaled to fit */}
+      <g transform="translate(-4.5,-4.5) scale(0.45)">
+        <path
+          fill="#fff"
+          fillRule="evenodd"
+          d="M3.43 2.524A41.29 41.29 0 0110 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.102 41.102 0 01-3.55.414c-.28.02-.521.18-.643.413l-1.712 3.293a.75.75 0 01-1.33 0l-1.713-3.293a.783.783 0 00-.642-.413 41.108 41.108 0 01-3.55-.414C1.993 13.245 1 11.986 1 10.574V5.426c0-1.413.993-2.67 2.43-2.902z"
+          clipRule="evenodd"
+        />
+      </g>
     </g>
   );
 }

@@ -96,6 +96,52 @@ describe("MockAdapter Phase D — config / status / update", () => {
     });
   });
 
+  describe("configSet", () => {
+    it("replaces the config snapshot without scheduling restart", async () => {
+      const snap = await adapter.configGet();
+      const result = await adapter.configSet(
+        JSON.stringify({
+          models: { providers: { test: { baseUrl: "http://localhost:9999" } } },
+        }),
+        snap.hash,
+      );
+
+      expect(result.ok).toBe(true);
+      expect(result.restart).toBeUndefined();
+
+      const updated = await adapter.configGet();
+      const providers = (updated.config.models as Record<string, unknown>).providers as Record<
+        string,
+        Record<string, unknown>
+      >;
+      expect(providers.test.baseUrl).toBe("http://localhost:9999");
+      expect(providers.anthropic).toBeUndefined();
+    });
+  });
+
+  describe("configApply", () => {
+    it("replaces config snapshot and reports scheduled restart", async () => {
+      const snap = await adapter.configGet();
+      const result = await adapter.configApply(
+        JSON.stringify({
+          models: { providers: { test: { baseUrl: "http://localhost:8888" } } },
+        }),
+        snap.hash,
+        { restartDelayMs: 500 },
+      );
+
+      expect(result.ok).toBe(true);
+      expect(result.restart?.scheduled).toBe(true);
+
+      const updated = await adapter.configGet();
+      const providers = (updated.config.models as Record<string, unknown>).providers as Record<
+        string,
+        Record<string, unknown>
+      >;
+      expect(providers.test.baseUrl).toBe("http://localhost:8888");
+    });
+  });
+
   describe("configSchema", () => {
     it("returns schema with uiHints", async () => {
       const schema = await adapter.configSchema();

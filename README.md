@@ -33,7 +33,19 @@
 
 #### Demo Video
 
-https://github.com/WW-AI-Lab/openclaw-office/raw/main/assets/iShot_2026-03-02_21.33.38.mp4
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=ACXSFTSlVLY">
+    <img src="https://img.youtube.com/vi/ACXSFTSlVLY/maxresdefault.jpg" alt="OpenClaw Office Demo Video" width="100%" />
+  </a>
+</p>
+
+<p align="center">
+  ▶ Click the preview image above to play on YouTube
+</p>
+
+> GitHub sanitizes repository README content and does not allow embedded YouTube/iframe players, so the most reliable “preview + click-to-play” pattern is a linked video thumbnail.
+
+[Watch on YouTube](https://www.youtube.com/watch?v=ACXSFTSlVLY)
 
 ### Console
 

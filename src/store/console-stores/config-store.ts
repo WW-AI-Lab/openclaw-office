@@ -4,6 +4,7 @@ import type {
   ConfigPatchResult,
   ConfigSchemaResponse,
   ConfigSnapshot,
+  ConfigWriteResult,
   ModelCatalogEntry,
   StatusSummary,
   UpdateRunResult,
@@ -13,6 +14,25 @@ export interface RestartState {
   status: "pending" | "disconnected" | "reconnecting" | "complete";
   startedAt: number;
   estimatedDelayMs: number;
+}
+
+export type ConfigLifecycleStatus =
+  | "effective-now"
+  | "saved-hot-reload"
+  | "saved-restart-required"
+  | "saved-cli-restart-required"
+  | "apply-restarting"
+  | "disconnected"
+  | "reconnecting"
+  | "complete";
+
+export interface ConfigLifecycleState {
+  status: ConfigLifecycleStatus;
+  source: "runtime" | "save" | "apply" | "cli";
+  startedAt: number;
+  estimatedDelayMs?: number;
+  command?: string;
+  messageKey?: string;
 }
 
 interface ConfigStoreState {
@@ -37,12 +57,32 @@ interface ConfigStoreState {
   catalogLoading: boolean;
 
   restartState: RestartState | null;
+  lifecycleState: ConfigLifecycleState | null;
   setRestartPending: (delayMs: number) => void;
   setRestartReconnecting: () => void;
   setRestartComplete: () => void;
   clearRestart: () => void;
+  setLifecycleState: (state: ConfigLifecycleState | null) => void;
+  setLifecycleFromWriteResult: (
+    result: ConfigWriteResult,
+    source: "save" | "apply",
+    fallbackCommand?: string,
+  ) => void;
+  setRuntimeApplied: (messageKey?: string) => void;
+  setLifecycleDisconnected: () => void;
+  setLifecycleReconnecting: () => void;
+  setLifecycleComplete: () => void;
+  clearLifecycle: () => void;
 
   fetchConfig: () => Promise<void>;
+  saveConfig: (
+    updater: (config: Record<string, unknown>) => Record<string, unknown>,
+    options?: { fallbackCommand?: string },
+  ) => Promise<ConfigWriteResult>;
+  applyConfig: (
+    updater: (config: Record<string, unknown>) => Record<string, unknown>,
+    params?: { sessionKey?: string; note?: string; restartDelayMs?: number },
+  ) => Promise<ConfigWriteResult>;
   patchConfig: (patch: Record<string, unknown>) => Promise<ConfigPatchResult>;
   fetchSchema: () => Promise<void>;
   fetchStatus: () => Promise<void>;
@@ -72,6 +112,7 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
   catalogLoading: false,
 
   restartState: null,
+  lifecycleState: null,
 
   setRestartPending: (delayMs) =>
     set({
@@ -92,6 +133,87 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
 
   clearRestart: () => set({ restartState: null }),
 
+  setLifecycleState: (lifecycleState) => set({ lifecycleState }),
+
+  setLifecycleFromWriteResult: (result, source, fallbackCommand) => {
+    const startedAt = Date.now();
+    if (result.restart?.scheduled) {
+      set({
+        lifecycleState: {
+          status: source === "apply" ? "apply-restarting" : "saved-restart-required",
+          source,
+          startedAt,
+          estimatedDelayMs: result.restart.delayMs,
+        },
+        restartState:
+          source === "apply"
+            ? {
+                status: "pending",
+                startedAt,
+                estimatedDelayMs: result.restart.delayMs,
+              }
+            : null,
+      });
+      return;
+    }
+
+    set({
+      lifecycleState: fallbackCommand
+        ? {
+            status: "saved-cli-restart-required",
+            source: "cli",
+            startedAt,
+            command: fallbackCommand,
+          }
+        : {
+            status: "saved-hot-reload",
+            source,
+            startedAt,
+          },
+      restartState: null,
+    });
+  },
+
+  setRuntimeApplied: (messageKey) =>
+    set({
+      lifecycleState: {
+        status: "effective-now",
+        source: "runtime",
+        startedAt: Date.now(),
+        messageKey,
+      },
+      restartState: null,
+    }),
+
+  setLifecycleDisconnected: () =>
+    set((s) => {
+      if (!s.lifecycleState) return {};
+      return {
+        lifecycleState: { ...s.lifecycleState, status: "disconnected" },
+        restartState: s.restartState ? { ...s.restartState, status: "disconnected" } : s.restartState,
+      };
+    }),
+
+  setLifecycleReconnecting: () =>
+    set((s) => {
+      if (!s.lifecycleState) return {};
+      return {
+        lifecycleState: { ...s.lifecycleState, status: "reconnecting" },
+        restartState: s.restartState ? { ...s.restartState, status: "reconnecting" } : s.restartState,
+      };
+    }),
+
+  setLifecycleComplete: () =>
+    set((s) => {
+      if (!s.lifecycleState) return {};
+      return {
+        lifecycleState: { ...s.lifecycleState, status: "complete" },
+        restartState: s.restartState ? { ...s.restartState, status: "complete" } : s.restartState,
+      };
+    }),
+
+  clearLifecycle: () => set({ lifecycleState: null, restartState: null }),
+
   fetchConfig: async () => {
     set({ loading: true, error: null });
     try {
@@ -107,6 +229,92 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
       });
     } catch (err) {
       set({ loading: false, error: String(err) });
+    }
+  },
+
+  saveConfig: async (updater, options) => {
+    const currentConfig = get().config;
+    const hash = get().hash ?? undefined;
+    if (!currentConfig) {
+      return {
+        ok: false,
+        config: {},
+        error: "config not loaded",
+      };
+    }
+
+    try {
+      const adapter = await waitForAdapter();
+      const nextConfig = updater(structuredClone(currentConfig));
+      const result = await adapter.configSet(JSON.stringify(nextConfig), hash);
+      if (result.ok) {
+        set({
+          config: result.config,
+          error: null,
+        });
+        get().setLifecycleFromWriteResult(
+          result,
+          "save",
+          options?.fallbackCommand,
+        );
+        await get().fetchConfig();
+      } else {
+        const errMsg = result.error ?? "config set failed";
+        set({ error: errMsg });
+        if (errMsg.includes("config changed")) {
+          await get().fetchConfig();
+        }
+      }
+      return result;
+    } catch (err) {
+      const errMsg = String(err);
+      set({ error: errMsg });
+      return {
+        ok: false,
+        config: currentConfig,
+        error: errMsg,
+      };
+    }
+  },
+
+  applyConfig: async (updater, params) => {
+    const currentConfig = get().config;
+    const hash = get().hash ?? undefined;
+    if (!currentConfig) {
+      return {
+        ok: false,
+        config: {},
+        error: "config not loaded",
+      };
+    }
+
+    try {
+      const adapter = await waitForAdapter();
+      const nextConfig = updater(structuredClone(currentConfig));
+      const result = await adapter.configApply(JSON.stringify(nextConfig), hash, params);
+      if (result.ok) {
+        set({
+          config: result.config,
+          error: null,
+        });
+        get().setLifecycleFromWriteResult(result, "apply");
+        await get().fetchConfig();
+      } else {
+        const errMsg = result.error ?? "config apply failed";
+        set({ error: errMsg });
+        if (errMsg.includes("config changed")) {
+          await get().fetchConfig();
+        }
+      }
+      return result;
+    } catch (err) {
+      const errMsg = String(err);
+      set({ error: errMsg });
+      return {
+        ok: false,
+        config: currentConfig,
+        error: errMsg,
+      };
     }
   },
 

@@ -33,7 +33,19 @@
 
 #### 演示视频
 
-https://github.com/WW-AI-Lab/openclaw-office/raw/main/assets/iShot_2026-03-02_21.33.38.mp4
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=ACXSFTSlVLY">
+    <img src="https://img.youtube.com/vi/ACXSFTSlVLY/maxresdefault.jpg" alt="OpenClaw Office 演示视频" width="100%" />
+  </a>
+</p>
+
+<p align="center">
+  ▶ 点击上方预览图即可跳转播放
+</p>
+
+> GitHub 会清洗仓库 README 内容，不允许真正内嵌 YouTube / iframe 播放器，所以最稳妥的实现方式就是“预览图 + 点击播放跳转”。
+
+[在 YouTube 观看](https://www.youtube.com/watch?v=ACXSFTSlVLY)
 
 ### 控制台
 

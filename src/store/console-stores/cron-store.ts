@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { AdapterEventHandler } from "@/gateway/adapter";
 import { getAdapter, waitForAdapter } from "@/gateway/adapter-provider";
 import type { CronTask, CronTaskInput, CronJobState } from "@/gateway/adapter-types";
+import { useConfigStore } from "@/store/console-stores/config-store";
 
 interface CronStoreState {
   tasks: CronTask[];
@@ -46,6 +47,7 @@ export const useCronStore = create<CronStoreState>((set, get) => ({
     try {
       const task = await getAdapter().cronAdd(input);
       set((s) => ({ tasks: [...s.tasks, task], dialogOpen: false, editingTask: null }));
+      useConfigStore.getState().setRuntimeApplied("configLifecycle.runtimeCron");
     } catch (err) {
       set({ error: String(err) });
     }
@@ -59,6 +61,7 @@ export const useCronStore = create<CronStoreState>((set, get) => ({
         dialogOpen: false,
         editingTask: null,
       }));
+      useConfigStore.getState().setRuntimeApplied("configLifecycle.runtimeCron");
     } catch (err) {
       set({ error: String(err) });
     }
@@ -68,6 +71,7 @@ export const useCronStore = create<CronStoreState>((set, get) => ({
     try {
       await getAdapter().cronRemove(id);
       set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }));
+      useConfigStore.getState().setRuntimeApplied("configLifecycle.runtimeCron");
     } catch (err) {
       set({ error: String(err) });
     }
@@ -76,6 +80,7 @@ export const useCronStore = create<CronStoreState>((set, get) => ({
   runTask: async (id) => {
     try {
       await getAdapter().cronRun(id);
+      useConfigStore.getState().setRuntimeApplied("configLifecycle.runtimeCron");
     } catch (err) {
       set({ error: String(err) });
     }

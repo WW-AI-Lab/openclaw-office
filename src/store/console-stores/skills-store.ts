@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { getAdapter, waitForAdapter } from "@/gateway/adapter-provider";
 import type { SkillInfo, SkillInstallResult } from "@/gateway/adapter-types";
 import i18n from "@/i18n";
+import { useConfigStore } from "@/store/console-stores/config-store";
 import { toastSuccess, toastError } from "@/store/toast-store";
 
 export type SkillTab = "installed" | "marketplace";
@@ -115,6 +116,7 @@ export const useSkillsStore = create<SkillsStoreState>((set, get) => ({
         set((s) => ({
           skills: s.skills.map((sk) => (sk.id === skillKey ? { ...sk, enabled } : sk)),
         }));
+        useConfigStore.getState().setRuntimeApplied("configLifecycle.runtimeSkill");
         const skill = get().skills.find((s) => s.id === skillKey);
         const label = skill?.name ?? skillKey;
         toastSuccess(

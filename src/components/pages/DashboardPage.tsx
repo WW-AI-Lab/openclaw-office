@@ -1,4 +1,4 @@
-import { Radio, Wrench, Zap, Clock, RefreshCw } from "lucide-react";
+import { Radio, Wrench, Zap, Clock, RefreshCw, WifiOff, Loader2 } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertBanner } from "@/components/console/dashboard/AlertBanner";
@@ -21,6 +21,7 @@ export function DashboardPage() {
   }, [refresh]);
 
   if (isLoading && channelsSummary.length === 0) {
+    const isDisconnected = wsStatus !== "connected" && wsStatus !== "connecting";
     return (
       <div className="space-y-6">
         <PageHeader
@@ -28,12 +29,17 @@ export function DashboardPage() {
           description={t("dashboard.description")}
           onRefresh={refresh}
         />
-        <LoadingState message={t("dashboard.loading")} />
+        {isDisconnected ? (
+          <GatewayConnectionGuide status={wsStatus} onRetry={refresh} />
+        ) : (
+          <LoadingState message={t("dashboard.loading")} />
+        )}
       </div>
     );
   }
 
   if (error && channelsSummary.length === 0 && skillsSummary.length === 0) {
+    const isConnectionError = wsStatus !== "connected";
     return (
       <div className="space-y-6">
         <PageHeader
@@ -41,7 +47,11 @@ export function DashboardPage() {
           description={t("dashboard.description")}
           onRefresh={refresh}
         />
-        <ErrorState message={error} onRetry={refresh} />
+        {isConnectionError ? (
+          <GatewayConnectionGuide status={wsStatus} onRetry={refresh} />
+        ) : (
+          <ErrorState message={error} onRetry={refresh} />
+        )}
       </div>
     );
   }
@@ -113,6 +123,76 @@ export function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <ChannelOverview channels={channelsSummary} />
         <SkillOverview skills={skillsSummary} />
+      </div>
+    </div>
+  );
+}
+
+function GatewayConnectionGuide({
+  status,
+  onRetry,
+}: {
+  status: string;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation("console");
+  const { t: tc } = useTranslation("common");
+  const isReconnecting = status === "reconnecting";
+
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="w-full max-w-md rounded-lg border border-amber-500/30 bg-amber-500/5 p-6">
+        <div className="mb-4 flex items-center gap-3">
+          {isReconnecting ? (
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+          ) : (
+            <WifiOff className="h-8 w-8 text-amber-500" />
+          )}
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              {t("dashboard.connectionGuide.title")}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {isReconnecting
+                ? t("dashboard.connectionGuide.reconnecting")
+                : t("dashboard.connectionGuide.subtitle")}
+            </p>
+          </div>
+        </div>
+
+        <ol className="mb-5 space-y-2.5 text-sm text-gray-600 dark:text-gray-300">
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-600 dark:text-amber-400">
+              1
+            </span>
+            <span>{t("dashboard.connectionGuide.step1")}</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-600 dark:text-amber-400">
+              2
+            </span>
+            <span>{t("dashboard.connectionGuide.step2")}</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-600 dark:text-amber-400">
+              3
+            </span>
+            <span>{t("dashboard.connectionGuide.step3")}</span>
+          </li>
+        </ol>
+
+        <div className="mb-4 rounded-md bg-gray-900/60 px-3 py-2 font-mono text-xs text-gray-300">
+          <p className="text-gray-500"># {t("dashboard.connectionGuide.cmdComment")}</p>
+          <p>openclaw-office --token &lt;your-token&gt;</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRetry}
+          className="w-full rounded-md bg-amber-500/90 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 transition-colors"
+        >
+          {tc("actions.retry")}
+        </button>
       </div>
     </div>
   );

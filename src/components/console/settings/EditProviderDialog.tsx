@@ -16,7 +16,7 @@ interface EditProviderDialogProps {
   open: boolean;
   providerId: string;
   config: Record<string, unknown>;
-  onSave: (patch: Record<string, unknown>) => void;
+  onSave: (patch: Record<string, unknown>, intent: "save" | "apply") => void;
   onCancel: () => void;
 }
 
@@ -53,14 +53,14 @@ export function EditProviderDialog({
     }
   }, [open]);
 
-  const handleSave = () => {
+  const handleSave = (intent: "save" | "apply") => {
     const patch: Record<string, unknown> = {
       baseUrl,
       api: apiType,
       models: models.filter((m) => m.id.length > 0).map(serializeModel),
     };
     if (apiKey.length > 0) patch.apiKey = apiKey;
-    onSave(patch);
+    onSave(patch, intent);
   };
 
   const hasExistingAuth = typeof config.auth === "string" && config.auth.length > 0;
@@ -174,10 +174,17 @@ export function EditProviderDialog({
           </button>
           <button
             type="button"
-            onClick={handleSave}
+            onClick={() => handleSave("save")}
             className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
           >
             {t("settings.providers.editDialog.save")}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSave("apply")}
+            className="rounded-lg border border-blue-200 px-5 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/20"
+          >
+            {t("settings.providers.editDialog.saveAndRestart")}
           </button>
         </div>
       </div>

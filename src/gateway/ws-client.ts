@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import type {
   ConnectionStatus,
   ConnectParams,
@@ -201,7 +202,7 @@ export class GatewayWsClient {
 
     this.send({
       type: "req",
-      id: crypto.randomUUID(),
+      id: uuid(),
       method: "connect",
       params,
     });

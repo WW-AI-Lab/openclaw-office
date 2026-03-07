@@ -15,6 +15,7 @@ import type {
   ConfigPatchResult,
   ConfigSchemaResponse,
   ConfigSnapshot,
+  ConfigWriteResult,
   CronTask,
   CronTaskInput,
   ModelCatalogEntry,
@@ -294,6 +295,12 @@ function mockConfigData(): Record<string, unknown> {
       defaults: {
         subagents: { maxConcurrent: 12, maxSpawnDepth: 2 },
       },
+      list: [
+        { id: "main", model: "anthropic/claude-sonnet-4-20250514" },
+        { id: "ai-researcher", model: "anthropic/claude-opus-4-20250514" },
+        { id: "coder", model: "anthropic/claude-sonnet-4-20250514" },
+        { id: "ecommerce", model: "openai/gpt-4o" },
+      ],
     },
     tools: {
       agentToAgent: { enabled: true, allow: ["main", "coder", "ai-researcher", "ecommerce"] },
@@ -648,11 +655,19 @@ export class MockAdapter implements GatewayAdapter {
     return [
       {
         key: "agent:main:main",
-        agentId: "agent-main",
+        agentId: "main",
         label: "默认会话",
         createdAt: Date.now() - 3600_000,
         lastActiveAt: Date.now(),
         messageCount: 12,
+      },
+      {
+        key: "agent:main:feishu:direct:test-user",
+        agentId: "main",
+        label: "飞书会话",
+        createdAt: Date.now() - 1800_000,
+        lastActiveAt: Date.now() - 60_000,
+        messageCount: 8,
       },
     ];
   }
@@ -661,11 +676,15 @@ export class MockAdapter implements GatewayAdapter {
     return { key: sessionKey, messages: await this.chatHistory() };
   }
 
+  async sessionsDelete(_sessionKey: string, _options?: { deleteTranscript?: boolean }): Promise<void> {
+    return;
+  }
+
   async channelsStatus(): Promise<ChannelInfo[]> {
     return [...MOCK_CHANNELS];
   }
 
-  async skillsStatus(): Promise<SkillInfo[]> {
+  async skillsStatus(_agentId?: string): Promise<SkillInfo[]> {
     return [...MOCK_SKILLS];
   }
 
@@ -810,11 +829,15 @@ export class MockAdapter implements GatewayAdapter {
     };
   }
 
-  async toolsCatalog(): Promise<ToolCatalog> {
+  async toolsCatalog(_agentId?: string): Promise<ToolCatalog> {
     return {
       tools: [
-        { name: "web_search", description: "搜索互联网" },
-        { name: "code_exec", description: "执行代码" },
+        { name: "web_search", description: "搜索互联网", source: "built-in", group: "core", enabled: true },
+        { name: "code_exec", description: "执行代码", source: "built-in", group: "core", enabled: true },
+        { name: "file_read", description: "读取文件内容", source: "built-in", group: "fs", enabled: true },
+        { name: "file_write", description: "写入文件", source: "built-in", group: "fs", enabled: true },
+        { name: "bash", description: "执行 Bash 命令", source: "built-in", group: "exec", enabled: true, optional: true },
+        { name: "mcp_client", description: "MCP 协议客户端", source: "plugin", group: "integrations", enabled: false, optional: true },
       ],
     };
   }
@@ -910,6 +933,47 @@ export class MockAdapter implements GatewayAdapter {
       raw: JSON.stringify(this.mockConfig, null, 2),
       valid: true,
       path: "~/.openclaw/openclaw.json",
+    };
+  }
+
+  async configSet(raw: string, baseHash?: string): Promise<ConfigWriteResult> {
+    if (baseHash && baseHash !== this.mockHash) {
+      return {
+        ok: false,
+        path: "~/.openclaw/openclaw.json",
+        config: this.mockConfig,
+        error: "config changed since last load; re-run config.get and retry",
+      };
+    }
+    this.mockConfig = JSON.parse(raw) as Record<string, unknown>;
+    this.mockHash = Date.now().toString(36);
+    return {
+      ok: true,
+      path: "~/.openclaw/openclaw.json",
+      config: this.mockConfig,
+    };
+  }
+
+  async configApply(
+    raw: string,
+    baseHash?: string,
+    _params?: { sessionKey?: string; note?: string; restartDelayMs?: number },
+  ): Promise<ConfigWriteResult> {
+    if (baseHash && baseHash !== this.mockHash) {
+      return {
+        ok: false,
+        path: "~/.openclaw/openclaw.json",
+        config: this.mockConfig,
+        error: "config changed since last load; re-run config.get and retry",
+      };
+    }
+    this.mockConfig = JSON.parse(raw) as Record<string, unknown>;
+    this.mockHash = Date.now().toString(36);
+    return {
+      ok: true,
+      path: "~/.openclaw/openclaw.json",
+      config: this.mockConfig,
+      restart: { scheduled: true, delayMs: 2000 },
     };
   }
 

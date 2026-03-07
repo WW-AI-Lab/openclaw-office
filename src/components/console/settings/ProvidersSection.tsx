@@ -35,7 +35,8 @@ function groupCatalogByProvider(
 export function ProvidersSection() {
   const { t } = useTranslation("console");
   const config = useConfigStore((s) => s.config);
-  const patchConfig = useConfigStore((s) => s.patchConfig);
+  const saveConfig = useConfigStore((s) => s.saveConfig);
+  const applyConfig = useConfigStore((s) => s.applyConfig);
   const catalogModels = useConfigStore((s) => s.catalogModels);
   const fetchCatalogModels = useConfigStore((s) => s.fetchCatalogModels);
 
@@ -55,20 +56,64 @@ export function ProvidersSection() {
   const configuredIds = new Set(Object.keys(providers));
   const catalogGroups = groupCatalogByProvider(catalogModels, configuredIds);
 
-  const handleAdd = async (id: string, provConfig: Record<string, unknown>) => {
-    await patchConfig({ models: { providers: { [id]: provConfig } } });
+  const handleAdd = async (
+    id: string,
+    provConfig: Record<string, unknown>,
+    intent: "save" | "apply",
+  ) => {
+    const mutate = intent === "apply" ? applyConfig : saveConfig;
+    await mutate((currentConfig) => {
+      const nextConfig = currentConfig;
+      const models = (nextConfig.models as Record<string, unknown> | undefined) ?? {};
+      const existingProviders =
+        (models.providers as Record<string, Record<string, unknown>> | undefined) ?? {};
+      nextConfig.models = {
+        ...models,
+        providers: {
+          ...existingProviders,
+          [id]: provConfig,
+        },
+      };
+      return nextConfig;
+    });
     setAddOpen(false);
   };
 
-  const handleEdit = async (patch: Record<string, unknown>) => {
+  const handleEdit = async (patch: Record<string, unknown>, intent: "save" | "apply") => {
     if (!editTarget) return;
-    await patchConfig({ models: { providers: { [editTarget.id]: patch } } });
+    const mutate = intent === "apply" ? applyConfig : saveConfig;
+    await mutate((currentConfig) => {
+      const nextConfig = currentConfig;
+      const models = (nextConfig.models as Record<string, unknown> | undefined) ?? {};
+      const existingProviders =
+        (models.providers as Record<string, Record<string, unknown>> | undefined) ?? {};
+      nextConfig.models = {
+        ...models,
+        providers: {
+          ...existingProviders,
+          [editTarget.id]: patch,
+        },
+      };
+      return nextConfig;
+    });
     setEditTarget(null);
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await patchConfig({ models: { providers: { [deleteTarget]: null } } });
+    await saveConfig((currentConfig) => {
+      const nextConfig = currentConfig;
+      const models = (nextConfig.models as Record<string, unknown> | undefined) ?? {};
+      const existingProviders = {
+        ...(((models.providers as Record<string, Record<string, unknown>> | undefined) ?? {})),
+      };
+      delete existingProviders[deleteTarget];
+      nextConfig.models = {
+        ...models,
+        providers: existingProviders,
+      };
+      return nextConfig;
+    });
     setDeleteTarget(null);
   };
 

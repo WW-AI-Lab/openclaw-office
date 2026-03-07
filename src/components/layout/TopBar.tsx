@@ -7,6 +7,8 @@ import type { ConnectionStatus, ThemeMode, ViewMode, PageId } from "@/gateway/ty
 import { isWebGLAvailable } from "@/lib/webgl-detect";
 import { useOfficeStore } from "@/store/office-store";
 
+const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";
+
 function getStatusConfig(
   t: (key: string) => string,
 ): Record<ConnectionStatus, { color: string; pulse: boolean; label: string }> {
@@ -90,7 +92,7 @@ function OfficeTopBarContent({
           BUILDGEN Office
         </h1>
         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-          v{__APP_VERSION__}
+          v{APP_VERSION}
         </span>
       </div>
       <ViewModeSwitch

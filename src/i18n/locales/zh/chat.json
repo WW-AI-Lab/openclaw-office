@@ -23,7 +23,9 @@
   },
   "sessionSwitcher": {
     "noSessions": "暂无其他会话",
-    "newSession": "新建会话"
+    "newSession": "新建会话",
+    "newSessionWith": "与 {{agent}} 新建会话",
+    "newSessionTooltip": "新建对话"
   },
   "contextMenu": {
     "pause": "暂停",

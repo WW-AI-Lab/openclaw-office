@@ -155,6 +155,112 @@ describe("office-store Sub-Agent management", () => {
   });
 });
 
+describe("processAgentEvent: real Gateway sub-agent sessionKey", () => {
+  beforeEach(() => {
+    resetStore();
+    useOfficeStore.getState().initAgents([{ id: "main", name: "main" }]);
+    // Register main agent's session in sessionKeyMap via setState
+    useOfficeStore.setState((state) => {
+      state.sessionKeyMap.set("agent:main:session-123", ["main"]);
+    });
+  });
+
+  it("creates sub-agent from sessionKey containing :subagent:", () => {
+    const sessionKey = "agent:main:subagent:5533959a-1a5e-4b44-a39a-a0799f71db92";
+    const runId = "d48c80c6-181a-46fa-98b9-381a67b59560";
+
+    useOfficeStore.getState().processAgentEvent({
+      runId,
+      seq: 1,
+      stream: "lifecycle",
+      ts: Date.now(),
+      data: { phase: "start" },
+      sessionKey,
+    });
+
+    const subUuid = "5533959a-1a5e-4b44-a39a-a0799f71db92";
+    const sub = useOfficeStore.getState().agents.get(subUuid);
+    expect(sub).toBeDefined();
+    expect(sub?.isSubAgent).toBe(true);
+    expect(sub?.parentAgentId).toBe("main");
+    expect(sub?.confirmed).toBe(true);
+
+    // Main agent should NOT be modified
+    const mainAgent = useOfficeStore.getState().agents.get("main");
+    expect(mainAgent?.isSubAgent).toBe(false);
+  });
+
+  it("routes subsequent events to the correct sub-agent", () => {
+    const sessionKey = "agent:main:subagent:abc123";
+    const runId = "run-sub-1";
+
+    // First event creates the sub-agent
+    useOfficeStore.getState().processAgentEvent({
+      runId,
+      seq: 1,
+      stream: "lifecycle",
+      ts: 1,
+      data: { phase: "start" },
+      sessionKey,
+    });
+
+    // Second event should route to the same sub-agent (via runIdMap)
+    useOfficeStore.getState().processAgentEvent({
+      runId,
+      seq: 2,
+      stream: "tool",
+      ts: 2,
+      data: { phase: "start", name: "web_search" },
+      sessionKey,
+    });
+
+    const sub = useOfficeStore.getState().agents.get("abc123");
+    expect(sub?.status).toBe("tool_calling");
+    expect(sub?.currentTool?.name).toBe("web_search");
+
+    // Main agent should still be idle
+    const main = useOfficeStore.getState().agents.get("main");
+    expect(main?.status).toBe("idle");
+  });
+
+  it("triggers walk animation from lounge to hotDesk for new sub-agent", () => {
+    const sessionKey = "agent:main:subagent:walk-test-uuid";
+    useOfficeStore.getState().processAgentEvent({
+      runId: "run-walk",
+      seq: 1,
+      stream: "lifecycle",
+      ts: Date.now(),
+      data: { phase: "start" },
+      sessionKey,
+    });
+
+    const sub = useOfficeStore.getState().agents.get("walk-test-uuid");
+    expect(sub).toBeDefined();
+    // After addSubAgent, movement should be started from lounge to hotDesk
+    expect(sub?.movement).not.toBeNull();
+    expect(sub?.movement?.toZone).toBe("hotDesk");
+  });
+
+  it("does not convert main agent to sub-agent", () => {
+    // Simulate what was happening before the fix:
+    // An event arrives with sessionKey "agent:main:subagent:xxx" and the old code
+    // would resolve agentId to "main" and never create a sub-agent
+    const sessionKey = "agent:main:subagent:uuid-456";
+    useOfficeStore.getState().processAgentEvent({
+      runId: "run-protect",
+      seq: 1,
+      stream: "lifecycle",
+      ts: Date.now(),
+      data: { phase: "start" },
+      sessionKey,
+    });
+
+    const main = useOfficeStore.getState().agents.get("main");
+    expect(main?.isSubAgent).toBe(false);
+    expect(main?.zone).toBe("desk");
+  });
+});
+
 describe("office-store config awareness", () => {
   beforeEach(() => {
     resetStore();

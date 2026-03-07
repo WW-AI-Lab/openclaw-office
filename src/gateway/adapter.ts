@@ -17,6 +17,7 @@ import type {
   ConfigPatchResult,
   ConfigSchemaResponse,
   ConfigSnapshot,
+  ConfigWriteResult,
   CronTask,
   CronTaskInput,
   ModelCatalogEntry,
@@ -52,6 +53,7 @@ export interface GatewayAdapter {
   // Sessions
   sessionsList(): Promise<SessionInfo[]>;
   sessionsPreview(sessionKey: string): Promise<SessionPreview>;
+  sessionsDelete(sessionKey: string, options?: { deleteTranscript?: boolean }): Promise<void>;
 
   // Channels
   channelsStatus(): Promise<ChannelInfo[]>;
@@ -60,7 +62,7 @@ export interface GatewayAdapter {
   webLoginWait(): Promise<{ connected: boolean; message: string }>;
 
   // Skills
-  skillsStatus(): Promise<SkillInfo[]>;
+  skillsStatus(agentId?: string): Promise<SkillInfo[]>;
   skillsInstall(name: string, installId: string): Promise<SkillInstallResult>;
   skillsUpdate(skillKey: string, patch: SkillUpdatePatch): Promise<{ ok: boolean }>;
 
@@ -79,7 +81,7 @@ export interface GatewayAdapter {
   agentsFilesList(agentId: string): Promise<AgentFilesListResult>;
   agentsFilesGet(agentId: string, name: string): Promise<AgentFileContent>;
   agentsFilesSet(agentId: string, name: string, content: string): Promise<AgentFileSetResult>;
-  toolsCatalog(): Promise<ToolCatalog>;
+  toolsCatalog(agentId?: string): Promise<ToolCatalog>;
   usageStatus(): Promise<UsageInfo>;
 
   // Models catalog (from pi-ai SDK auto-discovery)
@@ -87,6 +89,12 @@ export interface GatewayAdapter {
 
   // Config / Status / Update (Phase D)
   configGet(): Promise<ConfigSnapshot>;
+  configSet(raw: string, baseHash?: string): Promise<ConfigWriteResult>;
+  configApply(
+    raw: string,
+    baseHash?: string,
+    params?: { sessionKey?: string; note?: string; restartDelayMs?: number },
+  ): Promise<ConfigWriteResult>;
   configPatch(raw: string, baseHash?: string): Promise<ConfigPatchResult>;
   configSchema(): Promise<ConfigSchemaResponse>;
   statusSummary(): Promise<StatusSummary>;

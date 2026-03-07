@@ -14,6 +14,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { getAdapter } from "@/gateway/adapter-provider";
 import type { SkillInfo } from "@/gateway/adapter-types";
+import { useConfigStore } from "@/store/console-stores/config-store";
 
 interface SkillDetailDialogProps {
   open: boolean;
@@ -79,6 +80,7 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
         apiKey: apiKey || undefined,
         env: Object.keys(env).length > 0 ? env : undefined,
       });
+      useConfigStore.getState().setRuntimeApplied("configLifecycle.runtimeSkill");
       onSaved();
       onClose();
     } catch {
@@ -354,9 +356,14 @@ export function SkillDetailDialog({ open, skill, onClose, onSaved }: SkillDetail
               <input
                 type="checkbox"
                 checked={skill.enabled}
-                onChange={() =>
-                  getAdapter().skillsUpdate(skill.id, { enabled: !skill.enabled }).then(onSaved)
-                }
+                onChange={() => {
+                  void getAdapter()
+                    .skillsUpdate(skill.id, { enabled: !skill.enabled })
+                    .then(() => {
+                      useConfigStore.getState().setRuntimeApplied("configLifecycle.runtimeSkill");
+                      onSaved();
+                    });
+                }}
                 disabled={isCoreLocked}
                 className="peer sr-only"
               />

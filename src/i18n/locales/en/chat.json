@@ -23,7 +23,9 @@
   },
   "sessionSwitcher": {
     "noSessions": "No other sessions",
-    "newSession": "New session"
+    "newSession": "New session",
+    "newSessionWith": "New session with {{agent}}",
+    "newSessionTooltip": "New chat"
   },
   "contextMenu": {
     "pause": "Pause",

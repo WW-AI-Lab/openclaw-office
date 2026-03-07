@@ -31,28 +31,44 @@ export function diffSessions(
   return { added, removed };
 }
 
+/**
+ * Extract the sub-agent UUID from a sessionKey like "agent:<parent>:subagent:<uuid>".
+ * Returns null if the pattern doesn't match.
+ */
+export { extractSubAgentUuid as extractSubAgentUuidForTest };
+function extractSubAgentUuid(sessionKey: string): string | null {
+  const marker = ":subagent:";
+  const idx = sessionKey.indexOf(marker);
+  if (idx >= 0) {
+    return sessionKey.slice(idx + marker.length);
+  }
+  return null;
+}
+
 function toSubAgentInfoList(entries: SessionEntry[]): SubAgentInfo[] {
   return entries
     .filter((s) => s.requesterSessionKey)
-    .map((s) => ({
-      sessionKey: s.sessionKey,
-      agentId: s.agentId,
-      label: s.label ?? s.agentId,
-      task: s.task ?? "",
-      requesterSessionKey: s.requesterSessionKey!,
-      startedAt: s.startedAt ?? Date.now(),
-    }));
+    .map((s) => {
+      // Gateway returns agentId as the parent agent name (e.g. "main"), not the
+      // sub-agent's unique id. Extract the UUID from the sessionKey instead to
+      // avoid colliding with the parent agent in the store.
+      const subUuid = extractSubAgentUuid(s.sessionKey);
+      const effectiveId = subUuid ?? s.agentId;
+      return {
+        sessionKey: s.sessionKey,
+        agentId: effectiveId,
+        label: s.label ?? (subUuid ? `Sub-${subUuid.slice(0, 6)}` : s.agentId),
+        task: s.task ?? "",
+        requesterSessionKey: s.requesterSessionKey!,
+        startedAt: s.startedAt ?? Date.now(),
+      };
+    });
 }
 
 export function useSubAgentPoller(rpcClient: React.RefObject<GatewayRpcClient | null>) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const connectionStatus = useOfficeStore((s) => s.connectionStatus);
-  const lastSnapshot = useOfficeStore((s) => s.lastSessionsSnapshot);
-  const setSessionsSnapshot = useOfficeStore((s) => s.setSessionsSnapshot);
-  const addSubAgent = useOfficeStore((s) => s.addSubAgent);
-  const agents = useOfficeStore((s) => s.agents);
-  const removeSubAgent = useOfficeStore((s) => s.removeSubAgent);
 
   useEffect(() => {
     if (connectionStatus !== "connected" || !rpcClient.current) {
@@ -73,24 +89,25 @@ export function useSubAgentPoller(rpcClient: React.RefObject<GatewayRpcClient | 
         const resp = await rpc.request<SessionsListResponse>("sessions.list");
         const nextSubs = toSubAgentInfoList(resp.sessions ?? []);
 
-        const prevSubs = lastSnapshot?.sessions ?? [];
+        // Read snapshot from store directly to avoid stale closure
+        const currentSnapshot = useOfficeStore.getState().lastSessionsSnapshot;
+        const prevSubs = currentSnapshot?.sessions ?? [];
         const { added, removed } = diffSessions(prevSubs, nextSubs);
 
         for (const sub of added) {
           const parentId = resolveParentAgent(sub.requesterSessionKey);
           if (parentId) {
-            // addSubAgent handles: unconfirmed→confirm, placeholder activation, walk animation
-            addSubAgent(parentId, sub);
+            useOfficeStore.getState().addSubAgent(parentId, sub);
           }
         }
 
         for (const sub of removed) {
-          if (agents.has(sub.agentId)) {
-            removeSubAgent(sub.agentId);
+          if (useOfficeStore.getState().agents.has(sub.agentId)) {
+            useOfficeStore.getState().removeSubAgent(sub.agentId);
           }
         }
 
-        setSessionsSnapshot({ sessions: nextSubs, fetchedAt: Date.now() });
+        useOfficeStore.getState().setSessionsSnapshot({ sessions: nextSubs, fetchedAt: Date.now() });
       } catch {
         // RPC failure — skip this cycle
       }

@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import type { GatewayResponseFrame } from "./types";
 import type { GatewayWsClient } from "./ws-client";
 
@@ -27,7 +28,7 @@ export class GatewayRpcClient {
         return;
       }
 
-      const id = crypto.randomUUID();
+      const id = uuid();
       let timer: ReturnType<typeof setTimeout> | null = null;
 
       const cleanup = () => {

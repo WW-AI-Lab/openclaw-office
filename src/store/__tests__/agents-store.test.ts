@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { initAdapter } from "@/gateway/adapter-provider";
+import { useConfigStore } from "../console-stores/config-store";
 import { useAgentsStore } from "../console-stores/agents-store";
 
 describe("Agents Store", () => {
@@ -23,6 +24,7 @@ describe("Agents Store", () => {
       createDialogOpen: false,
       deleteDialogOpen: false,
     });
+    useConfigStore.setState({ lifecycleState: null, restartState: null });
   });
 
   it("fetchAgents() loads agents from mock adapter", async () => {
@@ -114,6 +116,10 @@ describe("Agents Store", () => {
       .getState()
       .updateAgentModel("main", "anthropic/claude-sonnet-4");
     expect(ok).toBe(true);
+    expect(useConfigStore.getState().lifecycleState?.status).toBe("effective-now");
+    expect(useConfigStore.getState().lifecycleState?.messageKey).toBe(
+      "configLifecycle.runtimeAgentModelSessionsReset",
+    );
   });
 
   it("dialog state management", () => {

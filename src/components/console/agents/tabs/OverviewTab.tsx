@@ -141,6 +141,9 @@ export function OverviewTab({ agent }: OverviewTabProps) {
               <span className="text-xs text-red-600">{t("agents.overview.saveError")}</span>
             )}
           </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t("agents.overview.runtimeHint")}
+          </p>
         </div>
       </div>
 

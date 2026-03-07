@@ -1,6 +1,7 @@
 import { Home, Bot, Radio, Puzzle, Clock, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { RestartBanner } from "@/components/shared/RestartBanner";
 import { TopBar } from "./TopBar";
 
 export function ConsoleLayout() {
@@ -19,6 +20,7 @@ export function ConsoleLayout() {
 
   return (
     <div className="flex h-screen w-screen flex-col bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <RestartBanner />
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         <nav className="flex w-52 shrink-0 flex-col border-r border-gray-200 bg-white py-3 dark:border-gray-700 dark:bg-gray-900">

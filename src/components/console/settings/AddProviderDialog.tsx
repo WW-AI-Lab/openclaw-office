@@ -14,7 +14,7 @@ import { ModelListEditor } from "./ModelEditor";
 interface AddProviderDialogProps {
   open: boolean;
   existingIds: string[];
-  onSave: (id: string, config: Record<string, unknown>) => void;
+  onSave: (id: string, config: Record<string, unknown>, intent: "save" | "apply") => void;
   onCancel: () => void;
 }
 
@@ -59,7 +59,7 @@ export function AddProviderDialog({ open, existingIds, onSave, onCancel }: AddPr
   const idConflict = existingIds.includes(providerId);
   const canSave = providerId.length > 0 && !idConflict;
 
-  const handleSave = () => {
+  const handleSave = (intent: "save" | "apply") => {
     if (!canSave) return;
     const config: Record<string, unknown> = {
       baseUrl,
@@ -67,7 +67,7 @@ export function AddProviderDialog({ open, existingIds, onSave, onCancel }: AddPr
       models: models.filter((m) => m.id.length > 0).map(serializeModel),
     };
     if (apiKey) config.apiKey = apiKey;
-    onSave(providerId, config);
+    onSave(providerId, config, intent);
   };
 
   return (
@@ -236,11 +236,19 @@ export function AddProviderDialog({ open, existingIds, onSave, onCancel }: AddPr
               </button>
               <button
                 type="button"
-                onClick={handleSave}
+                onClick={() => handleSave("save")}
                 disabled={!canSave}
                 className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {t("settings.providers.addDialog.save")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave("apply")}
+                disabled={!canSave}
+                className="rounded-lg border border-blue-200 px-5 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/20"
+              >
+                {t("settings.providers.addDialog.saveAndRestart")}
               </button>
             </div>
           </div>

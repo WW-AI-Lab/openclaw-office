@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Markdown from "react-markdown";
+
 import type { Group } from "three";
 import type { VisualAgent } from "@/gateway/types";
 import { generateAvatar3dColor } from "@/lib/avatar-generator";

@@ -14,6 +14,15 @@
       "gatewayDisconnected": "Gateway 未连接，数据可能不是最新",
       "channelErrors": "{{count}} 个渠道连接异常"
     },
+    "connectionGuide": {
+      "title": "无法连接 Gateway",
+      "subtitle": "请检查以下配置",
+      "reconnecting": "正在尝试重新连接...",
+      "step1": "确保 OpenClaw Gateway 已启动并运行（默认端口 18789）",
+      "step2": "确认 Gateway Token 已正确配置（可通过 --token 参数或安装 openclaw CLI 自动检测）",
+      "step3": "如 Gateway 在其他主机，使用 --gateway ws://host:port 指定地址",
+      "cmdComment": "示例：指定 Token 启动"
+    },
     "quickNav": {
       "title": "快捷导航"
     },
@@ -215,6 +224,22 @@
     "reconnecting": "正在重新连接...",
     "complete": "Gateway 已恢复"
   },
+  "configLifecycle": {
+    "effectiveNow": "修改已生效。",
+    "savedHotReload": "配置已保存，Gateway 将按内置重载策略自动生效。",
+    "savedRestartRequired": "配置已保存，部分变更需要重启 Gateway 后才能完全生效。",
+    "savedCliRestartRequired": "配置已保存，请执行下方命令重启 Gateway 后生效。",
+    "applyRestarting": "配置已保存，Gateway 将在 {{seconds}} 秒后重启。",
+    "disconnected": "Gateway 已断开，等待重启恢复。",
+    "reconnecting": "Gateway 正在重新连接。",
+    "complete": "Gateway 已恢复，最新配置已生效。",
+    "copyCommand": "复制命令",
+    "copiedCommand": "已复制",
+    "runtimeAgentModel": "默认模型已更新。新请求会使用新模型，进行中的运行不会切换。",
+    "runtimeAgentModelSessionsReset": "默认模型已更新。已清理该智能体的外部渠道会话缓存，飞书等渠道的下一条消息会以新模型重建会话。",
+    "runtimeSkill": "技能配置已更新，并已立即生效。",
+    "runtimeCron": "定时任务配置已更新，并已立即生效。"
+  },
   "cron": {
     "title": "定时任务",
     "description": "管理定时任务：创建、编辑、启停、立即执行",
@@ -302,17 +327,19 @@
         "providerIdHint": "配置文件中的唯一标识",
         "baseUrl": "基础 URL",
         "apiKey": "API Key",
-        "apiType": "API 类型",
-        "idConflict": "该提供方 ID 已存在",
-        "cancel": "取消",
-        "save": "保存"
-      },
-      "editDialog": {
-        "title": "编辑提供方",
-        "apiKeyPlaceholder": "留空保持不变",
-        "cancel": "取消",
-        "save": "保存"
-      },
+      "apiType": "API 类型",
+      "idConflict": "该提供方 ID 已存在",
+      "cancel": "取消",
+      "save": "保存",
+      "saveAndRestart": "保存并重启"
+    },
+    "editDialog": {
+      "title": "编辑提供方",
+      "apiKeyPlaceholder": "留空保持不变",
+      "cancel": "取消",
+      "save": "保存",
+      "saveAndRestart": "保存并重启"
+    },
       "models": {
         "title": "模型列表",
         "add": "添加模型",
@@ -471,6 +498,7 @@
       "saving": "保存中...",
       "saveSuccess": "保存成功",
       "saveError": "保存失败",
+      "runtimeHint": "仅影响后续新请求；当前正在运行的会话会继续使用已有模型。",
       "deleteAgent": "删除智能体",
       "cannotDeleteDefault": "无法删除默认智能体"
     },
@@ -493,25 +521,84 @@
     },
     "tools": {
       "title": "工具策略",
-      "profile": "策略配置",
+      "noConfig": "该智能体未配置工具策略",
+      "profile": "策略 Profile",
+      "profileDefault": "默认（full）",
+      "profileFull": "完整",
+      "profileMinimal": "最小化",
+      "profileCustom": "自定义",
+      "alsoAllow": "额外允许",
+      "deny": "禁止",
+      "addTool": "添加工具",
+      "removeTool": "移除",
+      "enabledCount": "已启用 {{enabled}}/{{total}}",
+      "catalogTitle": "工具目录",
+      "sourceBuiltIn": "内置",
+      "sourcePlugin": "插件",
+      "sourceWorkspace": "工作区",
+      "save": "保存",
+      "saving": "保存中...",
+      "saveSuccess": "保存成功",
+      "saveError": "保存失败",
+      "saveConflict": "配置已被修改，请重新加载后再试",
+      "refresh": "刷新",
+      "noTools": "暂无工具",
       "allowList": "允许列表",
       "denyList": "禁止列表",
-      "noConfig": "该智能体未配置工具策略",
       "all": "全部"
     },
     "skills": {
       "title": "技能配置",
-      "noRestriction": "无技能限制（使用所有已启用技能）",
+      "noRestriction": "使用默认技能配置",
       "defaultConfig": "使用默认技能配置",
-      "allowedSkills": "允许的技能"
+      "allowedSkills": "允许的技能",
+      "total": "总数",
+      "enabled": "已启用",
+      "blocked": "被限制",
+      "modeAll": "使用全部技能",
+      "modeSelected": "仅使用选中的技能",
+      "modeAllDesc": "不限制，所有可用技能均可使用",
+      "modeSelectedDesc": "仅允许选中的技能被使用",
+      "coreProtected": "核心技能，无法取消",
+      "blockedByAllowlist": "被白名单限制",
+      "missingDeps": "缺少依赖",
+      "sourceBuiltIn": "内置",
+      "sourceMarketplace": "市场",
+      "selectAll": "全选",
+      "deselectAll": "全不选",
+      "save": "保存",
+      "saving": "保存中...",
+      "saveSuccess": "保存成功",
+      "saveError": "保存失败",
+      "refresh": "刷新"
+    },
+    "restart": {
+      "required": "配置已保存，需要重启 Gateway 才能生效。",
+      "restartNow": "立即重启",
+      "restarting": "重启中...",
+      "done": "Gateway 已重启，配置已生效。"
     },
     "channels": {
-      "title": "频道路由",
-      "noBindings": "该智能体未绑定任何频道"
+      "title": "渠道状态",
+      "noBindings": "未配置渠道",
+      "gatewayInfo": "此处展示 Gateway 级渠道状态。渠道与智能体的绑定关系请在配置文件中管理。",
+      "connected": "已连接",
+      "disconnected": "未连接",
+      "connecting": "连接中",
+      "error": "错误",
+      "configured": "已配置",
+      "notConfigured": "未配置",
+      "refresh": "刷新"
     },
     "cronJobs": {
       "title": "定时任务",
-      "noCronJobs": "该智能体无定时任务"
+      "noCronJobs": "该智能体无定时任务",
+      "addTask": "新建定时任务",
+      "total": "总数",
+      "enabled": "已启用",
+      "errors": "错误",
+      "refresh": "刷新",
+      "confirmDelete": "确定要删除此定时任务吗？"
     },
     "createDialog": {
       "title": "添加新智能体",

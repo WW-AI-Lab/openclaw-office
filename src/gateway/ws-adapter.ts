@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import type { GatewayAdapter, AdapterEventHandler, SkillUpdatePatch } from "./adapter";
 import type {
   AgentCreateParams,
@@ -16,6 +17,7 @@ import type {
   ConfigPatchResult,
   ConfigSchemaResponse,
   ConfigSnapshot,
+  ConfigWriteResult,
   CronTask,
   CronTaskInput,
   ModelCatalogEntry,
@@ -86,7 +88,7 @@ export class WsAdapter implements GatewayAdapter {
       sessionKey: params.sessionKey,
       message: params.text,
       deliver: false,
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey: uuid(),
     });
   }
 
@@ -101,6 +103,16 @@ export class WsAdapter implements GatewayAdapter {
 
   async sessionsPreview(sessionKey: string): Promise<SessionPreview> {
     return this.rpcClient.request<SessionPreview>("sessions.preview", { sessionKey });
+  }
+
+  async sessionsDelete(
+    sessionKey: string,
+    options?: { deleteTranscript?: boolean },
+  ): Promise<void> {
+    await this.rpcClient.request("sessions.delete", {
+      key: sessionKey,
+      ...(options?.deleteTranscript != null ? { deleteTranscript: options.deleteTranscript } : {}),
+    });
   }
 
   async channelsStatus(): Promise<ChannelInfo[]> {
@@ -124,8 +136,12 @@ export class WsAdapter implements GatewayAdapter {
     return this.rpcClient.request<{ connected: boolean; message: string }>("web.login.wait");
   }
 
-  async skillsStatus(): Promise<SkillInfo[]> {
-    const result = await this.rpcClient.request<GatewaySkillsStatusResult>("skills.status");
+  async skillsStatus(agentId?: string): Promise<SkillInfo[]> {
+    const params = agentId ? { agentId } : undefined;
+    const result = await this.rpcClient.request<GatewaySkillsStatusResult>(
+      "skills.status",
+      params,
+    );
     return mapSkillEntries(result.skills ?? []);
   }
 
@@ -206,8 +222,9 @@ export class WsAdapter implements GatewayAdapter {
     });
   }
 
-  async toolsCatalog(): Promise<ToolCatalog> {
-    return this.rpcClient.request<ToolCatalog>("tools.catalog");
+  async toolsCatalog(agentId?: string): Promise<ToolCatalog> {
+    const params = agentId ? { agentId } : undefined;
+    return this.rpcClient.request<ToolCatalog>("tools.catalog", params);
   }
 
   async usageStatus(): Promise<UsageInfo> {
@@ -223,11 +240,35 @@ export class WsAdapter implements GatewayAdapter {
     return this.rpcClient.request<ConfigSnapshot>("config.get");
   }
 
-  async configPatch(raw: string, baseHash?: string): Promise<ConfigPatchResult> {
-    return this.rpcClient.request<ConfigPatchResult>("config.patch", {
+  async configSet(raw: string, baseHash?: string): Promise<ConfigWriteResult> {
+    const result = await this.rpcClient.request<ConfigWriteResult>("config.set", {
       raw,
       ...(baseHash ? { baseHash } : {}),
     });
+    return normalizeConfigWriteResult(result);
+  }
+
+  async configApply(
+    raw: string,
+    baseHash?: string,
+    params?: { sessionKey?: string; note?: string; restartDelayMs?: number },
+  ): Promise<ConfigWriteResult> {
+    const result = await this.rpcClient.request<ConfigWriteResult>("config.apply", {
+      raw,
+      ...(baseHash ? { baseHash } : {}),
+      ...(params?.sessionKey ? { sessionKey: params.sessionKey } : {}),
+      ...(params?.note ? { note: params.note } : {}),
+      ...(params?.restartDelayMs != null ? { restartDelayMs: params.restartDelayMs } : {}),
+    });
+    return normalizeConfigWriteResult(result);
+  }
+
+  async configPatch(raw: string, baseHash?: string): Promise<ConfigPatchResult> {
+    const result = await this.rpcClient.request<ConfigPatchResult>("config.patch", {
+      raw,
+      ...(baseHash ? { baseHash } : {}),
+    });
+    return normalizeConfigPatchResult(result);
   }
 
   async configSchema(): Promise<ConfigSchemaResponse> {
@@ -247,7 +288,8 @@ export class WsAdapter implements GatewayAdapter {
   }
 
   async updateRun(params?: { restartDelayMs?: number }): Promise<UpdateRunResult> {
-    return this.rpcClient.request<UpdateRunResult>("update.run", params ?? {});
+    const result = await this.rpcClient.request<UpdateRunResult>("update.run", params ?? {});
+    return normalizeUpdateRunResult(result);
   }
 }
 
@@ -266,6 +308,39 @@ interface GatewayChannelAccountSnapshot {
   mode?: string;
   error?: string;
   lastError?: string | null;
+}
+
+function normalizeRestart<
+  T extends {
+    restart?:
+      | ({ delayMs?: number; coalesced?: boolean } & Record<string, unknown>)
+      | null;
+  },
+>(
+  result: T,
+): T {
+  if (!result.restart) return result;
+  const restart = result.restart as { ok?: boolean; delayMs?: number; coalesced?: boolean };
+  return {
+    ...result,
+    restart: {
+      scheduled: restart.ok !== false,
+      delayMs: restart.delayMs ?? 0,
+      ...(restart.coalesced != null ? { coalesced: restart.coalesced } : {}),
+    },
+  };
+}
+
+function normalizeConfigWriteResult(result: ConfigWriteResult): ConfigWriteResult {
+  return normalizeRestart(result);
+}
+
+function normalizeConfigPatchResult(result: ConfigPatchResult): ConfigPatchResult {
+  return normalizeRestart(result);
+}
+
+function normalizeUpdateRunResult(result: UpdateRunResult): UpdateRunResult {
+  return normalizeRestart(result);
 }
 
 interface GatewayChannelsStatusResult {

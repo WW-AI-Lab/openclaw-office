@@ -1,7 +1,16 @@
 import type { GatewayAdapter } from "./adapter";
+import { MockAdapter } from "./mock-adapter";
+import { GatewayRpcClient } from "./rpc-client";
+import { WsAdapter } from "./ws-adapter";
+import { GatewayWsClient } from "./ws-client";
 
 let adapterInstance: GatewayAdapter | null = null;
-let adapterReadyResolvers: Array<(adapter: GatewayAdapter) => void> = [];
+let adapterInitPromise: Promise<GatewayAdapter> | null = null;
+let adapterInitError: Error | null = null;
+let adapterReadyWaiters: Array<{
+  resolve: (adapter: GatewayAdapter) => void;
+  reject: (error: Error) => void;
+}> = [];
 
 export function getAdapter(): GatewayAdapter {
   if (adapterInstance) return adapterInstance;
@@ -15,10 +24,11 @@ export function getAdapter(): GatewayAdapter {
  */
 export function waitForAdapter(timeoutMs = 15_000): Promise<GatewayAdapter> {
   if (adapterInstance) return Promise.resolve(adapterInstance);
+  if (adapterInitError) return Promise.reject(adapterInitError);
 
   return new Promise<GatewayAdapter>((resolve, reject) => {
     const timer = setTimeout(() => {
-      adapterReadyResolvers = adapterReadyResolvers.filter((r) => r !== resolve);
+      adapterReadyWaiters = adapterReadyWaiters.filter((waiter) => waiter.resolve !== wrappedResolve);
       reject(new Error("Adapter initialization timed out"));
     }, timeoutMs);
 
@@ -26,7 +36,14 @@ export function waitForAdapter(timeoutMs = 15_000): Promise<GatewayAdapter> {
       clearTimeout(timer);
       resolve(adapter);
     };
-    adapterReadyResolvers.push(wrappedResolve);
+    const wrappedReject = (error: Error) => {
+      clearTimeout(timer);
+      reject(error);
+    };
+    adapterReadyWaiters.push({
+      resolve: wrappedResolve,
+      reject: wrappedReject,
+    });
   });
 }
 
@@ -35,35 +52,78 @@ export async function initAdapter(
   deps?: { wsClient: unknown; rpcClient: unknown },
 ): Promise<GatewayAdapter> {
   if (adapterInstance) return adapterInstance;
+  if (adapterInitPromise) return adapterInitPromise;
 
-  if (mode === "mock") {
-    const { MockAdapter } = await import("./mock-adapter");
-    adapterInstance = new MockAdapter();
-  } else {
-    if (!deps) throw new Error("WsAdapter requires wsClient and rpcClient");
-    const { WsAdapter } = await import("./ws-adapter");
-    const { GatewayWsClient } = await import("./ws-client");
-    const { GatewayRpcClient } = await import("./rpc-client");
+  adapterInitError = null;
+  const initPromise = (async () => {
+    try {
+      const adapter =
+        mode === "mock"
+          ? new MockAdapter()
+          : createWsAdapter(deps);
 
-    if (!(deps.wsClient instanceof GatewayWsClient)) {
-      throw new Error("Invalid wsClient");
+      await adapter.connect();
+      adapterInstance = adapter;
+      resolveWaiters(adapter);
+      return adapter;
+    } catch (error) {
+      const normalizedError = toError(error);
+      adapterInitError = normalizedError;
+      rejectWaiters(normalizedError);
+      throw normalizedError;
     }
-    if (!(deps.rpcClient instanceof GatewayRpcClient)) {
-      throw new Error("Invalid rpcClient");
+  })();
+
+  adapterInitPromise = initPromise;
+
+  try {
+    return await initPromise;
+  } finally {
+    if (adapterInitPromise === initPromise) {
+      adapterInitPromise = null;
     }
-    adapterInstance = new WsAdapter(deps.wsClient, deps.rpcClient);
   }
-
-  await adapterInstance.connect();
-
-  for (const resolve of adapterReadyResolvers) {
-    resolve(adapterInstance);
-  }
-  adapterReadyResolvers = [];
-
-  return adapterInstance;
 }
 
 export function isMockMode(): boolean {
   return import.meta.env.VITE_MOCK === "true";
+}
+
+function createWsAdapter(
+  deps?: { wsClient: unknown; rpcClient: unknown },
+): GatewayAdapter {
+  if (!deps) throw new Error("WsAdapter requires wsClient and rpcClient");
+  if (!(deps.wsClient instanceof GatewayWsClient)) {
+    throw new Error("Invalid wsClient");
+  }
+  if (!(deps.rpcClient instanceof GatewayRpcClient)) {
+    throw new Error("Invalid rpcClient");
+  }
+  return new WsAdapter(deps.wsClient, deps.rpcClient);
+}
+
+function resolveWaiters(adapter: GatewayAdapter): void {
+  for (const waiter of adapterReadyWaiters) {
+    waiter.resolve(adapter);
+  }
+  adapterReadyWaiters = [];
+}
+
+function rejectWaiters(error: Error): void {
+  for (const waiter of adapterReadyWaiters) {
+    waiter.reject(error);
+  }
+  adapterReadyWaiters = [];
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+export function __resetAdapterForTests(): void {
+  adapterInstance?.disconnect();
+  adapterInstance = null;
+  adapterInitPromise = null;
+  adapterInitError = null;
+  adapterReadyWaiters = [];
 }

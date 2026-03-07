@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { SubAgentInfo } from "@/gateway/types";
-import { diffSessions } from "@/hooks/useSubAgentPoller";
+import { diffSessions, extractSubAgentUuidForTest } from "@/hooks/useSubAgentPoller";
 
 function mkSub(key: string, agentId = `agent-${key}`): SubAgentInfo {
   return {
@@ -12,6 +12,23 @@ function mkSub(key: string, agentId = `agent-${key}`): SubAgentInfo {
     startedAt: Date.now(),
   };
 }
+
+describe("extractSubAgentUuid", () => {
+  it("extracts UUID from Gateway sessionKey", () => {
+    const uuid = extractSubAgentUuidForTest("agent:main:subagent:5533959a-1a5e-4b44-a39a-a0799f71db92");
+    expect(uuid).toBe("5533959a-1a5e-4b44-a39a-a0799f71db92");
+  });
+
+  it("returns null for non-subagent sessionKey", () => {
+    expect(extractSubAgentUuidForTest("agent:main:session-123")).toBeNull();
+    expect(extractSubAgentUuidForTest("agent:main:main")).toBeNull();
+  });
+
+  it("handles sessionKey with multiple colons in agent name", () => {
+    const uuid = extractSubAgentUuidForTest("agent:my-agent:subagent:abc-123");
+    expect(uuid).toBe("abc-123");
+  });
+});
 
 describe("diffSessions", () => {
   it("detects newly added sessions", () => {
