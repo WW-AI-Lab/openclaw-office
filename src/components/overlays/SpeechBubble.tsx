@@ -52,8 +52,8 @@ export function SpeechBubbleOverlay({ agent }: SpeechBubbleOverlayProps) {
         zIndex: 20,
       }}
     >
-      <div className="pointer-events-auto min-w-[300px] w-[340px] max-w-[min(92vw,460px)] max-h-[260px] overflow-y-auto rounded-xl border border-gray-200 bg-white/95 px-4 py-3 text-[13px] leading-6 text-gray-900 shadow-xl [overflow-wrap:anywhere] dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-100">
-        <div className="[&_p]:my-0 [&_p+*]:mt-2 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5">
+      <div className="pointer-events-auto min-w-[320px] w-[min(54vw,520px)] max-w-[min(94vw,560px)] max-h-[40vh] overflow-y-auto rounded-2xl border border-slate-300/80 bg-white px-4 py-3.5 text-[14px] leading-7 text-slate-900 shadow-2xl [overflow-wrap:anywhere] dark:border-slate-600/90 dark:bg-slate-900 dark:text-slate-100">
+        <div className="[&_p]:my-0 [&_p+*]:mt-2.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5">
           <Markdown>{agent.speechBubble.text}</Markdown>
         </div>
       </div>
