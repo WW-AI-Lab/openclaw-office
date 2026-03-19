@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { initAdapter, isMockMode } from "@/gateway/adapter-provider";
 import { GatewayRpcClient } from "@/gateway/rpc-client";
 import type {
@@ -23,6 +23,8 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
   const wsRef = useRef<GatewayWsClient | null>(null);
   const rpcRef = useRef<GatewayRpcClient | null>(null);
   const throttleRef = useRef<EventThrottle | null>(null);
+  // Track the last connected URL/token to avoid reconnecting on identity-equal deps
+  const connectedRef = useRef<{ url: string; token: string }>({ url: "", token: "" });
 
   const setConnectionStatus = useOfficeStore((s) => s.setConnectionStatus);
   const initAgents = useOfficeStore((s) => s.initAgents);
@@ -31,8 +33,32 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
   const setMaxSubAgents = useOfficeStore((s) => s.setMaxSubAgents);
   const setAgentToAgentConfig = useOfficeStore((s) => s.setAgentToAgentConfig);
 
+  // Stable callbacks that never change identity across renders
+  const onAgentEvent = useCallback(
+    (frame: GatewayEventFrame) => {
+      throttleRef.current?.push(frame.payload as AgentEventPayload);
+    },
+    [],
+  );
+
+  const onHealthEvent = useCallback(
+    (frame: GatewayEventFrame) => {
+      const health = frame.payload as HealthSnapshot;
+      if (health?.agents) {
+        const summaries = healthAgentsToSummaries(health);
+        initAgents(summaries);
+      }
+    },
+    [initAgents],
+  );
+
   useEffect(() => {
     if (!url) {
+      return;
+    }
+
+    // Skip reconnect if URL+token haven't actually changed (React StrictMode re-mount guard)
+    if (connectedRef.current.url === url && connectedRef.current.token === token) {
       return;
     }
 
@@ -77,6 +103,12 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       };
     }
 
+    // Disconnect any existing client before creating a new one
+    if (wsRef.current) {
+      wsRef.current.disconnect();
+      wsRef.current = null;
+    }
+
     const ws = new GatewayWsClient();
     const rpc = new GatewayRpcClient(ws);
     const throttle = new EventThrottle();
@@ -84,6 +116,8 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
     wsRef.current = ws;
     rpcRef.current = rpc;
     throttleRef.current = throttle;
+
+    connectedRef.current = { url, token };
 
     throttle.onBatch((events) => {
       for (const event of events) {
@@ -109,28 +143,19 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       }
     });
 
-    ws.onEvent("agent", (frame: GatewayEventFrame) => {
-      throttle.push(frame.payload as AgentEventPayload);
-    });
+    ws.onEvent("agent", onAgentEvent);
 
-    ws.onEvent("health", (frame: GatewayEventFrame) => {
-      const health = frame.payload as HealthSnapshot;
-      if (health?.agents) {
-        const summaries = healthAgentsToSummaries(health);
-        initAgents(summaries);
-      }
-    });
+    ws.onEvent("health", onHealthEvent);
 
     ws.connect(url, token);
 
     return () => {
       throttle.destroy();
       ws.disconnect();
-      wsRef.current = null;
-      rpcRef.current = null;
-      throttleRef.current = null;
+      // Reset the connected ref so the next mount with the same url will reconnect
+      connectedRef.current = { url: "", token: "" };
     };
-  }, [url, token, setConnectionStatus, initAgents, processAgentEvent, setOperatorScopes, setMaxSubAgents, setAgentToAgentConfig]);
+  }, [url, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useSubAgentPoller(rpcRef);
   useUsagePoller(rpcRef);

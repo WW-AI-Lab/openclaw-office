@@ -121,8 +121,15 @@ export function App() {
     | undefined;
   const proxyGatewayUrl = injected?.gatewayUrl || "/gateway-ws";
   const managedGatewayToken = injected?.gatewayToken || import.meta.env.VITE_GATEWAY_TOKEN || "";
+  const defaultConnectionPreference: ConnectionPreference | null = managedGatewayToken
+    ? {
+        mode: "local",
+        gatewayUrl: proxyGatewayUrl,
+        gatewayToken: managedGatewayToken,
+      }
+    : null;
   const [connectionPreference, setConnectionPreference] = useState<ConnectionPreference | null>(
-    () => readConnectionPreference(),
+    () => readConnectionPreference() || defaultConnectionPreference,
   );
   const [isApplyingConnection, setIsApplyingConnection] = useState(false);
   const [connectionSetupError, setConnectionSetupError] = useState<string | null>(null);
@@ -131,33 +138,42 @@ export function App() {
   const setViewMode = useOfficeStore((s) => s.setViewMode);
 
   useEffect(() => {
+    if (!connectionPreference && defaultConnectionPreference) {
+      writeConnectionPreference(defaultConnectionPreference);
+      setConnectionPreference(defaultConnectionPreference);
+      return;
+    }
+
     if (!connectionPreference) {
       setConnectionReady(false);
       return;
     }
 
     const preference = connectionPreference;
-    let cancelled = false;
     const shouldConfigureRuntimeProxy = proxyGatewayUrl.startsWith("/");
 
+    // For local mode, the WS proxy path is always the same — no need to
+    // interrupt the connection while we sync the runtime proxy target.
+    if (!shouldConfigureRuntimeProxy) {
+      setConnectionReady(true);
+      return;
+    }
+
+    // Remote mode or first-time local sync: update the runtime proxy target
+    // but keep the connection alive (the proxy handles it transparently).
+    setConnectionReady(true);
+
+    let cancelled = false;
     async function syncConnectionTarget() {
-      setConnectionReady(false);
       setConnectionSetupError(null);
-
       try {
-        if (shouldConfigureRuntimeProxy) {
-          if (preference.mode === "remote") {
-            await updateRuntimeConnectionTarget({
-              mode: "remote",
-              gatewayUrl: preference.gatewayUrl,
-            });
-          } else {
-            await updateRuntimeConnectionTarget({ mode: "local" });
-          }
-        }
-
-        if (!cancelled) {
-          setConnectionReady(true);
+        if (preference.mode === "remote") {
+          await updateRuntimeConnectionTarget({
+            mode: "remote",
+            gatewayUrl: preference.gatewayUrl,
+          });
+        } else {
+          await updateRuntimeConnectionTarget({ mode: "local" });
         }
       } catch (error) {
         if (!cancelled) {
@@ -172,7 +188,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [connectionPreference, proxyGatewayUrl, t]);
+  }, [connectionPreference, defaultConnectionPreference, proxyGatewayUrl, t]);
 
   const browserGatewayToken =
     connectionPreference?.mode === "remote" ? connectionPreference.gatewayToken : managedGatewayToken;
