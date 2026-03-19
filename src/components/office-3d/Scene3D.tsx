@@ -104,11 +104,11 @@ function SceneContent() {
       />
       <Environment3D theme={theme} />
       <OfficeLayout3D />
-      {agentList.map((agent) => (
+      {agentList.filter((a) => !a.isPlaceholder).map((agent) => (
         <AgentCharacter key={agent.id} agent={agent} />
       ))}
       {agentList
-        .filter((a) => a.isSubAgent && a.parentAgentId)
+        .filter((a) => a.isSubAgent && a.parentAgentId && !a.isPlaceholder)
         .map((child) => {
           const parent = agents.get(child.parentAgentId!);
           if (!parent) {

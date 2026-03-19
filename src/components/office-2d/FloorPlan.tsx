@@ -35,19 +35,19 @@ export function FloorPlan() {
     [agentList],
   );
   const loungeAgents = useMemo(
-    () => agentList.filter((a) => a.zone === "lounge" && !a.movement),
+    () => agentList.filter((a) => a.zone === "lounge" && !a.movement && !a.isPlaceholder),
     [agentList],
   );
   const meetingAgents = useMemo(
-    () => agentList.filter((a) => a.zone === "meeting" && !a.movement),
+    () => agentList.filter((a) => a.zone === "meeting" && !a.movement && !a.isPlaceholder),
     [agentList],
   );
   const walkingAgents = useMemo(
-    () => agentList.filter((a) => a.movement !== null),
+    () => agentList.filter((a) => a.movement !== null && !a.isPlaceholder),
     [agentList],
   );
   const corridorAgents = useMemo(
-    () => agentList.filter((a) => a.zone === "corridor" && !a.movement),
+    () => agentList.filter((a) => a.zone === "corridor" && !a.movement && !a.isPlaceholder),
     [agentList],
   );
 
