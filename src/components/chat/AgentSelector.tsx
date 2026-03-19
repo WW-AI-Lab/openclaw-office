@@ -13,7 +13,7 @@ export function AgentSelector() {
   const targetAgentId = useChatDockStore((s) => s.targetAgentId);
   const setTargetAgent = useChatDockStore((s) => s.setTargetAgent);
 
-  const agentList = Array.from(agents.values());
+  const agentList = Array.from(agents.values()).filter((a) => !a.isPlaceholder);
   const currentAgent = agentList.find((a) => a.id === targetAgentId) ?? agentList[0];
 
   useEffect(() => {

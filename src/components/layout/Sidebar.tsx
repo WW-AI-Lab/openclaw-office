@@ -27,7 +27,7 @@ export function Sidebar() {
   const [filter, setFilter] = useState<FilterTag>("all");
 
   const agentList = useMemo(() => {
-    let list = Array.from(agents.values());
+    let list = Array.from(agents.values()).filter((a) => !a.isPlaceholder);
 
     if (search) {
       const q = search.toLowerCase();
@@ -46,7 +46,7 @@ export function Sidebar() {
   }, [agents, search, filter]);
 
   const subAgents = useMemo(
-    () => Array.from(agents.values()).filter((a) => a.isSubAgent),
+    () => Array.from(agents.values()).filter((a) => a.isSubAgent && !a.isPlaceholder),
     [agents],
   );
 
