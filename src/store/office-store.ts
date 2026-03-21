@@ -522,8 +522,19 @@ export const useOfficeStore = create<OfficeStore>()(
       const state = useOfficeStore.getState();
       for (const agent of state.agents.values()) {
         if (agent.zone === "meeting") {
-          if (!agentIds || agentIds.includes(agent.id)) {
+          if (!agentIds) {
             useOfficeStore.getState().returnFromMeeting(agent.id);
+          } else {
+            // Fuzzy match: exact ID, includes, or name match
+            const shouldDismiss = agentIds.some(
+              (input) =>
+                agent.id === input ||
+                agent.id.includes(input) ||
+                agent.name?.toLowerCase().includes(input.toLowerCase()),
+            );
+            if (shouldDismiss) {
+              useOfficeStore.getState().returnFromMeeting(agent.id);
+            }
           }
         }
       }

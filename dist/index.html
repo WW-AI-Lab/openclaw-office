@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Office</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script type="module" crossorigin src="/assets/index-CUrWGE4g.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BQ8aHz9e.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="meeting-panel" style="position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+      <textarea id="meeting-topic" placeholder="議題を入力..." style="width:300px;height:60px;padding:10px;border-radius:12px;border:1px solid #444;background:#1e293b;color:white;font-size:13px;resize:none;display:none;"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button id="btn-meeting" style="padding:10px 16px;border-radius:12px;border:none;background:#3b82f6;color:white;font-weight:bold;cursor:pointer;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">🏢 全員Meeting</button>
+        <button id="btn-dismiss" style="padding:10px 16px;border-radius:12px;border:none;background:#ef4444;color:white;font-weight:bold;cursor:pointer;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">🔙 解散</button>
+      </div>
+      <div id="meeting-status" style="font-size:12px;color:#94a3b8;display:none;"></div>
+    </div>
+    <script>
+    (function(){
+      var cfg = window.__OPENCLAW_CONFIG__ || {};
+      var token = cfg.gatewayToken || '';
+      var textarea = document.getElementById('meeting-topic');
+      var statusEl = document.getElementById('meeting-status');
+      var btnMeeting = document.getElementById('btn-meeting');
+      var btnDismiss = document.getElementById('btn-dismiss');
+      var topicVisible = false;
+
+      btnMeeting.addEventListener('click', function(){
+        if (!topicVisible) {
+          textarea.style.display = 'block';
+          textarea.focus();
+          topicVisible = true;
+          btnMeeting.textContent = '🚀 会議開始';
+          return;
+        }
+        var topic = textarea.value.trim() || '全メモの整理と情報共有';
+        textarea.style.display = 'none';
+        topicVisible = false;
+        btnMeeting.textContent = '🏢 全員Meeting';
+        startMeeting(topic);
+      });
+
+      btnDismiss.addEventListener('click', function(){
+        try { if (window.__dismissMeeting) window.__dismissMeeting(); } catch(e) { console.error('dismissMeeting error:', e); }
+        textarea.style.display = 'none';
+        topicVisible = false;
+        btnMeeting.textContent = '🏢 全員Meeting';
+        statusEl.style.display = 'none';
+      });
+
+      function startMeeting(topic) {
+        // 1. Visual: move everyone to meeting zone
+        try {
+          if (window.__requestMeeting) {
+            window.__requestMeeting(['cto','coo','cfo','cpo','cmo','cdo','clo','chro','cso','ciso','main','vice']);
+          }
+        } catch(e) { console.error('requestMeeting error:', e); }
+        statusEl.style.display = 'block';
+        statusEl.textContent = '会議を開始中...';
+
+        // 2. Send meeting instructions to COO via Gateway WS RPC
+        try {
+          var wsProto = (location.protocol === 'https:' ? 'wss:' : 'ws:');
+          var ws = new WebSocket(wsProto + '//' + location.host + '/gateway-ws');
+          var authenticated = false;
+          var timeout = setTimeout(function(){
+            if (!authenticated) {
+              statusEl.textContent = '⚠️ 接続タイムアウト (視覚的会議は開始済み)';
+              try { ws.close(); } catch(e) {}
+            }
+          }, 10000);
+
+          ws.addEventListener('open', function(){
+            ws.addEventListener('message', function(ev){
+              try {
+                var msg = JSON.parse(ev.data);
+                if (msg.type === 'event' && msg.event === 'connect.challenge') {
+                  ws.send(JSON.stringify({
+                    type: 'req', id: 'meet-auth',
+                    method: 'connect',
+                    params: {
+                      minProtocol: 1, maxProtocol: 3,
+                      client: { id: 'office-meeting-btn', version: '0.1.0', platform: 'web', mode: 'ui' },
+                      caps: [], scopes: ['operator.admin'],
+                      auth: { token: token }
+                    }
+                  }));
+                }
+                if (msg.type === 'hello-ok' || (msg.type === 'res' && msg.id === 'meet-auth')) {
+                  authenticated = true;
+                  clearTimeout(timeout);
+                  ws.send(JSON.stringify({
+                    type: 'req', id: 'meet-send',
+                    method: 'chat.send',
+                    params: {
+                      sessionKey: 'agent:coo:main',
+                      message: '【全体会議開始】議題: ' + topic + '\n\nCOOとして全体会議を進行してください。\n1. 全エージェントにsessions_sendで担当を割り振る\n2. 各自ワークスペースのメモを分担して整理・更新\n3. 結果を集約してMEMORY.md統合更新\n4. 完了後main (agent:main:main) に報告\nルール: editのみ、write禁止、自律判断、英語でメモ',
+                      deliver: false,
+                      idempotencyKey: 'meeting-' + Date.now()
+                    }
+                  }));
+                }
+                if (msg.type === 'res' && msg.id === 'meet-send') {
+                  statusEl.textContent = msg.ok ? '✅ 会議開始！COOが進行中...' : '❌ 送信失敗: ' + (msg.error && msg.error.message || 'unknown');
+                  setTimeout(function(){ try { ws.close(); } catch(e) {} }, 1000);
+                }
+              } catch(e) { console.error('WS message parse error:', e); }
+            });
+          });
+          ws.addEventListener('error', function(){
+            statusEl.textContent = '❌ 接続エラー (視覚的会議は開始済み)';
+            clearTimeout(timeout);
+          });
+          ws.addEventListener('close', function(){
+            clearTimeout(timeout);
+          });
+        } catch(e) {
+          statusEl.textContent = '❌ エラー: ' + (e.message || e);
+        }
+      }
+    })();
+    </script>
+  </body>
+</html>
