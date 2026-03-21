@@ -30,8 +30,8 @@ import {
   calculateWalkDuration,
   interpolatePathPosition,
 } from "@/lib/movement-animator";
-import { applyEventToAgent } from "./agent-reducer";
-import { applyMeetingGathering, detectMeetingGroups } from "./meeting-manager";
+import { applyEventToAgent, setDeferredIdleCallback } from "./agent-reducer";
+import { applyMeetingGathering, calculateMeetingSeats, detectMeetingGroups } from "./meeting-manager";
 import { computeMetrics } from "./metrics-reducer";
 
 const EVENT_HISTORY_LIMIT = 200;
@@ -39,8 +39,11 @@ const LINK_TIMEOUT_MS = 60_000;
 const THEME_STORAGE_KEY = "openclaw-theme";
 const CHAT_DOCK_HEIGHT_KEY = "openclaw-chat-dock-height";
 const DEFAULT_CHAT_DOCK_HEIGHT = 300;
-const LOUNGE_TO_HOTDESK_DEBOUNCE_MS = 500;
+const LOUNGE_TO_HOTDESK_DEBOUNCE_MS = 300;
 const HOTDESK_TO_LOUNGE_DELAY_MS = 30_000;
+const MIN_HOTDESK_STAY_MS = 10_000;
+
+const subAgentRetireTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 const zoneMigrationTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const confirmationTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -91,7 +94,6 @@ function createVisualAgent(
   confirmed = true,
 ): VisualAgent {
   if (!confirmed) {
-    // Unconfirmed agent: place at corridor entrance, not assigned to any zone yet
     return {
       id,
       name,
@@ -111,6 +113,8 @@ function createVisualAgent(
       originalPosition: null,
       movement: null,
       confirmed: false,
+      arrivedAtHotDeskAt: null,
+      pendingRetire: false,
     };
   }
   const position = allocatePosition(id, isSubAgent, occupied);
@@ -133,71 +137,13 @@ function createVisualAgent(
     originalPosition: null,
     movement: null,
     confirmed: true,
+    arrivedAtHotDeskAt: isSubAgent ? Date.now() : null,
+    pendingRetire: false,
   };
 }
 
 function positionKey(pos: { x: number; y: number }): string {
   return `${pos.x},${pos.y}`;
-}
-
-function isConfirmedMainAgent(agent: VisualAgent | undefined): boolean {
-  return Boolean(agent && agent.confirmed && !agent.isSubAgent && !agent.isPlaceholder);
-}
-
-function trackRemovedId(id: string): void {
-  removedAgentIds.add(id);
-  setTimeout(() => removedAgentIds.delete(id), REMOVED_IDS_TTL_MS);
-}
-
-function pickPreferredMappedAgentId(
-  state: { agents: Map<string, VisualAgent> },
-  agentIds: string[],
-): string | undefined {
-  const preferredMain = agentIds.find((id) => isConfirmedMainAgent(state.agents.get(id)));
-  if (preferredMain) {
-    return preferredMain;
-  }
-
-  const preferredConfirmed = agentIds.find((id) => {
-    const agent = state.agents.get(id);
-    return agent && agent.confirmed && !agent.isPlaceholder;
-  });
-  if (preferredConfirmed) {
-    return preferredConfirmed;
-  }
-
-  return agentIds[0];
-}
-
-function mergeEphemeralAgentState(
-  state: { agents: Map<string, VisualAgent>; selectedAgentId: string | null },
-  ephemeralId: string,
-  targetId: string,
-): void {
-  if (ephemeralId === targetId) {
-    return;
-  }
-
-  const ephemeral = state.agents.get(ephemeralId);
-  const target = state.agents.get(targetId);
-  if (!ephemeral || !target || ephemeral.confirmed) {
-    return;
-  }
-
-  target.status = ephemeral.status;
-  target.currentTool = ephemeral.currentTool;
-  target.speechBubble = ephemeral.speechBubble;
-  target.lastActiveAt = Math.max(target.lastActiveAt, ephemeral.lastActiveAt);
-  target.toolCallCount = Math.max(target.toolCallCount, ephemeral.toolCallCount);
-  if (ephemeral.toolCallHistory.length > 0) {
-    target.toolCallHistory = [...ephemeral.toolCallHistory];
-  }
-  target.runId = ephemeral.runId ?? target.runId;
-
-  state.agents.delete(ephemeralId);
-  if (state.selectedAgentId === ephemeralId) {
-    state.selectedAgentId = targetId;
-  }
 }
 
 function nextPlaceholderIndex(agents: Map<string, VisualAgent>): number {
@@ -283,7 +229,7 @@ export const useOfficeStore = create<OfficeStore>()(
     selectedAgentId: null,
     viewMode: "2d" as ViewMode,
     eventHistory: [],
-    sidebarCollapsed: false,
+    sidebarCollapsed: true,
     lastSessionsSnapshot: null,
     theme: getInitialTheme(),
     bloomEnabled: getInitialBloom(),
@@ -378,6 +324,8 @@ export const useOfficeStore = create<OfficeStore>()(
             placeholder.status = "idle";
             placeholder.position = startPos;
             placeholder.confirmed = true;
+            placeholder.arrivedAtHotDeskAt = null;
+            placeholder.pendingRetire = false;
             state.agents.set(info.agentId, placeholder);
           } else {
             const occupied = new Set<string>();
@@ -421,6 +369,13 @@ export const useOfficeStore = create<OfficeStore>()(
     },
 
     removeSubAgent: (subAgentId: string) => {
+      cancelRetireTimer(subAgentId);
+      const existingMigration = zoneMigrationTimers.get(subAgentId);
+      if (existingMigration) {
+        clearTimeout(existingMigration);
+        zoneMigrationTimers.delete(subAgentId);
+      }
+
       set((state) => {
         const sub = state.agents.get(subAgentId);
         if (sub?.parentAgentId) {
@@ -486,12 +441,26 @@ export const useOfficeStore = create<OfficeStore>()(
             originalPosition: null,
             movement: null,
             confirmed: true,
+            arrivedAtHotDeskAt: null,
+            pendingRetire: false,
           };
           state.agents.set(phId, ph);
         }
 
         state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
       });
+    },
+
+    retireSubAgent: (subAgentId: string) => {
+      const agent = useOfficeStore.getState().agents.get(subAgentId);
+      if (!agent?.isSubAgent || agent.isPlaceholder || agent.pendingRetire) return;
+
+      set((state) => {
+        const a = state.agents.get(subAgentId);
+        if (a) a.pendingRetire = true;
+      });
+
+      scheduleRetireAfterMinStay(subAgentId);
     },
 
     moveToMeeting: (agentId: string, meetingPosition: { x: number; y: number }) => {
@@ -521,6 +490,31 @@ export const useOfficeStore = create<OfficeStore>()(
       useOfficeStore.getState().startMovement(agentId, returnZone, returnPos);
     },
 
+    requestMeeting: (agentIds: string[]) => {
+      const state = useOfficeStore.getState();
+      const valid = agentIds.filter((id) => state.agents.has(id));
+      if (valid.length < 2) return;
+      const group = { sessionKey: `manual-${Date.now()}`, agentIds: valid };
+      const seats = calculateMeetingSeats(group, 0);
+      for (const [agentId, pos] of seats) {
+        const agent = state.agents.get(agentId);
+        if (agent && agent.zone !== "meeting" && agent.movement?.toZone !== "meeting") {
+          useOfficeStore.getState().moveToMeeting(agentId, pos);
+        }
+      }
+    },
+
+    dismissMeeting: (agentIds?: string[]) => {
+      const state = useOfficeStore.getState();
+      for (const agent of state.agents.values()) {
+        if (agent.zone === "meeting") {
+          if (!agentIds || agentIds.includes(agent.id)) {
+            useOfficeStore.getState().returnFromMeeting(agent.id);
+          }
+        }
+      }
+    },
+
     startMovement: (agentId: string, toZone: AgentZone, targetPos?: { x: number; y: number }) => {
       set((state) => {
         const agent = state.agents.get(agentId);
@@ -547,6 +541,9 @@ export const useOfficeStore = create<OfficeStore>()(
     },
 
     tickMovement: (agentId: string, deltaTime: number) => {
+      let arrivedAtHotDesk = false;
+      let arrivedAtLounge = false;
+
       set((state) => {
         const agent = state.agents.get(agentId);
         if (!agent?.movement) return;
@@ -562,11 +559,35 @@ export const useOfficeStore = create<OfficeStore>()(
           agent.movement = null;
           agent.zone = finalZone;
           agent.position = { ...finalPos };
+
+          if (finalZone === "hotDesk" && agent.isSubAgent) {
+            agent.arrivedAtHotDeskAt = Date.now();
+            arrivedAtHotDesk = true;
+          }
+          if (finalZone === "lounge" && agent.isSubAgent && agent.pendingRetire) {
+            arrivedAtLounge = true;
+          }
         }
       });
+
+      if (arrivedAtHotDesk) {
+        const agent = useOfficeStore.getState().agents.get(agentId);
+        if (agent?.pendingRetire) {
+          scheduleRetireAfterMinStay(agentId);
+        }
+      }
+      if (arrivedAtLounge) {
+        const agent = useOfficeStore.getState().agents.get(agentId);
+        if (agent?.isSubAgent && !agent.isPlaceholder && agent.pendingRetire) {
+          useOfficeStore.getState().removeSubAgent(agentId);
+        }
+      }
     },
 
     completeMovement: (agentId: string) => {
+      let arrivedHotDesk = false;
+      let arrivedLounge = false;
+
       set((state) => {
         const agent = state.agents.get(agentId);
         if (!agent?.movement) return;
@@ -575,7 +596,28 @@ export const useOfficeStore = create<OfficeStore>()(
         agent.movement = null;
         agent.zone = finalZone;
         agent.position = { ...finalPos };
+
+        if (finalZone === "hotDesk" && agent.isSubAgent) {
+          agent.arrivedAtHotDeskAt = Date.now();
+          arrivedHotDesk = true;
+        }
+        if (finalZone === "lounge" && agent.isSubAgent && agent.pendingRetire) {
+          arrivedLounge = true;
+        }
       });
+
+      if (arrivedHotDesk) {
+        const agent = useOfficeStore.getState().agents.get(agentId);
+        if (agent?.pendingRetire) {
+          scheduleRetireAfterMinStay(agentId);
+        }
+      }
+      if (arrivedLounge) {
+        const agent = useOfficeStore.getState().agents.get(agentId);
+        if (agent?.isSubAgent && !agent.isPlaceholder && agent.pendingRetire) {
+          useOfficeStore.getState().removeSubAgent(agentId);
+        }
+      }
     },
 
     prefillLoungePlaceholders: (count: number) => {
@@ -603,6 +645,8 @@ export const useOfficeStore = create<OfficeStore>()(
             originalPosition: null,
             movement: null,
             confirmed: true,
+            arrivedAtHotDeskAt: null,
+            pendingRetire: false,
           };
           state.agents.set(phId, ph);
         }
@@ -676,11 +720,47 @@ export const useOfficeStore = create<OfficeStore>()(
       );
     },
 
+    syncMainAgents: (summaries: AgentSummary[]) => {
+      set((state) => {
+        const incomingIds = new Set(summaries.map((s) => s.id));
+        const occupied = new Set<string>();
+        for (const a of state.agents.values()) {
+          occupied.add(positionKey(a.position));
+        }
+
+        for (const summary of summaries) {
+          const existing = state.agents.get(summary.id);
+          if (existing) {
+            const name = summary.identity?.name ?? summary.name ?? summary.id;
+            if (existing.name !== name) existing.name = name;
+          } else {
+            const name = summary.identity?.name ?? summary.name ?? summary.id;
+            const agent = createVisualAgent(summary.id, name, false, occupied);
+            occupied.add(positionKey(agent.position));
+            state.agents.set(summary.id, agent);
+          }
+        }
+
+        // Remove main agents that no longer exist in the summary,
+        // but never touch sub-agents, placeholders, or unconfirmed agents.
+        for (const [id, agent] of state.agents) {
+          if (!agent.isSubAgent && !agent.isPlaceholder && agent.confirmed && !incomingIds.has(id)) {
+            state.agents.delete(id);
+            if (state.selectedAgentId === id) state.selectedAgentId = null;
+          }
+        }
+
+        state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
+      });
+    },
+
     processAgentEvent: (event: AgentEventPayload) => {
       const pendingSubAgentRef: {
         value: { parentId: string; info: SubAgentInfo } | null;
       } = { value: null };
       let newUnconfirmedId: string | null = null;
+      let turnAroundToHotDesk: string | null = null;
+      let resolvedSubAgentForRetire: string | null = null;
 
       set((state) => {
         const parsed = parseAgentEvent(event);
@@ -727,19 +807,17 @@ export const useOfficeStore = create<OfficeStore>()(
           }
         } else {
           // Normal (non-sub-agent) event resolution:
-          // 1) explicit payload agentId
-          if (dataAgentId) {
+          // 1) runIdMap (streaming chunks for known agent)
+          agentId = state.runIdMap.get(event.runId);
+          // 2) explicit payload agentId
+          if (!agentId && dataAgentId) {
             agentId = dataAgentId;
           }
-          // 2) runIdMap (streaming chunks for known agent)
-          if (!agentId) {
-            agentId = state.runIdMap.get(event.runId);
-          }
-          // 3) sessionKeyMap (prefer confirmed main agents instead of insertion order)
+          // 3) sessionKeyMap (only if the session is associated with a confirmed agent)
           if (!agentId && event.sessionKey) {
             const sessionAgents = state.sessionKeyMap.get(event.sessionKey);
             if (sessionAgents && sessionAgents.length > 0) {
-              agentId = pickPreferredMappedAgentId(state, sessionAgents);
+              agentId = sessionAgents[0];
             }
           }
           // 4) sessionKey pattern: "agent:<name>:main" → resolve <name> to a known agent
@@ -807,7 +885,7 @@ export const useOfficeStore = create<OfficeStore>()(
           // Unknown agent — check if this is from an initAgents-known agent ID
           const isKnownMainAgent = isRegisteredMainAgentId(state, agentId, event.sessionKey);
 
-          if (isKnownMainAgent || Boolean(dataAgentId)) {
+          if (isKnownMainAgent) {
             const occupied = new Set<string>();
             for (const a of state.agents.values()) {
               occupied.add(positionKey(a.position));
@@ -816,33 +894,19 @@ export const useOfficeStore = create<OfficeStore>()(
             agent.runId = event.runId;
             state.agents.set(agentId, agent);
           } else {
-            // Create as unconfirmed ephemeral entity until stronger identity evidence arrives.
+            // Create as unconfirmed — will be confirmed by poller or timeout
             const agent = createVisualAgent(agentId, `Agent-${agentId.slice(0, 6)}`, false, new Set(), false);
             agent.runId = event.runId;
             state.agents.set(agentId, agent);
             newUnconfirmedId = agentId;
           }
-        }
 
-        const previouslyMappedAgentId = state.runIdMap.get(event.runId);
-        if (
-          previouslyMappedAgentId &&
-          previouslyMappedAgentId !== agentId &&
-          state.agents.has(previouslyMappedAgentId)
-        ) {
-          mergeEphemeralAgentState(state, previouslyMappedAgentId, agentId);
-          trackRemovedId(previouslyMappedAgentId);
         }
 
         state.runIdMap.set(event.runId, agentId);
 
         if (event.sessionKey) {
           const existing = state.sessionKeyMap.get(event.sessionKey) ?? [];
-          if (previouslyMappedAgentId && previouslyMappedAgentId !== agentId) {
-            const cleaned = existing.filter((id) => id !== previouslyMappedAgentId);
-            existing.length = 0;
-            existing.push(...cleaned);
-          }
           if (!existing.includes(agentId)) {
             existing.push(agentId);
             state.sessionKeyMap.set(event.sessionKey, existing);
@@ -859,10 +923,38 @@ export const useOfficeStore = create<OfficeStore>()(
           const prevStatus = agent.status;
           applyEventToAgent(agent, parsed);
 
+          // Sub-agent receives new active work → cancel pending retire + turn around
+          if (agent.isSubAgent && agent.confirmed && isActiveStatus(parsed.status)) {
+            if (agent.pendingRetire) {
+              agent.pendingRetire = false;
+              agent.arrivedAtHotDeskAt = null;
+              cancelRetireTimer(agent.id);
+            }
+            // Walking back to lounge? Turn around to hotDesk
+            if (agent.movement?.toZone === "lounge") {
+              agent.movement = null;
+              turnAroundToHotDesk = agent.id;
+            }
+            // Still in lounge without movement? Walk to hotDesk
+            if (!agent.movement && agent.zone === "lounge") {
+              turnAroundToHotDesk = agent.id;
+            }
+          }
+
           // Zone migration: lounge ↔ hotDesk for confirmed sub-agents only
           if (agent.isSubAgent && agent.confirmed && agent.zone !== "meeting") {
             scheduleZoneMigration(agent.id, prevStatus, agent.status);
           }
+        }
+
+        // Capture sub-agent lifecycle:end for post-set retirement
+        if (
+          event.stream === "lifecycle" &&
+          event.data.phase === "end" &&
+          agent?.isSubAgent &&
+          !agent.isPlaceholder
+        ) {
+          resolvedSubAgentForRetire = agentId;
         }
 
         // Event history
@@ -886,6 +978,11 @@ export const useOfficeStore = create<OfficeStore>()(
         state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
       });
 
+      // Post-set: sub-agent received new work while retreating → turn around to hotDesk
+      if (turnAroundToHotDesk) {
+        useOfficeStore.getState().startMovement(turnAroundToHotDesk, "hotDesk");
+      }
+
       // Post-set: create sub-agent via addSubAgent (mock adapter path)
       const subToCreate = pendingSubAgentRef.value;
       if (subToCreate) {
@@ -900,36 +997,33 @@ export const useOfficeStore = create<OfficeStore>()(
           const store = useOfficeStore.getState();
           const a = store.agents.get(id);
           if (a && !a.confirmed) {
-            discardEphemeralAgent(id);
+            store.confirmAgent(id, "main");
           }
         }, UNCONFIRMED_TIMEOUT_MS);
         confirmationTimers.set(id, timer);
       }
 
-      // Sub-agent lifecycle end
-      if (event.stream === "lifecycle" && event.data.phase === "end") {
-        // Path 1: explicit payload agentId (mock adapter)
-        if (event.data.agentId) {
-          const endId = event.data.agentId as string;
-          const sub = useOfficeStore.getState().agents.get(endId);
-          if (sub?.isSubAgent && !sub.isPlaceholder) {
-            useOfficeStore.getState().removeSubAgent(endId);
-          }
-        }
-        // Path 2: real Gateway — resolve sub-agent from sessionKey
-        const sk = event.sessionKey ?? "";
-        if (sk.includes(":subagent:")) {
-          const subMarker = ":subagent:";
-          const subIdx = sk.indexOf(subMarker);
-          if (subIdx >= 0) {
-            const subUuid = sk.slice(subIdx + subMarker.length);
-            const sub = useOfficeStore.getState().agents.get(subUuid);
-            if (sub?.isSubAgent && !sub.isPlaceholder) {
-              useOfficeStore.getState().removeSubAgent(subUuid);
-            }
-          }
-        }
+      // Sub-agent lifecycle end — retire via unified state machine
+      if (resolvedSubAgentForRetire) {
+        useOfficeStore.getState().retireSubAgent(resolvedSubAgentForRetire);
       }
+    },
+
+    deferredSetIdle: (agentId: string) => {
+      set((state) => {
+        const agent = state.agents.get(agentId);
+        if (!agent) return;
+
+        agent.status = "idle";
+        agent.currentTool = null;
+        agent.speechBubble = null;
+
+        if (agent.isSubAgent && agent.confirmed && agent.zone !== "meeting") {
+          scheduleZoneMigration(agent.id, "thinking", "idle");
+        }
+
+        state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
+      });
     },
 
     selectAgent: (id: string | null) => {
@@ -987,23 +1081,11 @@ export const useOfficeStore = create<OfficeStore>()(
         if (state.tokenHistory.length > 30) {
           state.tokenHistory = state.tokenHistory.slice(-30);
         }
-
-        const totalTokens = Math.max(0, Math.round(snapshot.total || 0));
-        let tokenRate = state.globalMetrics.tokenRate;
-
-        if (previous) {
-          const elapsedMs = Math.max(1, snapshot.timestamp - previous.timestamp);
-          const elapsedMinutes = elapsedMs / 60_000;
-          const tokenDelta = snapshot.total - previous.total;
-          const instantaneousRate = tokenDelta > 0 ? tokenDelta / elapsedMinutes : 0;
-          tokenRate = Number.isFinite(instantaneousRate) ? instantaneousRate : 0;
-        }
-
-        state.globalMetrics = {
-          ...state.globalMetrics,
-          totalTokens,
-          tokenRate,
-        };
+        const elapsedMinutes = previous ? (snapshot.timestamp - previous.timestamp) / 60_000 : 0;
+        const tokenRate =
+          elapsedMinutes > 0 ? Math.max(0, (snapshot.total - previous.total) / elapsedMinutes) : 0;
+        state.globalMetrics.totalTokens = snapshot.total;
+        state.globalMetrics.tokenRate = Number.isFinite(tokenRate) ? tokenRate : 0;
       });
     },
 
@@ -1068,6 +1150,10 @@ export const useOfficeStore = create<OfficeStore>()(
   })),
 );
 
+setDeferredIdleCallback((agentId: string) => {
+  useOfficeStore.getState().deferredSetIdle(agentId);
+});
+
 /**
  * Check if the given agentId is likely a registered main agent.
  * A main agent's sessionKey typically appears in the sessionKeyMap pointing
@@ -1093,7 +1179,7 @@ function isRegisteredMainAgentId(
     if (mapped) {
       for (const mid of mapped) {
         const ma = state.agents.get(mid);
-        if (isConfirmedMainAgent(ma)) {
+        if (ma && !ma.isSubAgent && ma.confirmed) {
           // Session belongs to a known main agent but agentId differs → likely sub-agent
           return false;
         }
@@ -1122,7 +1208,7 @@ function extractParentFromSessionKey(
     // Try known sessionKey patterns for the parent
     for (const [sk, mapped] of state.sessionKeyMap) {
       if (sk.startsWith(`agent:${parentName}:`) && !sk.includes(":subagent:") && mapped.length > 0) {
-        return pickPreferredMappedAgentId(state, mapped) ?? null;
+        return mapped[0];
       }
     }
 
@@ -1140,39 +1226,6 @@ function extractParentFromSessionKey(
     }
   }
   return null;
-}
-
-function discardEphemeralAgent(agentId: string): void {
-  useOfficeStore.setState((state) => {
-    const agent = state.agents.get(agentId);
-    if (!agent || agent.confirmed) {
-      return;
-    }
-
-    state.agents.delete(agentId);
-    if (state.selectedAgentId === agentId) {
-      state.selectedAgentId = null;
-    }
-
-    for (const [runId, mappedAgentId] of state.runIdMap) {
-      if (mappedAgentId === agentId) {
-        state.runIdMap.delete(runId);
-        trackRemovedId(runId);
-      }
-    }
-
-    for (const [sessionKey, mappedAgentIds] of state.sessionKeyMap) {
-      const filtered = mappedAgentIds.filter((id) => id !== agentId);
-      if (filtered.length === 0) {
-        state.sessionKeyMap.delete(sessionKey);
-      } else {
-        state.sessionKeyMap.set(sessionKey, filtered);
-      }
-    }
-
-    trackRemovedId(agentId);
-    state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
-  });
 }
 
 function updateCollaborationLinks(
@@ -1290,6 +1343,71 @@ function migrateAgentToLounge(agentId: string): void {
   if (!agent || !agent.isSubAgent || agent.zone !== "hotDesk") return;
   if (isActiveStatus(agent.status)) return;
   if (agent.movement?.toZone === "lounge") return;
+  if (agent.pendingRetire) return;
 
   useOfficeStore.getState().startMovement(agentId, "lounge");
 }
+
+function cancelRetireTimer(agentId: string): void {
+  const timer = subAgentRetireTimers.get(agentId);
+  if (timer) {
+    clearTimeout(timer);
+    subAgentRetireTimers.delete(agentId);
+  }
+}
+
+/**
+ * Central retire scheduling for sub-agents.
+ * Enforces: must stay at hotDesk >= MIN_HOTDESK_STAY_MS before walking back.
+ *
+ * Possible states when called:
+ * - Still walking TO hotDesk → will be re-invoked by tickMovement on arrival
+ * - At hotDesk, arrived recently → schedule timer for remaining wait
+ * - At hotDesk, stayed long enough → start walk back immediately
+ * - At lounge (never made it) → remove immediately
+ */
+function scheduleRetireAfterMinStay(agentId: string): void {
+  cancelRetireTimer(agentId);
+
+  const agent = useOfficeStore.getState().agents.get(agentId);
+  if (!agent?.isSubAgent || agent.isPlaceholder || !agent.pendingRetire) return;
+
+  // Still walking to hotDesk — tickMovement will re-invoke on arrival
+  if (agent.movement?.toZone === "hotDesk") return;
+
+  // Sitting at hotDesk — check minimum stay
+  if (agent.zone === "hotDesk") {
+    const arrived = agent.arrivedAtHotDeskAt ?? Date.now();
+    const elapsed = Date.now() - arrived;
+    const remaining = MIN_HOTDESK_STAY_MS - elapsed;
+
+    if (remaining > 0) {
+      const timer = setTimeout(() => {
+        subAgentRetireTimers.delete(agentId);
+        scheduleRetireAfterMinStay(agentId);
+      }, remaining);
+      subAgentRetireTimers.set(agentId, timer);
+      return;
+    }
+
+    // Min stay satisfied → walk back to lounge (removal happens on arrival)
+    useOfficeStore.getState().startMovement(agentId, "lounge");
+    return;
+  }
+
+  // Agent is in lounge (hasn't walked to hotDesk yet, or walk hasn't started).
+  // Instead of removing immediately, send it to hotDesk first so the user
+  // sees the full walk-in → stay → walk-out animation cycle.
+  if (agent.zone === "lounge" && !agent.movement) {
+    useOfficeStore.getState().startMovement(agentId, "hotDesk");
+    return;
+  }
+
+  // Walking to lounge already — tickMovement will handle removal on arrival
+}
+
+// Expose manual meeting API on window for console usage
+(window as unknown as Record<string, unknown>).__requestMeeting = (agentIds: string[]) =>
+  useOfficeStore.getState().requestMeeting(agentIds);
+(window as unknown as Record<string, unknown>).__dismissMeeting = (agentIds?: string[]) =>
+  useOfficeStore.getState().dismissMeeting(agentIds);
