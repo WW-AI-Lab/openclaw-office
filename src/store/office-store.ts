@@ -492,9 +492,23 @@ export const useOfficeStore = create<OfficeStore>()(
 
     requestMeeting: (agentIds: string[]) => {
       const state = useOfficeStore.getState();
-      const valid = agentIds.filter((id) => state.agents.has(id));
-      if (valid.length < 2) return;
-      const group = { sessionKey: `manual-${Date.now()}`, agentIds: valid };
+      // Match by exact ID or by name/label suffix
+      const resolvedIds: string[] = [];
+      for (const input of agentIds) {
+        if (state.agents.has(input)) {
+          resolvedIds.push(input);
+        } else {
+          // Try to find by suffix match (e.g. "cto" matches "agent:cto:main")
+          for (const [id, agent] of state.agents) {
+            if (id.includes(input) || agent.name?.toLowerCase().includes(input.toLowerCase())) {
+              resolvedIds.push(id);
+              break;
+            }
+          }
+        }
+      }
+      if (resolvedIds.length < 2) return;
+      const group = { sessionKey: `manual-${Date.now()}`, agentIds: resolvedIds };
       const seats = calculateMeetingSeats(group, 0);
       for (const [agentId, pos] of seats) {
         const agent = state.agents.get(agentId);
