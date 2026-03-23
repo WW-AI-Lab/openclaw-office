@@ -14,12 +14,17 @@ interface StoredChatMessage extends ChatDockMessage {
   sessionKey: string;
 }
 
+interface PaginatedEventsResult {
+  items: EventHistoryItem[];
+  hasMore: boolean;
+}
+
 const DEFAULT_DB_NAME = "openclaw-office-cache";
 const DEFAULT_VERSION = 1;
 const DEFAULT_MAX_MESSAGES_PER_SESSION = 500;
-const DEFAULT_MAX_EVENTS = 1000;
+const DEFAULT_MAX_EVENTS = Number.MAX_SAFE_INTEGER;
 const DEFAULT_MESSAGE_EXPIRE_DAYS = 30;
-const DEFAULT_EVENT_EXPIRE_DAYS = 7;
+const DEFAULT_EVENT_EXPIRE_DAYS = 3650;
 const QUOTA_THRESHOLD = 0.8;
 
 const STORE_CHAT = "chat_messages";
@@ -173,6 +178,55 @@ class LocalPersistence {
     }
   }
 
+  async getEventsPage(params?: { offset?: number; limit?: number }): Promise<PaginatedEventsResult> {
+    if (!this.canOperate()) {
+      return { items: [], hasMore: false };
+    }
+
+    const offset = Math.max(0, params?.offset ?? 0);
+    const limit = Math.max(1, params?.limit ?? 100);
+
+    try {
+      const tx = this.db!.transaction(STORE_EVENTS, "readonly");
+      const store = tx.objectStore(STORE_EVENTS);
+      const index = store.index("timestamp");
+      const request = index.openCursor(null, "prev");
+      const items: EventHistoryItem[] = [];
+      let skipped = 0;
+      let hasMore = false;
+
+      await new Promise<void>((resolve, reject) => {
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (!cursor) {
+            resolve();
+            return;
+          }
+
+          if (skipped < offset) {
+            skipped += 1;
+            cursor.continue();
+            return;
+          }
+
+          if (items.length < limit) {
+            items.push(cursor.value as EventHistoryItem);
+            cursor.continue();
+            return;
+          }
+
+          hasMore = true;
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
+
+      return { items, hasMore };
+    } catch {
+      return { items: [], hasMore: false };
+    }
+  }
+
   async saveEvent(event: EventHistoryItem): Promise<void> {
     if (!this.canOperate()) return;
     try {
@@ -300,6 +354,10 @@ class LocalPersistence {
   }
 
   private async enforceEventLimit(): Promise<void> {
+    if (!Number.isFinite(this.maxEvents) || this.maxEvents >= Number.MAX_SAFE_INTEGER) {
+      return;
+    }
+
     try {
       const tx = this.db!.transaction(STORE_EVENTS, "readwrite");
       const store = tx.objectStore(STORE_EVENTS);
@@ -347,4 +405,4 @@ function idbTransaction(tx: IDBTransaction): Promise<void> {
 export const localPersistence = new LocalPersistence();
 
 export { LocalPersistence };
-export type { LocalPersistenceOptions, StoredChatMessage };
+export type { LocalPersistenceOptions, PaginatedEventsResult, StoredChatMessage };

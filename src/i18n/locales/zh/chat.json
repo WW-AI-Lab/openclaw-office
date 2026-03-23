@@ -2,13 +2,43 @@
   "dock": {
     "collapseDock": "收起对话",
     "expandDock": "展开对话",
-    "attachmentWip": "附件（开发中）",
+    "attachmentSelect": "选择附件",
+    "attachmentLoading": "正在读取附件",
+    "attachmentReadFailed": "读取附件失败：{{reason}}",
+    "attachmentRemove": "移除附件",
+    "attachmentClearAll": "清空附件",
+    "attachmentsLabel": "附件",
     "placeholder": "输入消息... (Enter 发送, Shift+Enter 换行)",
+    "groupPlaceholder": "在主群聊中输入消息，输入 @ 可搜索成员，也支持 @所有人",
+    "groupHint": "主群聊支持微信式 @ 呼叫：输入 @ 后联想搜索成员，支持 @所有人。",
+    "groupMentionRequired": "主群聊里请至少 @ 一个 agent，例如 @architect。",
+    "groupDispatchPartialError": "以下 agent 呼叫失败：{{agents}}",
+    "sendConnectionRequired": "当前未连接到 Gateway，暂时不能发送消息",
+    "mainAutomationLabel": "main 自动协作",
+    "mainAutomationHint": "发送给 main 的原话会自动包装成固定团队执行指令，要求 architect、backend、frontend、qa、devops 持续分工、实现、优化并测试；只要 main 仍回 `STATUS: CONTINUE`，前端就会自动续跑，直到 `STATUS: COMPLETE` 为止。",
+    "mainAutomationEnabled": "已开启",
+    "mainAutomationDisabled": "已关闭",
+    "mainAutomationBypassHint": "如需跳过自动编排，输入 /raw 后再发原文。",
+    "mainAutomationMaxRoundsReached": "main 自动协作已达到续跑上限，请检查当前进度后继续。",
+    "pathReferences": "引用路径",
+    "configurePathReferences": "配置路径",
+    "insertPathReference": "插入 {{label}}",
+    "insertPathBundle": "插入 OpenClaw 主机与全部路径",
+    "pathReferenceBundle": "完整环境",
+    "pathReferenceHost": "OpenClaw 主机",
+    "pathReferenceCode": "OpenClaw 主机代码目录",
+    "pathReferenceServer": "OpenClaw 主机服务端目录",
+    "pathReferenceCodeOutput": "OpenClaw 主机代码输出目录",
+    "pathReferenceResourceOutput": "OpenClaw 主机资源输出目录",
+    "mentionAllLabel": "所有人",
+    "mentionAllDescription": "把这条消息同时发送给所有可用 agent",
+    "mentionSearchEmpty": "没有匹配的 agent，可继续输入筛选",
     "startNewChat": "开始一段新的对话",
     "thinkingStatus": "思考中..."
   },
   "agentSelector": {
-    "defaultLabel": "Agent"
+    "defaultLabel": "Agent",
+    "mainGroupLabel": "主群聊"
   },
   "dialog": {
     "sendMessage": "发送消息",
@@ -19,13 +49,34 @@
   },
   "chatDialog": {
     "loadingHistory": "加载历史消息...",
-    "scrollToBottom": "滚动到底部"
+    "scrollToBottom": "滚动到底部",
+    "viewSessionHistory": "查看当前会话历史",
+    "clearCurrentMessages": "清空当前消息"
+  },
+  "history": {
+    "fallbackTitle": "消息历史",
+    "loading": "正在读取消息历史...",
+    "sessionTitle": "会话历史 · {{session}}",
+    "agentTitle": "{{agent}} 的全部发言",
+    "agentSubtitle": "聚合自 agent {{agentId}} 的全部会话",
+    "emptySession": "这个会话暂时还没有历史消息。",
+    "emptyAgent": "这个 agent 暂时还没有可展示的发言。",
+    "roles": {
+      "user": "用户",
+      "assistant": "Agent"
+    }
   },
   "sessionSwitcher": {
     "noSessions": "暂无其他会话",
     "newSession": "新建会话",
     "newSessionWith": "与 {{agent}} 新建会话",
-    "newSessionTooltip": "新建对话"
+    "newSessionTooltip": "新建对话",
+    "groupSessionHint": "@agent 群聊入口",
+    "loadingSessions": "正在刷新会话列表...",
+    "deleteSession": "删除这个会话",
+    "deleteSessionConnectionRequired": "当前未连接到 Gateway，暂时不能删除远端会话",
+    "deleteSessionTitle": "删除会话",
+    "deleteSessionDescription": "确认删除会话「{{session}}」吗？会话消息将一并删除。"
   },
   "contextMenu": {
     "pause": "暂停",

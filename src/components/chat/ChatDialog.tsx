@@ -1,13 +1,21 @@
-import { ArrowDown, Loader2, Minimize2, Paperclip, Send, Square } from "lucide-react";
+import { ArrowDown, Clock3, Eraser, Loader2, Minimize2, Send, Square } from "lucide-react";
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import TextareaAutosize from "react-textarea-autosize";
+import { appendChatPathReference } from "@/lib/chat-path-context";
+import { isGroupTargetAgentId } from "@/lib/group-chat";
 import { useChatDockStore, type ChatDockMessage } from "@/store/console-stores/chat-dock-store";
+import { useOfficeStore } from "@/store/office-store";
+import { ChatAttachmentList } from "./ChatAttachmentList";
+import { ChatAttachmentPicker } from "./ChatAttachmentPicker";
 import { AgentSelector } from "./AgentSelector";
+import { ChatPathReferenceBar } from "./ChatPathReferenceBar";
 import { MarkdownContent } from "./MarkdownContent";
 import { MessageBubble } from "./MessageBubble";
+import { MainAutomationToggle } from "./MainAutomationToggle";
 import { SessionSwitcher } from "./SessionSwitcher";
 import { StreamingIndicator } from "./StreamingIndicator";
+import { GroupMentionInput } from "./GroupMentionInput";
 
 const MIN_HEIGHT = 220;
 const MAX_HEIGHT_RATIO = 0.7;
@@ -44,6 +52,8 @@ export function ChatDialog() {
   const { t } = useTranslation("chat");
   const dockExpanded = useChatDockStore((s) => s.dockExpanded);
   const messages = useChatDockStore((s) => s.messages);
+  const input = useChatDockStore((s) => s.draftInput);
+  const pendingAttachments = useChatDockStore((s) => s.pendingAttachments);
   const isStreaming = useChatDockStore((s) => s.isStreaming);
   const streamingMessage = useChatDockStore((s) => s.streamingMessage);
   const isHistoryLoading = useChatDockStore((s) => s.isHistoryLoading);
@@ -52,6 +62,15 @@ export function ChatDialog() {
   const abort = useChatDockStore((s) => s.abort);
   const error = useChatDockStore((s) => s.error);
   const clearError = useChatDockStore((s) => s.clearError);
+  const targetAgentId = useChatDockStore((s) => s.targetAgentId);
+  const openSessionHistory = useChatDockStore((s) => s.openSessionHistory);
+  const clearCurrentMessages = useChatDockStore((s) => s.clearCurrentMessages);
+  const setDraftInput = useChatDockStore((s) => s.setDraftInput);
+  const addPendingAttachments = useChatDockStore((s) => s.addPendingAttachments);
+  const removePendingAttachment = useChatDockStore((s) => s.removePendingAttachment);
+  const clearPendingAttachments = useChatDockStore((s) => s.clearPendingAttachments);
+  const setError = useChatDockStore((s) => s.setError);
+  const connectionStatus = useOfficeStore((s) => s.connectionStatus);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,14 +78,19 @@ export function ChatDialog() {
   const [height, setHeight] = useState(getStoredHeight);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [input, setInput] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
   const prevExpanded = useRef(false);
 
   const streamingText = extractStreamingText(streamingMessage);
-  const canSend = input.trim().length > 0 && !isStreaming;
+  const canSend =
+    (input.trim().length > 0 || pendingAttachments.length > 0) &&
+    !isStreaming &&
+    connectionStatus === "connected";
+  const isGroupChat = isGroupTargetAgentId(targetAgentId);
+  const showMainAutomation = targetAgentId === "main" && !isGroupChat;
+  const canClearMessages = messages.length > 0 || Boolean(streamingText) || isStreaming;
 
   // Slide animation on expand/collapse
   useEffect(() => {
@@ -176,11 +200,15 @@ export function ChatDialog() {
   }, [height, isDragging]);
 
   const handleSend = useCallback(() => {
-    const text = input.trim();
-    if (!text || isStreaming) return;
-    sendMessage(text);
-    setInput("");
-  }, [input, isStreaming, sendMessage]);
+    if ((input.trim().length === 0 && pendingAttachments.length === 0) || isStreaming || connectionStatus !== "connected") return;
+    void sendMessage(input);
+    setDraftInput("");
+  }, [connectionStatus, input, isStreaming, pendingAttachments.length, sendMessage, setDraftInput]);
+
+  const handleInsertPathReference = useCallback((reference: string) => {
+    setDraftInput(appendChatPathReference(input, reference));
+    textareaRef.current?.focus();
+  }, [input, setDraftInput]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -220,14 +248,35 @@ export function ChatDialog() {
       {/* Header: session switcher + minimize button */}
       <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-1 dark:border-gray-800">
         <SessionSwitcher />
-        <button
-          type="button"
-          onClick={() => setDockExpanded(false)}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-          title={t("dock.collapseDock")}
-        >
-          <Minimize2 className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              void openSessionHistory();
+            }}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            title={t("chatDialog.viewSessionHistory")}
+          >
+            <Clock3 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => clearCurrentMessages()}
+            disabled={!canClearMessages}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            title={t("chatDialog.clearCurrentMessages")}
+          >
+            <Eraser className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDockExpanded(false)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            title={t("dock.collapseDock")}
+          >
+            <Minimize2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Loading state */}
@@ -303,24 +352,33 @@ export function ChatDialog() {
       <div className="shrink-0 border-t border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-end gap-2">
           <AgentSelector />
-          <button
-            type="button"
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-            title={t("dock.attachmentWip")}
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
-          <TextareaAutosize
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onCompositionStart={() => setIsComposing(true)}
-            onCompositionEnd={() => setIsComposing(false)}
-            placeholder={t("dock.placeholder")}
-            maxRows={4}
-            className="flex-1 resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-blue-400 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-900"
+          <ChatAttachmentPicker
+            onAttachmentsSelected={addPendingAttachments}
+            onError={setError}
           />
+          {isGroupChat ? (
+            <GroupMentionInput
+              ref={textareaRef}
+              value={input}
+              onChange={setDraftInput}
+              onSubmit={handleSend}
+              onEscape={() => setDockExpanded(false)}
+              placeholder={t("dock.groupPlaceholder")}
+              maxRows={4}
+            />
+          ) : (
+            <TextareaAutosize
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setDraftInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              placeholder={t("dock.placeholder")}
+              maxRows={4}
+              className="flex-1 resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-blue-400 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-900"
+            />
+          )}
           {isStreaming ? (
             <button
               type="button"
@@ -346,6 +404,18 @@ export function ChatDialog() {
             </button>
           )}
         </div>
+        <ChatAttachmentList
+          attachments={pendingAttachments}
+          onRemove={removePendingAttachment}
+          onClearAll={clearPendingAttachments}
+        />
+        <ChatPathReferenceBar onInsertReference={handleInsertPathReference} />
+        <MainAutomationToggle visible={showMainAutomation} />
+        {isGroupChat && (
+          <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+            {t("dock.groupHint")}
+          </div>
+        )}
       </div>
     </div>
   );

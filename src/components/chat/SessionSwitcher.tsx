@@ -1,29 +1,11 @@
-import { ChevronDown, Plus, MessageSquare } from "lucide-react";
+import { ChevronDown, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { ConfirmDialog } from "@/components/console/shared/ConfirmDialog";
+import { formatRelativeTime, formatSessionName } from "@/lib/chat-session-utils";
+import { GROUP_CHAT_SESSION_KEY } from "@/lib/group-chat";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import { useOfficeStore } from "@/store/office-store";
-
-function formatSessionName(key: string): string {
-  const parts = key.split(":");
-  if (parts.length >= 3 && parts[0] === "agent") {
-    const suffix = parts.slice(2).join(":");
-    if (suffix === "main") return parts[1];
-    return suffix.length > 20 ? suffix.slice(0, 20) + "…" : suffix;
-  }
-  return key.length > 15 ? key.slice(0, 15) + "…" : key;
-}
-
-function formatRelativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
-}
 
 export function SessionSwitcher() {
   const { t } = useTranslation("chat");
@@ -33,7 +15,10 @@ export function SessionSwitcher() {
   const newSession = useChatDockStore((s) => s.newSession);
   const setTargetAgent = useChatDockStore((s) => s.setTargetAgent);
   const loadSessions = useChatDockStore((s) => s.loadSessions);
+  const isSessionsLoading = useChatDockStore((s) => s.isSessionsLoading);
+  const deleteSession = useChatDockStore((s) => s.deleteSession);
   const dockExpanded = useChatDockStore((s) => s.dockExpanded);
+  const connectionStatus = useOfficeStore((s) => s.connectionStatus);
 
   const agents = useOfficeStore((s) => s.agents);
   const mainAgents = Array.from(agents.values()).filter(
@@ -41,13 +26,21 @@ export function SessionSwitcher() {
   );
 
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingDeleteKey, setPendingDeleteKey] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (dockExpanded) {
-      loadSessions();
+    if (!dockExpanded || connectionStatus !== "connected") {
+      return;
     }
-  }, [dockExpanded, loadSessions]);
+
+    void loadSessions();
+    const timer = window.setInterval(() => {
+      void loadSessions();
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [connectionStatus, dockExpanded, loadSessions]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -84,7 +77,18 @@ export function SessionSwitcher() {
     newSession();
   }, [newSession]);
 
-  const displayName = formatSessionName(currentSessionKey);
+  const handleDeleteSession = useCallback(async () => {
+    if (!pendingDeleteKey) {
+      return;
+    }
+
+    await deleteSession(pendingDeleteKey);
+    setPendingDeleteKey(null);
+    setIsOpen(false);
+  }, [deleteSession, pendingDeleteKey]);
+
+  const groupLabel = t("agentSelector.mainGroupLabel");
+  const displayName = formatSessionName(currentSessionKey, groupLabel);
   const sortedSessions = [...(sessions ?? [])].sort((a, b) => b.lastActiveAt - a.lastActiveAt);
 
   return (
@@ -102,30 +106,81 @@ export function SessionSwitcher() {
 
         {isOpen && (
           <div className="absolute left-0 top-full z-60 mt-1 w-72 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+            <button
+              type="button"
+              onClick={() => handleSwitch(GROUP_CHAT_SESSION_KEY)}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                currentSessionKey === GROUP_CHAT_SESSION_KEY
+                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                  : "text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{groupLabel}</div>
+                <div className="truncate text-[10px] text-gray-400">
+                  {t("sessionSwitcher.groupSessionHint")}
+                </div>
+              </div>
+              {currentSessionKey === GROUP_CHAT_SESSION_KEY && (
+                <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+              )}
+            </button>
+
             {/* Existing sessions */}
+            {isSessionsLoading && (
+              <div className="px-3 py-2 text-[11px] text-gray-400">
+                {t("sessionSwitcher.loadingSessions")}
+              </div>
+            )}
             {sortedSessions.length > 0 ? (
               sortedSessions.map((session) => (
-                <button
+                <div
                   key={session.key}
-                  type="button"
-                  onClick={() => handleSwitch(session.key)}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                  className={`flex items-center gap-1 px-1 ${
                     session.key === currentSessionKey
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                      : "text-gray-700 dark:text-gray-300"
+                      ? "bg-blue-50 dark:bg-blue-900/20"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-800"
                   }`}
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{formatSessionName(session.key)}</div>
-                    <div className="truncate text-[10px] text-gray-400">
-                      {formatRelativeTime(session.lastActiveAt)}
-                      {session.messageCount > 0 && ` · ${session.messageCount} msgs`}
+                  <button
+                    type="button"
+                    onClick={() => handleSwitch(session.key)}
+                    className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left text-xs ${
+                      session.key === currentSessionKey
+                        ? "text-blue-700 dark:text-blue-400"
+                        : "text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">
+                        {formatSessionName(session.key, groupLabel)}
+                      </div>
+                      <div className="truncate text-[10px] text-gray-400">
+                        {formatRelativeTime(session.lastActiveAt)}
+                        {session.messageCount > 0 && ` · ${session.messageCount} msgs`}
+                      </div>
                     </div>
-                  </div>
-                  {session.key === currentSessionKey && (
-                    <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
-                  )}
-                </button>
+                    {session.key === currentSessionKey && (
+                      <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setPendingDeleteKey(session.key);
+                    }}
+                    disabled={connectionStatus !== "connected"}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                    title={
+                      connectionStatus === "connected"
+                        ? t("sessionSwitcher.deleteSession")
+                        : t("sessionSwitcher.deleteSessionConnectionRequired")
+                    }
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))
             ) : (
               <div className="px-3 py-2 text-xs text-gray-400">
@@ -178,6 +233,19 @@ export function SessionSwitcher() {
       >
         <Plus className="h-4 w-4" />
       </button>
+      <ConfirmDialog
+        open={pendingDeleteKey !== null}
+        title={t("sessionSwitcher.deleteSessionTitle")}
+        description={t("sessionSwitcher.deleteSessionDescription", {
+          session: pendingDeleteKey ? formatSessionName(pendingDeleteKey, groupLabel) : "",
+        })}
+        confirmLabel={t("common:actions.delete")}
+        onConfirm={() => {
+          void handleDeleteSession();
+        }}
+        onCancel={() => setPendingDeleteKey(null)}
+        variant="danger"
+      />
     </div>
   );
 }

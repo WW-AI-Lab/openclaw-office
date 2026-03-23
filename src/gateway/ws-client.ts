@@ -27,6 +27,8 @@ export class GatewayWsClient {
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private shutdownReceived = false;
+  private shouldReconnect = true;
+  private connectRequestId: string | null = null;
 
   private eventHandlers = new Map<string, Set<EventHandler>>();
   private statusHandlers = new Set<StatusHandler>();
@@ -56,12 +58,16 @@ export class GatewayWsClient {
     this.url = url;
     this.token = token;
     this.shutdownReceived = false;
+    this.shouldReconnect = true;
+    this.connectRequestId = null;
     this.reconnectAttempt = 0;
     this.doConnect();
   }
 
   disconnect(): void {
     this.shutdownReceived = true;
+    this.shouldReconnect = false;
+    this.connectRequestId = null;
     this.clearReconnectTimer();
     if (this.ws) {
       this.ws.removeEventListener("close", this.handleClose);
@@ -107,7 +113,7 @@ export class GatewayWsClient {
     }
 
     this.handleClose = () => {
-      if (!this.shutdownReceived) {
+      if (!this.shutdownReceived && this.shouldReconnect) {
         this.scheduleReconnect();
       }
     };
@@ -176,6 +182,16 @@ export class GatewayWsClient {
   }
 
   private handleResponse(frame: GatewayResponseFrame): void {
+    if (frame.id === this.connectRequestId) {
+      this.connectRequestId = null;
+      if (frame.ok && (frame.payload as HelloOk)?.type === "hello-ok") {
+        this.handleConnectSuccess(frame.payload as HelloOk);
+      } else if (!frame.ok) {
+        this.handleConnectError(frame);
+      }
+      return;
+    }
+
     const handler = this.responseHandlers.get(frame.id);
     if (handler) {
       this.responseHandlers.delete(frame.id);
@@ -192,6 +208,8 @@ export class GatewayWsClient {
   }
 
   private async sendConnect(nonce: string): Promise<void> {
+    const requestId = uuid();
+    this.connectRequestId = requestId;
     const role = "operator";
     const scopes = ["operator.admin"];
     const params: ConnectParams = {
@@ -248,16 +266,27 @@ export class GatewayWsClient {
 
     this.send({
       type: "req",
-      id: uuid(),
+      id: requestId,
       method: "connect",
       params,
     });
+  }
+
+  private handleConnectError(frame: Extract<GatewayResponseFrame, { ok: false }>): void {
+    this.shouldReconnect = false;
+    this.clearReconnectTimer();
+    this.setStatus("error", frame.error.message);
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.removeEventListener("close", this.handleClose);
+      this.ws.close();
+    }
   }
 
   private handleConnectSuccess(payload: HelloOk): void {
     this.snapshot = payload.snapshot ?? null;
     this.serverInfo = payload.server ?? null;
     this.reconnectAttempt = 0;
+    this.shouldReconnect = true;
     this.setStatus("connected");
   }
 

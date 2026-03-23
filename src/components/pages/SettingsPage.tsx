@@ -7,6 +7,7 @@ import { DeveloperSection } from "@/components/console/settings/DeveloperSection
 import { GatewaySection } from "@/components/console/settings/GatewaySection";
 import { ProvidersSection } from "@/components/console/settings/ProvidersSection";
 import { UpdateSection } from "@/components/console/settings/UpdateSection";
+import { WorkspacePathsSection } from "@/components/console/settings/WorkspacePathsSection";
 import { LoadingState } from "@/components/console/shared/LoadingState";
 import { useConfigStore } from "@/store/console-stores/config-store";
 import { useConsoleSettingsStore } from "@/store/console-stores/settings-store";
@@ -39,6 +40,7 @@ export function SettingsPage() {
           <AppearanceSection />
           <ProvidersSection />
           <GatewaySection />
+          <WorkspacePathsSection />
           <UpdateSection />
           <AdvancedSection />
           {devMode && <DeveloperSection />}

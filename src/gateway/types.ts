@@ -195,6 +195,8 @@ export interface EventHistoryItem {
   agentName: string;
   stream: AgentStream;
   summary: string;
+  runId?: string;
+  sessionKey?: string;
 }
 
 // --- Sub-Agent 轮询 ---
@@ -274,8 +276,14 @@ export interface OfficeStore {
   operatorScopes: string[];
   tokenHistory: TokenSnapshot[];
   agentCosts: Record<string, number>;
+  debugWarnings: string[];
   currentPage: PageId;
   chatDockHeight: number;
+  timelineDialogOpen: boolean;
+  timelineDialogEvents: EventHistoryItem[];
+  timelineDialogLoading: boolean;
+  timelineDialogLoadingMore: boolean;
+  timelineDialogHasMore: boolean;
 
   // 配置感知
   maxSubAgents: number;
@@ -320,6 +328,9 @@ export interface OfficeStore {
   processAgentEvent: (event: AgentEventPayload) => void;
   deferredSetIdle: (agentId: string) => void;
   initEventHistory: () => Promise<void>;
+  openTimelineDialog: () => Promise<void>;
+  closeTimelineDialog: () => void;
+  loadMoreTimelineEvents: () => Promise<void>;
 
   // UI actions
   selectAgent: (id: string | null) => void;
@@ -337,6 +348,7 @@ export interface OfficeStore {
   setOperatorScopes: (scopes: string[]) => void;
   pushTokenSnapshot: (snapshot: TokenSnapshot) => void;
   setAgentCosts: (costs: Record<string, number>) => void;
+  setDebugWarnings: (warnings: string[]) => void;
   setCurrentPage: (page: PageId) => void;
   setChatDockHeight: (height: number) => void;
 

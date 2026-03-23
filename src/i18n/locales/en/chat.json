@@ -2,13 +2,43 @@
   "dock": {
     "collapseDock": "Collapse chat",
     "expandDock": "Expand chat",
-    "attachmentWip": "Attachments (coming soon)",
+    "attachmentSelect": "Choose attachments",
+    "attachmentLoading": "Reading attachments",
+    "attachmentReadFailed": "Failed to read attachment: {{reason}}",
+    "attachmentRemove": "Remove attachment",
+    "attachmentClearAll": "Clear attachments",
+    "attachmentsLabel": "Attachments",
     "placeholder": "Type a message... (Enter to send, Shift+Enter for new line)",
+    "groupPlaceholder": "Type in the main group chat, use @ to search members, and support @everyone",
+    "groupHint": "Main group chat now supports WeChat-style mentions: type @ to search members, and @everyone to reach the whole team.",
+    "groupMentionRequired": "Mention at least one agent in the main group chat, for example @architect.",
+    "groupDispatchPartialError": "Failed to reach these agents: {{agents}}",
+    "sendConnectionRequired": "Not connected to Gateway, so messages cannot be sent right now",
+    "mainAutomationLabel": "Main auto orchestration",
+    "mainAutomationHint": "Messages sent to main are automatically expanded into a fixed-team execution brief for architect, backend, frontend, qa, and devops. As long as main ends with `STATUS: CONTINUE`, the frontend keeps auto-continuing until `STATUS: COMPLETE` appears.",
+    "mainAutomationEnabled": "On",
+    "mainAutomationDisabled": "Off",
+    "mainAutomationBypassHint": "Use /raw to send the original text without orchestration wrapping.",
+    "mainAutomationMaxRoundsReached": "Main auto orchestration hit the follow-up limit. Review progress before continuing.",
+    "pathReferences": "Path refs",
+    "configurePathReferences": "Configure paths",
+    "insertPathReference": "Insert {{label}}",
+    "insertPathBundle": "Insert OpenClaw host and all configured paths",
+    "pathReferenceBundle": "Full context",
+    "pathReferenceHost": "OpenClaw Host",
+    "pathReferenceCode": "OpenClaw Code Dir",
+    "pathReferenceServer": "OpenClaw Server Dir",
+    "pathReferenceCodeOutput": "OpenClaw Code Output Dir",
+    "pathReferenceResourceOutput": "OpenClaw Resource Output Dir",
+    "mentionAllLabel": "everyone",
+    "mentionAllDescription": "Send this message to every available agent",
+    "mentionSearchEmpty": "No matching agents yet. Keep typing to filter.",
     "startNewChat": "Start a new conversation",
     "thinkingStatus": "Thinking..."
   },
   "agentSelector": {
-    "defaultLabel": "Agent"
+    "defaultLabel": "Agent",
+    "mainGroupLabel": "Main Group"
   },
   "dialog": {
     "sendMessage": "Send Message",
@@ -19,13 +49,34 @@
   },
   "chatDialog": {
     "loadingHistory": "Loading history...",
-    "scrollToBottom": "Scroll to bottom"
+    "scrollToBottom": "Scroll to bottom",
+    "viewSessionHistory": "View current session history",
+    "clearCurrentMessages": "Clear current messages"
+  },
+  "history": {
+    "fallbackTitle": "Message History",
+    "loading": "Loading message history...",
+    "sessionTitle": "Session History · {{session}}",
+    "agentTitle": "All Messages from {{agent}}",
+    "agentSubtitle": "Aggregated across all sessions for agent {{agentId}}",
+    "emptySession": "This session does not have any saved history yet.",
+    "emptyAgent": "This agent does not have any messages to show yet.",
+    "roles": {
+      "user": "User",
+      "assistant": "Agent"
+    }
   },
   "sessionSwitcher": {
     "noSessions": "No other sessions",
     "newSession": "New session",
     "newSessionWith": "New session with {{agent}}",
-    "newSessionTooltip": "New chat"
+    "newSessionTooltip": "New chat",
+    "groupSessionHint": "@agent group entry",
+    "loadingSessions": "Refreshing session list...",
+    "deleteSession": "Delete this session",
+    "deleteSessionConnectionRequired": "Not connected to Gateway, so the remote session cannot be deleted right now",
+    "deleteSessionTitle": "Delete Session",
+    "deleteSessionDescription": "Delete session \"{{session}}\" and remove its transcript?"
   },
   "contextMenu": {
     "pause": "Pause",

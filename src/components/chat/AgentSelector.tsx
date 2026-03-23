@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { GROUP_CHAT_TARGET_ID, isGroupTargetAgentId } from "@/lib/group-chat";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import { useOfficeStore } from "@/store/office-store";
 
@@ -13,8 +14,20 @@ export function AgentSelector() {
   const targetAgentId = useChatDockStore((s) => s.targetAgentId);
   const setTargetAgent = useChatDockStore((s) => s.setTargetAgent);
 
-  const agentList = Array.from(agents.values()).filter((a) => !a.isPlaceholder);
-  const currentAgent = agentList.find((a) => a.id === targetAgentId) ?? agentList[0];
+  const directAgents = Array.from(agents.values()).filter(
+    (agent) => agent.confirmed && !agent.isPlaceholder && !agent.isSubAgent,
+  );
+  const options = [
+    {
+      id: GROUP_CHAT_TARGET_ID,
+      name: t("agentSelector.mainGroupLabel"),
+    },
+    ...directAgents.map((agent) => ({ id: agent.id, name: agent.name })),
+  ];
+  const currentAgent =
+    options.find((agent) => agent.id === targetAgentId) ??
+    options.find((agent) => agent.id === GROUP_CHAT_TARGET_ID) ??
+    options[0];
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -28,7 +41,7 @@ export function AgentSelector() {
     }
   }, [open]);
 
-  if (agentList.length === 0) return null;
+  if (options.length === 0) return null;
 
   return (
     <div className="relative" ref={ref}>
@@ -49,7 +62,7 @@ export function AgentSelector() {
 
       {open && (
         <div className="absolute bottom-full left-0 z-50 mb-1 min-w-[160px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
-          {agentList.map((agent) => (
+          {options.map((agent) => (
             <button
               key={agent.id}
               type="button"
@@ -77,6 +90,10 @@ export function AgentSelector() {
 }
 
 function getAgentColor(id: string): string {
+  if (isGroupTargetAgentId(id)) {
+    return "#0f766e";
+  }
+
   const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
   let hash = 0;
   for (let i = 0; i < id.length; i++) {

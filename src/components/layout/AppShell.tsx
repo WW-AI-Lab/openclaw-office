@@ -3,9 +3,13 @@ import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router-dom";
 import { ChatDialog } from "@/components/chat/ChatDialog";
 import { ChatDockBar } from "@/components/chat/ChatDockBar";
+import { ChatHistoryDialog } from "@/components/chat/ChatHistoryDialog";
+import { AlertBanner } from "@/components/console/dashboard/AlertBanner";
+import { EventTimelineDialog } from "@/components/shared/EventTimelineDialog";
 import { RestartBanner } from "@/components/shared/RestartBanner";
 import { ToastContainer } from "@/components/shared/ToastContainer";
 import type { GatewayWsClient } from "@/gateway/ws-client";
+import { isGroupTargetAgentId } from "@/lib/group-chat";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import { useOfficeStore } from "@/store/office-store";
 import { Sidebar } from "./Sidebar";
@@ -26,6 +30,7 @@ export function AppShell({ children, wsClient, isMobile = false }: AppShellProps
   const connectionStatus = useOfficeStore((s) => s.connectionStatus);
   const agents = useOfficeStore((s) => s.agents);
   const selectedAgentId = useOfficeStore((s) => s.selectedAgentId);
+  const debugWarnings = useOfficeStore((s) => s.debugWarnings);
 
   const initEventHistory = useOfficeStore((s) => s.initEventHistory);
   const location = useLocation();
@@ -55,11 +60,22 @@ export function AppShell({ children, wsClient, isMobile = false }: AppShellProps
   useEffect(() => {
     if (connectionStatus === "connected" && agents.size > 0) {
       const currentTarget = useChatDockStore.getState().targetAgentId;
-      if (!currentTarget) {
-        const mainAgent = Array.from(agents.values()).find((a) => !a.isSubAgent);
-        if (mainAgent) {
-          setTargetAgent(mainAgent.id);
-        }
+      const eligibleAgents = Array.from(agents.values()).filter(
+        (agent) => agent.confirmed && !agent.isPlaceholder && !agent.isSubAgent,
+      );
+
+      if (eligibleAgents.length === 0) {
+        return;
+      }
+
+      const hasValidTarget =
+        currentTarget != null &&
+        (isGroupTargetAgentId(currentTarget) ||
+          eligibleAgents.some((agent) => agent.id === currentTarget));
+
+      if (!hasValidTarget) {
+        const mainAgent = eligibleAgents.find((agent) => agent.id === "main") ?? eligibleAgents[0];
+        setTargetAgent(mainAgent.id);
       }
     }
   }, [connectionStatus, agents, setTargetAgent]);
@@ -82,9 +98,18 @@ export function AppShell({ children, wsClient, isMobile = false }: AppShellProps
       <RestartBanner />
       <TopBar isMobile={isMobile} />
       <ToastContainer />
+      {debugWarnings.length > 0 && (
+        <div className="space-y-2 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-950">
+          {debugWarnings.map((warning) => (
+            <AlertBanner key={warning} variant="warning" message={warning} />
+          ))}
+        </div>
+      )}
       <div className="relative flex flex-1 overflow-hidden">
         <main className="relative flex flex-1 flex-col overflow-hidden">
           <div className="relative flex-1 overflow-hidden">{content}</div>
+          <EventTimelineDialog />
+          <ChatHistoryDialog />
           <ChatDialog />
           <ChatDockBar />
         </main>

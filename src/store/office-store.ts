@@ -35,6 +35,7 @@ import { applyMeetingGathering, detectMeetingGroups } from "./meeting-manager";
 import { computeMetrics } from "./metrics-reducer";
 
 const EVENT_HISTORY_LIMIT = 200;
+const TIMELINE_PAGE_SIZE = 100;
 const LINK_TIMEOUT_MS = 60_000;
 const THEME_STORAGE_KEY = "openclaw-theme";
 const CHAT_DOCK_HEIGHT_KEY = "openclaw-chat-dock-height";
@@ -56,6 +57,69 @@ const MEETING_GATHERING_THROTTLE_MS = 500;
 
 function isActiveStatus(status: AgentVisualStatus): boolean {
   return status === "thinking" || status === "tool_calling" || status === "speaking" || status === "spawning";
+}
+
+function isSameEvent(a: EventHistoryItem, b: EventHistoryItem): boolean {
+  if (a.runId && b.runId) {
+    return a.runId === b.runId && a.agentId === b.agentId && a.stream === b.stream;
+  }
+
+  return (
+    a.timestamp === b.timestamp &&
+    a.agentId === b.agentId &&
+    a.stream === b.stream &&
+    a.summary === b.summary
+  );
+}
+
+function shouldCollapseProgressiveAssistantEvent(
+  newer: EventHistoryItem | undefined,
+  older: EventHistoryItem,
+): boolean {
+  if (!newer) {
+    return false;
+  }
+
+  return (
+    newer.stream === "assistant" &&
+    older.stream === "assistant" &&
+    newer.agentId === older.agentId &&
+    newer.summary.length >= older.summary.length &&
+    newer.summary.startsWith(older.summary) &&
+    Math.abs(newer.timestamp - older.timestamp) <= 2_000
+  );
+}
+
+function collapseProgressiveAssistantEvents(events: EventHistoryItem[]): EventHistoryItem[] {
+  const collapsed: EventHistoryItem[] = [];
+
+  for (const item of events) {
+    const previous = collapsed[collapsed.length - 1];
+    if (shouldCollapseProgressiveAssistantEvent(previous, item)) {
+      continue;
+    }
+
+    collapsed.push(item);
+  }
+
+  return collapsed;
+}
+
+function mergeTimelineEvents(
+  current: EventHistoryItem[],
+  incoming: EventHistoryItem[],
+  mode: "prepend" | "append",
+): EventHistoryItem[] {
+  const base = mode === "prepend" ? [...incoming, ...current] : [...current, ...incoming];
+  const deduped: EventHistoryItem[] = [];
+
+  for (const item of base) {
+    if (!deduped.some((existing) => isSameEvent(existing, item))) {
+      deduped.push(item);
+    }
+  }
+
+  return collapseProgressiveAssistantEvents(deduped);
 }
 
 function getInitialChatDockHeight(): number {
@@ -236,8 +300,14 @@ export const useOfficeStore = create<OfficeStore>()(
     operatorScopes: [] as string[],
     tokenHistory: [] as TokenSnapshot[],
     agentCosts: {} as Record<string, number>,
+    debugWarnings: [] as string[],
     currentPage: "office" as PageId,
     chatDockHeight: getInitialChatDockHeight(),
+    timelineDialogOpen: false,
+    timelineDialogEvents: [] as EventHistoryItem[],
+    timelineDialogLoading: false,
+    timelineDialogLoadingMore: false,
+    timelineDialogHasMore: false,
     maxSubAgents: 8,
     agentToAgentConfig: { enabled: false, allow: [] } as AgentToAgentConfig,
     runIdMap: new Map(),
@@ -894,6 +964,10 @@ export const useOfficeStore = create<OfficeStore>()(
         }
 
         const agent = state.agents.get(agentId);
+        const completedAssistantText =
+          event.stream === "lifecycle" && event.data.phase === "end"
+            ? agent?.speechBubble?.text?.trim() ?? ""
+            : "";
         if (agent) {
           const prevStatus = agent.status;
           applyEventToAgent(agent, parsed);
@@ -932,23 +1006,48 @@ export const useOfficeStore = create<OfficeStore>()(
           resolvedSubAgentForRetire = agentId;
         }
 
-        // Event history
-        const historyItem: EventHistoryItem = {
-          timestamp: event.ts,
-          agentId,
-          agentName: agent?.name ?? agentId,
-          stream: event.stream,
-          summary: parsed.summary,
-        };
-        state.eventHistory.push(historyItem);
-        if (state.eventHistory.length > EVENT_HISTORY_LIMIT) {
-          state.eventHistory = state.eventHistory.slice(-EVENT_HISTORY_LIMIT);
+        const historyItems: EventHistoryItem[] = [];
+        if (completedAssistantText) {
+          historyItems.push({
+            timestamp: event.ts,
+            agentId,
+            agentName: agent?.name ?? agentId,
+            stream: "assistant",
+            summary: completedAssistantText,
+            runId: event.runId,
+            sessionKey: event.sessionKey,
+          });
+        }
+        if (event.stream !== "assistant") {
+          historyItems.push({
+            timestamp: event.ts,
+            agentId,
+            agentName: agent?.name ?? agentId,
+            stream: event.stream,
+            summary: parsed.speechBubble?.text ?? parsed.summary,
+            runId: event.runId,
+            sessionKey: event.sessionKey,
+          });
         }
 
-        // Non-blocking persistence to IndexedDB
-        queueMicrotask(() => {
-          localPersistence.saveEvent(historyItem).catch(() => {});
-        });
+        if (historyItems.length > 0) {
+          state.eventHistory.push(...historyItems);
+          if (state.eventHistory.length > EVENT_HISTORY_LIMIT) {
+            state.eventHistory = state.eventHistory.slice(-EVENT_HISTORY_LIMIT);
+          }
+          if (state.timelineDialogOpen) {
+            state.timelineDialogEvents = mergeTimelineEvents(
+              state.timelineDialogEvents,
+              [...historyItems].reverse(),
+              "prepend",
+            );
+          }
+
+          // Non-blocking persistence to IndexedDB
+          queueMicrotask(() => {
+            localPersistence.saveEvents(historyItems).catch(() => {});
+          });
+        }
 
         state.globalMetrics = computeMetrics(state.agents, state.globalMetrics);
       });
@@ -1070,6 +1169,12 @@ export const useOfficeStore = create<OfficeStore>()(
       });
     },
 
+    setDebugWarnings: (warnings: string[]) => {
+      set((state) => {
+        state.debugWarnings = warnings;
+      });
+    },
+
     setCurrentPage: (page: PageId) => {
       set((state) => {
         state.currentPage = page;
@@ -1114,6 +1219,77 @@ export const useOfficeStore = create<OfficeStore>()(
         localPersistence.cleanup().catch(() => {});
       } catch {
         // IndexedDB unavailable — pure memory mode
+      }
+    },
+
+    openTimelineDialog: async () => {
+      set((state) => {
+        state.timelineDialogOpen = true;
+        state.timelineDialogLoading = true;
+        state.timelineDialogLoadingMore = false;
+        state.timelineDialogEvents = [];
+        state.timelineDialogHasMore = false;
+      });
+
+      try {
+        await localPersistence.open();
+        const page = await localPersistence.getEventsPage({ offset: 0, limit: TIMELINE_PAGE_SIZE });
+        set((state) => {
+          state.timelineDialogEvents = collapseProgressiveAssistantEvents(page.items);
+          state.timelineDialogHasMore = page.hasMore;
+          state.timelineDialogLoading = false;
+        });
+      } catch {
+        set((state) => {
+          state.timelineDialogLoading = false;
+          state.timelineDialogEvents = collapseProgressiveAssistantEvents(
+            [...state.eventHistory].reverse(),
+          );
+          state.timelineDialogHasMore = false;
+        });
+      }
+    },
+
+    closeTimelineDialog: () => {
+      set((state) => {
+        state.timelineDialogOpen = false;
+        state.timelineDialogLoading = false;
+        state.timelineDialogLoadingMore = false;
+      });
+    },
+
+    loadMoreTimelineEvents: async () => {
+      const { timelineDialogLoading, timelineDialogLoadingMore, timelineDialogHasMore, timelineDialogEvents } =
+        useOfficeStore.getState();
+
+      if (timelineDialogLoading || timelineDialogLoadingMore || !timelineDialogHasMore) {
+        return;
+      }
+
+      set((state) => {
+        state.timelineDialogLoadingMore = true;
+      });
+
+      try {
+        await localPersistence.open();
+        const page = await localPersistence.getEventsPage({
+          offset: timelineDialogEvents.length,
+          limit: TIMELINE_PAGE_SIZE,
+        });
+        set((state) => {
+          state.timelineDialogEvents = mergeTimelineEvents(
+            state.timelineDialogEvents,
+            page.items,
+            "append",
+          );
+          state.timelineDialogHasMore = page.hasMore;
+          state.timelineDialogLoadingMore = false;
+        });
+      } catch {
+        set((state) => {
+          state.timelineDialogLoadingMore = false;
+          state.timelineDialogHasMore = false;
+        });
       }
     },
 

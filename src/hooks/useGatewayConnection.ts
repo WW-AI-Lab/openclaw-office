@@ -10,6 +10,7 @@ import type {
 } from "@/gateway/types";
 import { GatewayWsClient } from "@/gateway/ws-client";
 import { EventThrottle } from "@/lib/event-throttle";
+import i18n from "@/i18n";
 import { PerceptionEngine } from "@/perception/perception-engine";
 import { useProjectionStore } from "@/perception/projection-store";
 import { useOfficeStore } from "@/store/office-store";
@@ -34,6 +35,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
   const setOperatorScopes = useOfficeStore((s) => s.setOperatorScopes);
   const setMaxSubAgents = useOfficeStore((s) => s.setMaxSubAgents);
   const setAgentToAgentConfig = useOfficeStore((s) => s.setAgentToAgentConfig);
+  const setDebugWarnings = useOfficeStore((s) => s.setDebugWarnings);
 
   useEffect(() => {
     if (!url) {
@@ -76,6 +78,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
             allow: Array.isArray(a2a.allow) ? a2a.allow : [],
           });
         }
+        setDebugWarnings(buildDebugWarnings(cfg));
 
         // 3. Init agents (triggers prefillLoungePlaceholders with correct maxSubAgents)
         const agentList = await adapter.agentsList() as AgentsListResponse;
@@ -129,7 +132,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
         setOperatorScopes(Array.isArray(scopes) ? (scopes as string[]) : ["operator"]);
 
         void initAdapter("ws", { wsClient: ws, rpcClient: rpc });
-        void fetchGatewayConfig(rpc, setMaxSubAgents, setAgentToAgentConfig);
+        void fetchGatewayConfig(rpc, setMaxSubAgents, setAgentToAgentConfig, setDebugWarnings);
         void fetchAgentNamesAndUpdate(rpc, syncMainAgents);
       }
     });
@@ -158,8 +161,9 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       rpcRef.current = null;
       throttleRef.current = null;
       perceptionRef.current = null;
+      setDebugWarnings([]);
     };
-  }, [url, token, setConnectionStatus, initAgents, syncMainAgents, processAgentEvent, setOperatorScopes, setMaxSubAgents, setAgentToAgentConfig]);
+  }, [url, token, setConnectionStatus, initAgents, syncMainAgents, processAgentEvent, setOperatorScopes, setMaxSubAgents, setAgentToAgentConfig, setDebugWarnings]);
 
   useSubAgentPoller(rpcRef);
   useUsagePoller(rpcRef);
@@ -246,30 +250,56 @@ async function fetchGatewayConfig(
   rpc: GatewayRpcClient,
   setMaxSubAgents: (n: number) => void,
   setAgentToAgentConfig: (config: { enabled: boolean; allow: string[] }) => void,
+  setDebugWarnings: (warnings: string[]) => void,
 ): Promise<void> {
   try {
     const resp = await rpc.request<ConfigGetResponse>("config.get", {
-      keys: ["agents.defaults.subagents", "tools.agentToAgent"],
+      keys: ["agents.defaults.subagents", "tools.agentToAgent", "tools.sessions"],
     });
     const val = resp.value as Record<string, unknown> | undefined;
-    if (val) {
-      const subagents = val["agents.defaults.subagents"] as
-        | { maxConcurrent?: number }
-        | undefined;
-      if (subagents?.maxConcurrent && subagents.maxConcurrent >= 1 && subagents.maxConcurrent <= 50) {
-        setMaxSubAgents(subagents.maxConcurrent);
-      }
-      const a2a = val["tools.agentToAgent"] as
-        | { enabled?: boolean; allow?: string[] }
-        | undefined;
-      if (a2a) {
-        setAgentToAgentConfig({
-          enabled: a2a.enabled ?? false,
-          allow: Array.isArray(a2a.allow) ? a2a.allow : [],
-        });
-      }
+    if (!val) {
+      setDebugWarnings([]);
+      return;
     }
+
+    const subagents = val["agents.defaults.subagents"] as
+      | { maxConcurrent?: number }
+      | undefined;
+    if (subagents?.maxConcurrent && subagents.maxConcurrent >= 1 && subagents.maxConcurrent <= 50) {
+      setMaxSubAgents(subagents.maxConcurrent);
+    }
+
+    const a2a = val["tools.agentToAgent"] as
+      | { enabled?: boolean; allow?: string[] }
+      | undefined;
+    if (a2a) {
+      setAgentToAgentConfig({
+        enabled: a2a.enabled ?? false,
+        allow: Array.isArray(a2a.allow) ? a2a.allow : [],
+      });
+    }
+
+    setDebugWarnings(buildDebugWarnings(val));
   } catch {
+    setDebugWarnings([]);
     // Gateway doesn't support config.get or permission denied — use defaults
   }
+}
+
+function buildDebugWarnings(config: Record<string, unknown>): string[] {
+  const warnings: string[] = [];
+  const flattenedSessions = config["tools.sessions"] as { visibility?: string } | undefined;
+  const tools = config.tools as Record<string, unknown> | undefined;
+  const nestedSessions = tools?.sessions as { visibility?: string } | undefined;
+  const visibility = flattenedSessions?.visibility ?? nestedSessions?.visibility;
+
+  if (typeof visibility === "string" && visibility !== "all") {
+    warnings.push(
+      i18n.t("console:dashboard.alerts.sessionsVisibilityLimited", {
+        visibility,
+      }),
+    );
+  }
+
+  return warnings;
 }

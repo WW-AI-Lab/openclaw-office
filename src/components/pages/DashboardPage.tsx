@@ -15,6 +15,7 @@ export function DashboardPage() {
   const { t } = useTranslation("console");
   const { channelsSummary, skillsSummary, usage, isLoading, error, refresh } = useDashboardStore();
   const wsStatus = useOfficeStore((s) => s.connectionStatus);
+  const connectionError = useOfficeStore((s) => s.connectionError);
 
   useEffect(() => {
     refresh();
@@ -30,7 +31,11 @@ export function DashboardPage() {
           onRefresh={refresh}
         />
         {isDisconnected ? (
-          <GatewayConnectionGuide status={wsStatus} onRetry={refresh} />
+          <GatewayConnectionGuide
+            status={wsStatus}
+            connectionError={connectionError}
+            onRetry={refresh}
+          />
         ) : (
           <LoadingState message={t("dashboard.loading")} />
         )}
@@ -48,7 +53,11 @@ export function DashboardPage() {
           onRefresh={refresh}
         />
         {isConnectionError ? (
-          <GatewayConnectionGuide status={wsStatus} onRetry={refresh} />
+          <GatewayConnectionGuide
+            status={wsStatus}
+            connectionError={connectionError}
+            onRetry={refresh}
+          />
         ) : (
           <ErrorState message={error} onRetry={refresh} />
         )}
@@ -130,14 +139,18 @@ export function DashboardPage() {
 
 function GatewayConnectionGuide({
   status,
+  connectionError,
   onRetry,
 }: {
   status: string;
+  connectionError: string | null;
   onRetry: () => void;
 }) {
   const { t } = useTranslation("console");
   const { t: tc } = useTranslation("common");
   const isReconnecting = status === "reconnecting";
+  const showError = status === "error" && Boolean(connectionError);
+  const deviceAuthRequired = connectionError?.toLowerCase().includes("device identity") ?? false;
 
   return (
     <div className="flex flex-col items-center justify-center py-12">
@@ -159,6 +172,19 @@ function GatewayConnectionGuide({
             </p>
           </div>
         </div>
+
+        {showError && (
+          <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+            {connectionError}
+          </div>
+        )}
+
+        {deviceAuthRequired && (
+          <div className="mb-4 rounded-md bg-gray-900/70 px-3 py-2 font-mono text-xs text-gray-200">
+            <p>openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true</p>
+            <p className="mt-1 text-gray-400"># Restart the Gateway after applying this change</p>
+          </div>
+        )}
 
         <ol className="mb-5 space-y-2.5 text-sm text-gray-600 dark:text-gray-300">
           <li className="flex items-start gap-2">

@@ -21,6 +21,15 @@
       "mobileNotSupported": "3D mode not supported on small screens",
       "webglNotSupported": "3D rendering not supported in this browser"
     },
+    "timeline": {
+      "button": "Timeline",
+      "open": "Open the event timeline",
+      "title": "Event Timeline",
+      "description": "Browse all agent events and utterances in reverse chronological order. Scroll to the bottom to load older records.",
+      "loading": "Loading timeline history...",
+      "loadingMore": "Loading older records...",
+      "scrollHint": "Scroll down to load older records"
+    },
     "theme": {
       "switchToDark": "Switch to dark mode",
       "switchToLight": "Switch to light mode"

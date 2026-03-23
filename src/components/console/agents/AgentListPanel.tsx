@@ -1,6 +1,7 @@
 import { RefreshCw, Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAgentsStore } from "@/store/console-stores/agents-store";
+import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import { AgentListItem } from "./AgentListItem";
 
 export function AgentListPanel() {
@@ -16,6 +17,7 @@ export function AgentListPanel() {
     setSearchQuery,
     setCreateDialogOpen,
   } = useAgentsStore();
+  const openAgentHistory = useChatDockStore((state) => state.openAgentHistory);
 
   const filteredAgents = agents.filter((a) => {
     if (!searchQuery) return true;
@@ -81,6 +83,9 @@ export function AgentListPanel() {
                 isSelected={selectedAgentId === agent.id}
                 isDefault={agent.id === defaultAgentId}
                 onSelect={() => selectAgent(agent.id)}
+                onViewHistory={() => {
+                  void openAgentHistory(agent.id);
+                }}
               />
             ))}
           </div>

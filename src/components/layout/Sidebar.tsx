@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AgentDetailPanel } from "@/components/panels/AgentDetailPanel";
-import { EventTimeline } from "@/components/panels/EventTimeline";
 import { MetricsPanel } from "@/components/panels/MetricsPanel";
 import { SubAgentPanel } from "@/components/panels/SubAgentPanel";
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
@@ -76,7 +75,6 @@ export function Sidebar() {
   const agentsSection = getSection("agents");
   const subAgentsSection = getSection("subAgents");
   const detailSection = getSection("detail");
-  const timelineSection = getSection("timeline");
 
   return (
     <aside className="flex w-80 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
@@ -221,20 +219,6 @@ export function Sidebar() {
         </CollapsibleSection>
       )}
 
-      {/* Event timeline */}
-      <CollapsibleSection
-        id="timeline"
-        title={t("sidebar.eventTimeline")}
-        collapsed={timelineSection.collapsed}
-        onToggle={() => toggleSection("timeline")}
-        height={timelineSection.height}
-        onHeightChange={(h) => setSectionHeight("timeline", h)}
-        minHeight={150}
-        maxHeight={600}
-        flex
-      >
-        <EventTimeline />
-      </CollapsibleSection>
     </aside>
   );
 }

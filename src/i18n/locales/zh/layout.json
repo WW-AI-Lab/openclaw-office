@@ -21,6 +21,15 @@
       "mobileNotSupported": "小屏幕不支持 3D 模式",
       "webglNotSupported": "当前浏览器不支持 3D 渲染"
     },
+    "timeline": {
+      "button": "时间轴",
+      "open": "打开事件时间轴",
+      "title": "事件时间轴",
+      "description": "按时间倒序查看所有智能体事件与发言，滚动到底部自动加载更早的数据。",
+      "loading": "正在读取历史时间轴...",
+      "loadingMore": "正在加载更早的数据...",
+      "scrollHint": "继续向下滚动可加载更早的数据"
+    },
     "theme": {
       "switchToDark": "切换到暗色模式",
       "switchToLight": "切换到亮色模式"

@@ -87,6 +87,9 @@ export class WsAdapter implements GatewayAdapter {
     await this.rpcClient.request("chat.send", {
       sessionKey: params.sessionKey,
       message: params.text,
+      ...(params.attachments && params.attachments.length > 0
+        ? { attachments: params.attachments }
+        : {}),
       deliver: false,
       idempotencyKey: uuid(),
     });

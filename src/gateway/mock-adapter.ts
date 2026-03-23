@@ -591,7 +591,11 @@ export class MockAdapter implements GatewayAdapter {
 
   async chatSend(params: ChatSendParams): Promise<void> {
     const runId = `mock-run-${Date.now()}`;
-    const responseText = `收到你的消息：「${params.text}」\n\n这是 Mock 模式下的模拟回复。在连接真实 Gateway 后，这里将显示 Agent 的实际响应。`;
+    const attachmentNote =
+      params.attachments && params.attachments.length > 0
+        ? `\n\n另外我还收到了 ${params.attachments.length} 个附件。`
+        : "";
+    const responseText = `收到你的消息：「${params.text}」${attachmentNote}\n\n这是 Mock 模式下的模拟回复。在连接真实 Gateway 后，这里将显示 Agent 的实际响应。`;
 
     // Simulate Gateway chat events: delta → delta → final
     this.scheduleTimer(() => {

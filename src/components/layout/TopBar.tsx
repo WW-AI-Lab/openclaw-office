@@ -1,4 +1,4 @@
-import { LayoutDashboard, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Clock3, LayoutDashboard } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -35,6 +35,7 @@ export function TopBar({ isMobile = false }: TopBarProps) {
   const theme = useOfficeStore((s) => s.theme);
   const setTheme = useOfficeStore((s) => s.setTheme);
   const currentPage = useOfficeStore((s) => s.currentPage);
+  const openTimelineDialog = useOfficeStore((s) => s.openTimelineDialog);
 
   const webglAvailable = useMemo(() => isWebGLAvailable(), []);
   const statusCfg = getStatusConfig(t)[connectionStatus];
@@ -55,6 +56,19 @@ export function TopBar({ isMobile = false }: TopBarProps) {
       )}
 
       <div className="ml-auto flex items-center gap-3">
+        {isOfficePage && (
+          <button
+            type="button"
+            onClick={() => {
+              void openTimelineDialog();
+            }}
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+            title={t("topbar.timeline.open")}
+          >
+            <Clock3 className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("topbar.timeline.button")}</span>
+          </button>
+        )}
         <ConsoleMenu currentPage={currentPage} />
         <ThemeToggle theme={theme} setTheme={setTheme} />
         <LanguageSwitcher />
