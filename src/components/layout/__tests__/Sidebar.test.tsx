@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Sidebar } from "@/components/layout/Sidebar";
 import i18n from "@/i18n/test-setup";
 import { useOfficeStore } from "@/store/office-store";
@@ -22,6 +22,7 @@ describe("Sidebar", () => {
       selectedAgentId: null,
       sidebarCollapsed: false,
       eventHistory: [],
+      projectionPanels: [],
       globalMetrics: {
         activeAgents: 0,
         totalAgents: 0,
@@ -36,6 +37,28 @@ describe("Sidebar", () => {
       sessionKeyMap: new Map(),
     });
     setupAgents();
+  });
+
+  afterEach(() => {
+    useOfficeStore.setState({
+      agents: new Map(),
+      selectedAgentId: null,
+      sidebarCollapsed: false,
+      eventHistory: [],
+      projectionPanels: [],
+      globalMetrics: {
+        activeAgents: 0,
+        totalAgents: 0,
+        totalTokens: 0,
+        tokenRate: 0,
+        collaborationHeat: 0,
+      },
+      links: [],
+      connectionStatus: "disconnected",
+      connectionError: null,
+      runIdMap: new Map(),
+      sessionKeyMap: new Map(),
+    });
   });
 
   it("renders all agents", () => {
@@ -72,5 +95,53 @@ describe("Sidebar", () => {
 
     expect(screen.getAllByText("Coder").length).toBeGreaterThan(0);
     expect(screen.queryByText("Reviewer")).not.toBeInTheDocument();
+  });
+
+  it("renders projection bootstrap panels when seeded", () => {
+    useOfficeStore.getState().applyProjectionBootstrap({
+      schemaVersion: "openclaw-office-projection-packet.v0",
+      generatedAt: "2026-03-25T07:15:13Z",
+      sources: {},
+      officeProjection: {
+        mode: "framework-bootstrap/mock-seed-ready",
+        runtimeBoundary: {
+          contextEngineSlot: "legacy",
+          projectionContextEngineRolloutGate: "unchanged",
+          notes: [],
+        },
+        scene: {
+          agents: [],
+          links: [],
+          eventHistory: [],
+          globalMetrics: {
+            activeAgents: 0,
+            totalAgents: 0,
+            totalTokens: 0,
+            tokenRate: 0,
+            collaborationHeat: 0,
+          },
+        },
+        panels: {
+          decisionDrift: {
+            panelId: "decision-drift",
+            title: "Decision drift",
+            severity: "warn",
+            summary: { count: 1 },
+            items: [
+              {
+                kind: "deterministic-example",
+                title: "Pointer cache tries to override live board focus",
+                caseId: "live_projection_pointer_override",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    render(<MemoryRouter><Sidebar /></MemoryRouter>);
+    expect(screen.getByText(t("layout:sidebar.projectionBootstrap"))).toBeInTheDocument();
+    expect(screen.getByText("Decision drift")).toBeInTheDocument();
+    expect(screen.getByText("Pointer cache tries to override live board focus")).toBeInTheDocument();
   });
 });

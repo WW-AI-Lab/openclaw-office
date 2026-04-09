@@ -282,6 +282,64 @@ export interface TokenSnapshot {
   byAgent: Record<string, number>;
 }
 
+export interface ProjectionBootstrapAgent extends VisualAgent {
+  meta?: Record<string, unknown>;
+}
+
+export interface ProjectionPanelItem {
+  kind: string;
+  title: string;
+  caseId?: string;
+  sourceSession?: string;
+  driftTypes?: string[];
+  detectedDriftTypes?: string[];
+  driftCounts?: Record<string, number>;
+  examples?: ProjectionPanelItem[];
+  taskId?: string;
+  slug?: string;
+  chain?: string[];
+  chainLabels?: string[];
+  owner?: string;
+  state?: string;
+  reason?: string;
+  path?: string;
+}
+
+export interface ProjectionPanel {
+  panelId: string;
+  title: string;
+  severity: "info" | "warn" | "error" | "success";
+  summary: Record<string, number | string>;
+  items: ProjectionPanelItem[];
+  emptyState?: string | null;
+}
+
+export interface ProjectionRuntimeBoundary {
+  contextEngineSlot: "legacy" | "projection";
+  projectionContextEngineRolloutGate: string;
+  notes: string[];
+}
+
+export interface ProjectionBootstrapScene {
+  agents: ProjectionBootstrapAgent[];
+  links: CollaborationLink[];
+  eventHistory: EventHistoryItem[];
+  globalMetrics: GlobalMetrics;
+}
+
+export interface ProjectionBootstrapPacket {
+  schemaVersion: string;
+  generatedAt: string;
+  sources: Record<string, string>;
+  officeProjection: {
+    mode: string;
+    runtimeBoundary: ProjectionRuntimeBoundary;
+    scene: ProjectionBootstrapScene;
+    panels: Record<string, ProjectionPanel>;
+    coverage?: Record<string, unknown>;
+  };
+}
+
 export interface OfficeStore {
   agents: Map<string, VisualAgent>;
   links: CollaborationLink[];
@@ -292,6 +350,7 @@ export interface OfficeStore {
   eventHistory: EventHistoryItem[];
   sidebarCollapsed: boolean;
   lastSessionsSnapshot: SessionSnapshot | null;
+  projectionPanels: ProjectionPanel[];
   theme: ThemeMode;
   operatorScopes: string[];
   tokenHistory: TokenSnapshot[];
@@ -341,6 +400,7 @@ export interface OfficeStore {
 
   // Sessions 轮询
   setSessionsSnapshot: (snapshot: SessionSnapshot) => void;
+  applyProjectionBootstrap: (packet: ProjectionBootstrapPacket) => void;
 
   // 事件处理
   processAgentEvent: (event: AgentEventPayload) => void;

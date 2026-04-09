@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AgentDetailPanel } from "@/components/panels/AgentDetailPanel";
 import { EventTimeline } from "@/components/panels/EventTimeline";
 import { MetricsPanel } from "@/components/panels/MetricsPanel";
+import { ProjectionBootstrapPanel } from "@/components/panels/ProjectionBootstrapPanel";
 import { SubAgentPanel } from "@/components/panels/SubAgentPanel";
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { SvgAvatar } from "@/components/shared/SvgAvatar";
@@ -17,6 +18,7 @@ export function Sidebar() {
   const { t } = useTranslation("layout");
   const agents = useOfficeStore((s) => s.agents);
   const selectedAgentId = useOfficeStore((s) => s.selectedAgentId);
+  const projectionPanels = useOfficeStore((s) => s.projectionPanels);
   const selectAgent = useOfficeStore((s) => s.selectAgent);
   const collapsed = useOfficeStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useOfficeStore((s) => s.setSidebarCollapsed);
@@ -76,6 +78,7 @@ export function Sidebar() {
   const subAgentsSection = getSection("subAgents");
   const detailSection = getSection("detail");
   const timelineSection = getSection("timeline");
+  const projectionSection = getSection("projectionBootstrap");
 
   return (
     <aside className="flex w-80 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
@@ -103,9 +106,25 @@ export function Sidebar() {
         onHeightChange={(h) => setSectionHeight("metrics", h)}
         minHeight={120}
         maxHeight={400}
-      >
+        >
         <MetricsPanel />
       </CollapsibleSection>
+
+      {projectionPanels.length > 0 && (
+        <CollapsibleSection
+          id="projectionBootstrap"
+          title={t("sidebar.projectionBootstrap")}
+          collapsed={projectionSection.collapsed}
+          onToggle={() => toggleSection("projectionBootstrap")}
+          height={projectionSection.height}
+          onHeightChange={(h) => setSectionHeight("projectionBootstrap", h)}
+          minHeight={180}
+          maxHeight={520}
+          badge={projectionPanels.length}
+        >
+          <ProjectionBootstrapPanel />
+        </CollapsibleSection>
+      )}
 
       {/* Agent list — primary section, takes remaining space */}
       <CollapsibleSection

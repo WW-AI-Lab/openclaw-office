@@ -17,6 +17,25 @@
     "deselect": "取消选择",
     "toolCallHistory": "工具调用历史"
   },
+  "projectionBootstrap": {
+    "moreItems": "还有 {{count}} 项",
+    "noItems": "没有引导数据",
+    "severities": {
+      "info": "信息",
+      "warn": "警告",
+      "error": "错误",
+      "success": "成功"
+    },
+    "meta": {
+      "caseId": "案例",
+      "sourceSession": "会话",
+      "taskId": "任务",
+      "owner": "负责人",
+      "state": "状态",
+      "reason": "原因",
+      "path": "路径"
+    }
+  },
   "eventTimeline": {
     "newEvents": "新事件 ↓"
   },

@@ -17,6 +17,25 @@
     "deselect": "Deselect",
     "toolCallHistory": "Tool Call History"
   },
+  "projectionBootstrap": {
+    "moreItems": "{{count}} more item(s)",
+    "noItems": "No bootstrap items",
+    "severities": {
+      "info": "Info",
+      "warn": "Warn",
+      "error": "Error",
+      "success": "Success"
+    },
+    "meta": {
+      "caseId": "Case",
+      "sourceSession": "Session",
+      "taskId": "Task",
+      "owner": "Owner",
+      "state": "State",
+      "reason": "Reason",
+      "path": "Path"
+    }
+  },
   "eventTimeline": {
     "newEvents": "New events ↓"
   },

@@ -185,6 +185,36 @@ VITE_MOCK=true pnpm dev
 
 这会使用模拟的 Agent 数据进行 UI 开发。
 
+In the current bootstrap, mock mode also loads the framework-generated projection packet sample and seeds the office scene plus the first-batch projection panels from that packet. This is still a mock/dev path only; it does not change the live Gateway contract.
+
+### Operator-Facing Projection Bootstrap (Real Gateway + bootstrap feed)
+
+A controlled non-mock/operator path is also available when you want Office to connect to the **real Gateway** while still seeding the first projection panels from a framework-generated packet.
+
+1. Generate or copy a packet such as:
+   - `/home/ubuntu/projects/_department/work/openclaw-office-projection-feed-bootstrap-20260325/fixtures/openclaw_office_projection_packet_v0.json`
+2. Serve it from the Office app origin, for example:
+
+```bash
+mkdir -p public/bootstrap
+cp /path/to/openclaw_office_projection_packet_v0.json public/bootstrap/projection-packet.json
+```
+
+3. Start Office against the real Gateway and point the operator bootstrap to that URL:
+
+```bash
+VITE_GATEWAY_URL=ws://127.0.0.1:18789 \
+VITE_GATEWAY_TOKEN=<your-token> \
+VITE_PROJECTION_BOOTSTRAP_URL=/bootstrap/projection-packet.json \
+pnpm dev
+```
+
+Behavior boundary:
+- the real Gateway connection path remains intact
+- bootstrap loading is optional and guarded by env vars
+- this does **not** introduce a new live Gateway protocol message
+- this supports operator-facing rollout progress, but does **not** by itself claim upstream merge
+
 ---
 
 ## 开发

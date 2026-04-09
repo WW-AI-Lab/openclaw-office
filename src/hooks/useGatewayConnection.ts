@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { initAdapter, isMockMode } from "@/gateway/adapter-provider";
+import { fetchProjectionBootstrap, isOperatorBootstrapConfigured } from "@/gateway/projection-bootstrap-fetcher";
 import { GatewayRpcClient } from "@/gateway/rpc-client";
 import type {
   AgentEventPayload,
@@ -7,9 +8,11 @@ import type {
   AgentsListResponse,
   GatewayEventFrame,
   HealthSnapshot,
+  ProjectionBootstrapPacket,
 } from "@/gateway/types";
 import { GatewayWsClient } from "@/gateway/ws-client";
 import { EventThrottle } from "@/lib/event-throttle";
+import { MOCK_PROJECTION_BOOTSTRAP } from "@/mock/projection-bootstrap";
 import { useOfficeStore } from "@/store/office-store";
 import { useSubAgentPoller } from "./useSubAgentPoller";
 import { useUsagePoller } from "./useUsagePoller";
@@ -27,6 +30,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
   const setConnectionStatus = useOfficeStore((s) => s.setConnectionStatus);
   const initAgents = useOfficeStore((s) => s.initAgents);
   const syncMainAgents = useOfficeStore((s) => s.syncMainAgents);
+  const applyProjectionBootstrap = useOfficeStore((s) => s.applyProjectionBootstrap);
   const processAgentEvent = useOfficeStore((s) => s.processAgentEvent);
   const setOperatorScopes = useOfficeStore((s) => s.setOperatorScopes);
   const setMaxSubAgents = useOfficeStore((s) => s.setMaxSubAgents);
@@ -47,6 +51,8 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
           }
         });
 
+        applyProjectionBootstrap(MOCK_PROJECTION_BOOTSTRAP);
+
         const config = await adapter.configGet();
         const cfg = config.config as Record<string, unknown>;
         const agentsCfg = cfg.agents as Record<string, unknown> | undefined;
@@ -64,9 +70,8 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
           });
         }
 
-        const agentList = await adapter.agentsList() as AgentsListResponse;
+        const agentList = (await adapter.agentsList()) as AgentsListResponse;
         cacheAgentNames(agentList.agents);
-        initAgents(agentList.agents);
         setOperatorScopes(["operator.admin", "operator.read"]);
         setConnectionStatus("connected");
       });
@@ -123,6 +128,12 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
 
     ws.connect(url, token);
 
+    // Operator-facing bootstrap: load projection packet from configured URL/path
+    // This runs in parallel with the real Gateway connection, non-mock mode only.
+    if (!isMockMode() && isOperatorBootstrapConfigured()) {
+      void loadOperatorBootstrap(applyProjectionBootstrap);
+    }
+
     return () => {
       throttle.destroy();
       ws.disconnect();
@@ -137,6 +148,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
     initAgents,
     syncMainAgents,
     processAgentEvent,
+    applyProjectionBootstrap,
     setOperatorScopes,
     setMaxSubAgents,
     setAgentToAgentConfig,
@@ -231,5 +243,25 @@ async function fetchGatewayConfig(
     }
   } catch {
     // config.get not available; keep defaults
+  }
+}
+
+/**
+ * Load operator-facing projection bootstrap packet.
+ * Called once after Gateway connection in non-mock mode.
+ */
+async function loadOperatorBootstrap(
+  applyBootstrap: (packet: ProjectionBootstrapPacket) => void,
+): Promise<void> {
+  try {
+    const packet = await fetchProjectionBootstrap();
+    if (packet) {
+      applyBootstrap(packet);
+    }
+  } catch (error) {
+    console.warn(
+      "[useGatewayConnection] Failed to load operator bootstrap:",
+      error instanceof Error ? error.message : String(error),
+    );
   }
 }

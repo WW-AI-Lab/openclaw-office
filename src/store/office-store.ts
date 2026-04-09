@@ -16,6 +16,7 @@ import type {
   EventHistoryItem,
   OfficeStore,
   PageId,
+  ProjectionBootstrapPacket,
   SessionSnapshot,
   SubAgentInfo,
   ThemeMode,
@@ -231,6 +232,7 @@ export const useOfficeStore = create<OfficeStore>()(
     eventHistory: [],
     sidebarCollapsed: true,
     lastSessionsSnapshot: null,
+    projectionPanels: [],
     theme: getInitialTheme(),
     operatorScopes: [] as string[],
     tokenHistory: [] as TokenSnapshot[],
@@ -700,6 +702,20 @@ export const useOfficeStore = create<OfficeStore>()(
     setSessionsSnapshot: (snapshot: SessionSnapshot) => {
       set((state) => {
         state.lastSessionsSnapshot = snapshot;
+      });
+    },
+
+    applyProjectionBootstrap: (packet: ProjectionBootstrapPacket) => {
+      set((state) => {
+        const scene = packet.officeProjection.scene;
+        state.agents = new Map(scene.agents.map((agent) => [agent.id, agent as VisualAgent]));
+        state.links = [...scene.links];
+        state.globalMetrics = { ...scene.globalMetrics };
+        state.eventHistory = [...scene.eventHistory];
+        state.projectionPanels = Object.values(packet.officeProjection.panels);
+        state.runIdMap.clear();
+        state.sessionKeyMap.clear();
+        state.selectedAgentId = null;
       });
     },
 
