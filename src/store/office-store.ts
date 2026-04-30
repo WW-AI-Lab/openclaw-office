@@ -861,26 +861,30 @@ export const useOfficeStore = create<OfficeStore>()(
           : null;
 
         if (isSubAgentStart && dataAgentId && parentAgentId && !state.agents.has(dataAgentId)) {
-          // Mock adapter provides explicit sub-agent info — create via addSubAgent post-set
+          // Mock adapter provides explicit sub-agent info — create via addSubAgent post-set.
+          // Use the agentId as the temporary label (real gateway label arrives via
+          // sessionsList poller and overwrites this in `addSubAgent`).
           pendingSubAgentRef.value = {
             parentId: parentAgentId,
             info: {
               sessionKey: event.sessionKey ?? event.runId,
               agentId: dataAgentId,
-              label: `Sub-${dataAgentId.slice(0, 8)}`,
+              label: dataAgentId || `Sub-${dataAgentId.slice(0, 8)}`,
               task: "",
               requesterSessionKey: event.sessionKey ?? "",
               startedAt: event.ts,
             },
           };
         } else if (!state.agents.has(agentId) && isSubAgentSession && parentFromSessionKey) {
-          // Real Gateway sub-agent detected from sessionKey pattern — create via addSubAgent
+          // Real Gateway sub-agent detected from sessionKey pattern — create via addSubAgent.
+          // The sessions_spawn label is not available in the event payload; the
+          // sessions.list poller will overwrite name with the real label shortly.
           pendingSubAgentRef.value = {
             parentId: parentFromSessionKey,
             info: {
               sessionKey: sessionKeyHintEarly,
               agentId,
-              label: `Sub-${agentId.slice(0, 8)}`,
+              label: agentId || `Sub-${agentId.slice(0, 8)}`,
               task: "",
               requesterSessionKey: sessionKeyHintEarly,
               startedAt: event.ts,

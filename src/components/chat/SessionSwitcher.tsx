@@ -14,6 +14,18 @@ function formatSessionName(key: string): string {
   return key.length > 15 ? key.slice(0, 15) + "…" : key;
 }
 
+// Prefer human-readable `label` (passed via sessions_spawn) over the technical
+// session key. The label is preserved by `normalizeSession` in chat-dock-store.
+// Falls back to the formatted key, or a short UUID suffix if the key looks
+// like a raw identifier (no `agent:` prefix).
+function formatSessionDisplay(session: { key: string; label?: string }): string {
+  const label = session.label?.trim();
+  if (label && label !== session.key) {
+    return label.length > 24 ? label.slice(0, 24) + "…" : label;
+  }
+  return formatSessionName(session.key);
+}
+
 function formatRelativeTime(ts: number, t: (key: string, options?: Record<string, unknown>) => string): string {
   const diff = Date.now() - ts;
   const mins = Math.floor(diff / 60_000);
@@ -84,10 +96,13 @@ export function SessionSwitcher() {
     newSession();
   }, [newSession]);
 
-  const displayName = formatSessionName(currentSessionKey);
   const sortedSessions = [...(sessions ?? [])].sort(
     (a, b) => (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0),
   );
+  const currentSession = sortedSessions.find((s) => s.key === currentSessionKey);
+  const displayName = currentSession
+    ? formatSessionDisplay(currentSession)
+    : formatSessionName(currentSessionKey);
 
   return (
     <div className="flex items-center gap-1">
@@ -118,7 +133,7 @@ export function SessionSwitcher() {
                   }`}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{formatSessionName(session.key)}</div>
+                    <div className="truncate font-medium">{formatSessionDisplay(session)}</div>
                     <div className="truncate text-[10px] text-gray-400">
                       {formatRelativeTime(session.lastActiveAt ?? Date.now(), t)}
                       {(session.messageCount ?? 0) > 0 &&

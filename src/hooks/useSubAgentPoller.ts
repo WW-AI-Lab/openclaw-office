@@ -55,10 +55,19 @@ export function toSubAgentInfoList(entries: SessionEntry[]): SubAgentInfo[] {
       // avoid colliding with the parent agent in the store.
       const subUuid = extractSubAgentUuid(sessionKey);
       const effectiveId = subUuid ?? s.agentId ?? sessionKey;
+      // Prefer the explicit human-readable label from sessions_spawn (e.g.
+      // "Analyste de portefeuille"). Treat empty/whitespace-only labels as
+      // absent so the fallback chain still produces something readable.
+      // Fallback order matches existing behavior: explicit label → derived
+      // Sub-<uuid> when sessionKey carries a sub-agent UUID → agentId.
+      const explicitLabel = s.label?.trim();
+      const label =
+        explicitLabel ||
+        (subUuid ? `Sub-${subUuid.slice(0, 6)}` : (s.agentId ?? effectiveId));
       return {
         sessionKey,
         agentId: effectiveId,
-        label: s.label ?? (subUuid ? `Sub-${subUuid.slice(0, 6)}` : (s.agentId ?? effectiveId)),
+        label,
         task: s.task ?? "",
         requesterSessionKey: s.requesterSessionKey!,
         startedAt: s.startedAt ?? s.createdAt ?? Date.now(),

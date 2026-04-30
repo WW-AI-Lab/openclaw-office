@@ -50,7 +50,14 @@ function formatSessionTitle(
   sessionKey: string,
   targetAgentId: string | null,
   agents: ReturnType<typeof useOfficeStore.getState>["agents"],
+  sessionLabel?: string | null,
 ): string {
+  // Prefer the human-readable label passed via sessions_spawn (e.g.
+  // "Analyste de portefeuille") over the technical session key / agentId.
+  const label = sessionLabel?.trim();
+  if (label && label !== sessionKey) {
+    return label.length > 32 ? label.slice(0, 32) + "…" : label;
+  }
   const agentId = targetAgentId ?? inferAgentIdFromSessionKey(sessionKey);
   const agentName = resolveAgentDisplayName(agentId, agents);
   if (sessionKey === `agent:${agentId}:main` && agentName) {
@@ -284,7 +291,12 @@ export function ChatPage() {
           <div className="flex items-center justify-between border-b border-gray-100/80 px-6 py-2.5 dark:border-gray-800/80">
             <div className="flex items-center gap-3 overflow-hidden">
               <h2 className="truncate text-[13px] font-semibold text-gray-800 dark:text-gray-200">
-                {formatSessionTitle(currentSessionKey, targetAgentId, agents)}
+                {formatSessionTitle(
+                  currentSessionKey,
+                  targetAgentId,
+                  agents,
+                  sortedSessions.find((s) => s.key === currentSessionKey)?.label,
+                )}
               </h2>
             </div>
             <div className="flex items-center gap-1">
