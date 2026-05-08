@@ -1,10 +1,9 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Pencil, Sparkles, Loader2 } from "lucide-react";
+import { Search, Pencil, Sparkles } from "lucide-react";
 import { getAdapter } from "@/gateway/adapter-provider";
 import { useSkillsStore } from "@/store/console-stores/skills-store";
 import { useSkillWorkbenchStore } from "@/store/console-stores/skill-workbench-store";
-import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import type { SkillInfo } from "@/gateway/adapter-types";
 import { SkillFileTree } from "./SkillFileTree";
 import { SkillFileViewer } from "./SkillFileViewer";
@@ -16,6 +15,7 @@ export const SkillBrowser = memo(function SkillBrowser() {
   const setMode = useSkillWorkbenchStore((s) => s.setMode);
   const setCurrentSkill = useSkillWorkbenchStore((s) => s.setCurrentSkill);
   const setMermaidSource = useSkillWorkbenchStore((s) => s.setMermaidSource);
+  const setPendingAutoSendMessage = useSkillWorkbenchStore((s) => s.setPendingAutoSendMessage);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkill, setSelectedSkill] = useState<SkillInfo | null>(null);
@@ -25,7 +25,6 @@ export const SkillBrowser = memo(function SkillBrowser() {
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [hasFlowchart, setHasFlowchart] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     void fetchSkills();
@@ -108,41 +107,17 @@ export const SkillBrowser = memo(function SkillBrowser() {
     setMode("edit");
   }, [selectedSkill, setCurrentSkill, setMode]);
 
-  const handleGenerateFlowchart = useCallback(async () => {
+  const handleGenerateFlowchart = useCallback(() => {
     if (!selectedSkill) return;
-    setIsGenerating(true);
-
-    // Switch to edit mode — switchSession is synchronous in Zustand,
-    // so currentSessionKey is updated immediately after setMode.
+    // Set the pending message BEFORE switching mode.
+    // WorkbenchChat's useEffect will pick it up on mount and call sendMessage()
+    // from within the mounted component — guaranteeing isStreaming propagates correctly.
+    const msg = `分析 skills/${selectedSkill.slug} 的工作流程，生成 Mermaid 流程图。生成完成后，将流程图保存为该技能目录下的 FLOWCHART.md 文件。`;
+    setPendingAutoSendMessage(msg);
     setCurrentSkill(selectedSkill.slug, selectedSkill.name);
     setMode("edit");
-
-    const sessionKey = `agent:default:skill-workbench-edit-${selectedSkill.slug}`;
-
-    try {
-      const adapter = getAdapter();
-
-      // Inject skill-flow-visualizer skill instructions as system context
-      // so the agent follows the structured analysis framework.
-      try {
-        const sfv = await adapter.agentsFilesGet("skill-flow-visualizer", "SKILL.md");
-        await adapter.chatInject(
-          sessionKey,
-          `[系统：本次对话请遵循以下 skill-flow-visualizer 分析框架执行任务]\n\n${sfv.file.content}`,
-        );
-      } catch {
-        // Gracefully degrade: skill-flow-visualizer may not be installed
-      }
-
-      // Send the structured task message matching skill-flow-visualizer's trigger format
-      const taskMessage = `分析 skills/${selectedSkill.slug} 的工作流程，生成 Mermaid 流程图。生成完成后，将流程图保存为该技能目录下的 FLOWCHART.md 文件。`;
-      void useChatDockStore.getState().sendMessage(taskMessage);
-    } catch {
-      // sendMessage error is handled by the store
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [selectedSkill, setCurrentSkill, setMode]);
+    // SkillBrowser unmounts here; WorkbenchChat mounts and handles the message.
+  }, [selectedSkill, setCurrentSkill, setMode, setPendingAutoSendMessage]);
 
   return (
     <div className="flex h-full flex-col">
@@ -219,17 +194,10 @@ export const SkillBrowser = memo(function SkillBrowser() {
                 {!hasFlowchart && (
                   <button
                     onClick={handleGenerateFlowchart}
-                    disabled={isGenerating}
-                    className="flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600"
                   >
-                    {isGenerating ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3" />
-                    )}
-                    {isGenerating
-                      ? t("skillWorkbench.browser.generating")
-                      : t("skillWorkbench.browser.generateFlowchart")}
+                    <Sparkles className="h-3 w-3" />
+                    {t("skillWorkbench.browser.generateFlowchart")}
                   </button>
                 )}
               </div>
@@ -246,17 +214,10 @@ export const SkillBrowser = memo(function SkillBrowser() {
               {!isLoadingFiles && !hasFlowchart && (
                 <button
                   onClick={handleGenerateFlowchart}
-                  disabled={isGenerating}
-                  className="flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600"
                 >
-                  {isGenerating ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3 w-3" />
-                  )}
-                  {isGenerating
-                    ? t("skillWorkbench.browser.generating")
-                    : t("skillWorkbench.browser.generateFlowchart")}
+                  <Sparkles className="h-3 w-3" />
+                  {t("skillWorkbench.browser.generateFlowchart")}
                 </button>
               )}
             </div>

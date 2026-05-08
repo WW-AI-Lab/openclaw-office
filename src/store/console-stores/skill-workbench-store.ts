@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { WorkbenchMode } from "@/components/console/skills/WorkbenchToolbar";
+import { getAdapter } from "@/gateway/adapter-provider";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 
 const MERMAID_FENCE_RE = /```mermaid\s*\n([\s\S]*?)```/g;
@@ -20,6 +21,9 @@ interface SkillWorkbenchState {
   selectedFile: string | null;
   isLoadingFiles: boolean;
 
+  /** Message to auto-send when WorkbenchChat mounts (used by one-click flowchart generation) */
+  pendingAutoSendMessage: string | null;
+
   setMode: (mode: WorkbenchMode) => void;
   setCurrentSkill: (slug: string, name: string) => void;
   clearCurrentSkill: () => void;
@@ -35,6 +39,7 @@ interface SkillWorkbenchState {
   setSelectedFile: (path: string | null) => void;
   setFileContent: (content: string | null) => void;
   setLoadingFiles: (loading: boolean) => void;
+  setPendingAutoSendMessage: (msg: string | null) => void;
 }
 
 export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => ({
@@ -52,17 +57,10 @@ export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => 
   fileContent: null,
   selectedFile: null,
   isLoadingFiles: false,
+  pendingAutoSendMessage: null,
 
   setMode: (mode) => {
     set({ mode, mermaidSource: "", mermaidConfirmed: false });
-    const chatStore = useChatDockStore.getState();
-    if (mode === "create") {
-      const key = `agent:default:skill-workbench-new-${Date.now()}`;
-      chatStore.switchSession(key);
-    } else if (mode === "edit" && get().currentSkillSlug) {
-      const key = `agent:default:skill-workbench-edit-${get().currentSkillSlug}`;
-      chatStore.switchSession(key);
-    }
   },
 
   setCurrentSkill: (slug, name) => set({ currentSkillSlug: slug, currentSkillName: name }),
@@ -72,15 +70,34 @@ export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => 
   confirmMermaid: () => set({ mermaidConfirmed: true }),
   resetMermaid: () => set({ mermaidSource: "", mermaidConfirmed: false }),
 
-  enterWorkbench: () => {
+  enterWorkbench: async () => {
     const chatStore = useChatDockStore.getState();
-    const saved = chatStore.currentSessionKey;
-    set({ savedSessionKey: saved, sessionActive: true });
+    const { savedSessionKey, mode, currentSkillSlug } = get();
 
-    const { mode, currentSkillSlug } = get();
+    // Only save the original session on first entry; don't overwrite on mode switches.
+    set({
+      savedSessionKey: savedSessionKey ?? chatStore.currentSessionKey,
+      sessionActive: true,
+    });
+
     if (mode === "create") {
-      const key = `agent:default:skill-workbench-new-${Date.now()}`;
-      chatStore.switchSession(key);
+      // Use newSession to create a fresh, empty session with standard key format.
+      // newSession sets isHistoryLoaded=true, preventing auto-load of stale history.
+      chatStore.newSession("default");
+
+      // Inject skill-workbench-creator instructions as system context
+      // so the agent follows the structured skill creation workflow.
+      try {
+        const adapter = getAdapter();
+        const creator = await adapter.agentsFilesGet("skill-workbench-creator", "SKILL.md");
+        const sessionKey = chatStore.currentSessionKey;
+        await adapter.chatInject(
+          sessionKey,
+          `[系统：本次对话请遵循以下 skill-workbench-creator 框架执行任务]\n\n${creator.file.content}`,
+        );
+      } catch {
+        // Gracefully degrade: skill-workbench-creator may not be installed
+      }
     } else if (mode === "edit" && currentSkillSlug) {
       const key = `agent:default:skill-workbench-edit-${currentSkillSlug}`;
       chatStore.switchSession(key);
@@ -99,6 +116,7 @@ export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => 
   setSelectedFile: (path) => set({ selectedFile: path }),
   setFileContent: (content) => set({ fileContent: content }),
   setLoadingFiles: (loading) => set({ isLoadingFiles: loading }),
+  setPendingAutoSendMessage: (msg) => set({ pendingAutoSendMessage: msg }),
 }));
 
 /**

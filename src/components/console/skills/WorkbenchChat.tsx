@@ -33,6 +33,8 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
   const addAttachment = useChatDockStore((s) => s.addAttachment);
   const removeAttachment = useChatDockStore((s) => s.removeAttachment);
   const setMermaidSource = useSkillWorkbenchStore((s) => s.setMermaidSource);
+  const pendingAutoSendMessage = useSkillWorkbenchStore((s) => s.pendingAutoSendMessage);
+  const setPendingAutoSendMessage = useSkillWorkbenchStore((s) => s.setPendingAutoSendMessage);
   const { streamingText } = useChatStreamingText();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -65,6 +67,15 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
       setAutoScroll(true);
     }
   }, []);
+
+  // Auto-send pending message (from one-click flowchart generation in SkillBrowser).
+  // Called from within the mounted WorkbenchChat so isStreaming propagates correctly.
+  useEffect(() => {
+    if (!pendingAutoSendMessage) return;
+    const msg = pendingAutoSendMessage;
+    setPendingAutoSendMessage(null);
+    void sendMessage(msg);
+  }, [pendingAutoSendMessage, sendMessage, setPendingAutoSendMessage]);
 
   // Mermaid detection & sync
   useEffect(() => {

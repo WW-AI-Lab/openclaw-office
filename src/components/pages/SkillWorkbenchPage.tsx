@@ -14,10 +14,19 @@ export function SkillWorkbenchPage() {
   const enterWorkbench = useSkillWorkbenchStore((s) => s.enterWorkbench);
   const leaveWorkbench = useSkillWorkbenchStore((s) => s.leaveWorkbench);
 
+  // Page unmount: restore original session
   useEffect(() => {
-    enterWorkbench();
     return () => leaveWorkbench();
-  }, [enterWorkbench, leaveWorkbench]);
+  }, [leaveWorkbench]);
+
+  // Mode change: enter/leave workbench session
+  useEffect(() => {
+    if (mode === "browse") {
+      leaveWorkbench();
+    } else {
+      void enterWorkbench();
+    }
+  }, [mode, enterWorkbench, leaveWorkbench]);
 
   const handleModeChange = useCallback(
     (newMode: WorkbenchMode) => {
