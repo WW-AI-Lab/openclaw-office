@@ -73,6 +73,8 @@ export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => 
   enterWorkbench: async () => {
     const chatStore = useChatDockStore.getState();
     const { savedSessionKey, mode, currentSkillSlug } = get();
+    // Use the currently active agent (e.g. "main") so the Gateway routes correctly.
+    const agentId = chatStore.targetAgentId ?? "main";
 
     // Only save the original session on first entry; don't overwrite on mode switches.
     set({
@@ -83,7 +85,7 @@ export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => 
     if (mode === "create") {
       // Use newSession to create a fresh, empty session with standard key format.
       // newSession sets isHistoryLoaded=true, preventing auto-load of stale history.
-      chatStore.newSession("default");
+      chatStore.newSession(agentId);
 
       // Inject skill-workbench-creator instructions as system context
       // so the agent follows the structured skill creation workflow.
@@ -99,8 +101,17 @@ export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => 
         // Gracefully degrade: skill-workbench-creator may not be installed
       }
     } else if (mode === "edit" && currentSkillSlug) {
-      const key = `agent:default:skill-workbench-edit-${currentSkillSlug}`;
+      const key = `agent:${agentId}:skill-workbench-edit-${currentSkillSlug}`;
       chatStore.switchSession(key);
+
+      // Send pending auto-message AFTER session switch (correct key is now set).
+      // Must happen here (not in WorkbenchChat useEffect) because child effects
+      // fire before parent effects — sending from the child would use the old key.
+      const pendingMsg = get().pendingAutoSendMessage;
+      if (pendingMsg) {
+        set({ pendingAutoSendMessage: null });
+        void useChatDockStore.getState().sendMessage(pendingMsg);
+      }
     }
   },
 

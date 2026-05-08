@@ -33,8 +33,6 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
   const addAttachment = useChatDockStore((s) => s.addAttachment);
   const removeAttachment = useChatDockStore((s) => s.removeAttachment);
   const setMermaidSource = useSkillWorkbenchStore((s) => s.setMermaidSource);
-  const pendingAutoSendMessage = useSkillWorkbenchStore((s) => s.pendingAutoSendMessage);
-  const setPendingAutoSendMessage = useSkillWorkbenchStore((s) => s.setPendingAutoSendMessage);
   const { streamingText } = useChatStreamingText();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -68,14 +66,10 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
     }
   }, []);
 
-  // Auto-send pending message (from one-click flowchart generation in SkillBrowser).
-  // Called from within the mounted WorkbenchChat so isStreaming propagates correctly.
-  useEffect(() => {
-    if (!pendingAutoSendMessage) return;
-    const msg = pendingAutoSendMessage;
-    setPendingAutoSendMessage(null);
-    void sendMessage(msg);
-  }, [pendingAutoSendMessage, sendMessage, setPendingAutoSendMessage]);
+  // pendingAutoSendMessage is consumed by enterWorkbench() in skill-workbench-store
+  // (must happen there because parent effects fire after child effects,
+  // and we need the session key to be correct before sending).
+  // No action needed here — enterWorkbench handles everything.
 
   // Mermaid detection & sync
   useEffect(() => {
@@ -142,6 +136,25 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
             {messages.map((msg) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}
+            {isStreaming && (streamingText) && (
+              <MessageBubble
+                message={{
+                  id: "__streaming__",
+                  role: "assistant",
+                  content: streamingText,
+                  timestamp: Date.now(),
+                  isStreaming: true,
+                }}
+              />
+            )}
+            {isStreaming && !streamingText && (
+              <div className="mb-3 flex justify-start">
+                <div className="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-400 dark:bg-gray-800">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                  <span>{t("skillWorkbench.chat.thinking")}</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

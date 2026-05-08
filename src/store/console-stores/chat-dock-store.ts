@@ -1351,9 +1351,16 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
     let cacheHit = false;
     const authorAgentId = resolveSessionAgentId(currentSessionKey, get().sessions) ?? get().targetAgentId;
 
+    // Guard: abort if a concurrent sendMessage started (e.g. one-click flowchart).
+    // After each await below, the synchronous part of sendMessage has already run
+    // and set isStreaming=true — overwriting messages would discard the user message.
+    const shouldAbort = () =>
+      get().currentSessionKey !== currentSessionKey || get().isStreaming;
+
     // Layer 1: Server file cache (persistent across browser reloads/devices)
     try {
       const serverCached = await serverPersistence.getMessages(currentSessionKey);
+      if (shouldAbort()) { set({ isHistoryLoaded: true, isHistoryLoading: false }); return; }
       if (serverCached.length > 0) {
         const nextSessions = touchSession(get().sessions, currentSessionKey, get().targetAgentId, serverCached.length);
         set({
@@ -1374,6 +1381,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
     if (!cacheHit) {
       try {
         const idbCached = await localPersistence.getMessages(currentSessionKey);
+        if (shouldAbort()) { set({ isHistoryLoaded: true, isHistoryLoading: false }); return; }
         if (idbCached.length > 0) {
           const nextSessions = touchSession(get().sessions, currentSessionKey, get().targetAgentId, idbCached.length);
           set({
@@ -1396,6 +1404,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
       const result: ChatHistoryResult = await withAdapter((adapter) =>
         adapter.chatHistory(currentSessionKey),
       );
+      if (shouldAbort()) { set({ isHistoryLoaded: true, isHistoryLoading: false }); return; }
       const gatewayMessages = normalizeHistoryMessages(
         result.messages as unknown as Record<string, unknown>[],
         authorAgentId,

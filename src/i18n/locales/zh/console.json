@@ -682,6 +682,7 @@
       "inputPlaceholder": "描述你想创建的技能...",
       "inputPlaceholderEdit": "描述要修改的内容...",
       "generating": "AI 正在生成流程图，请稍候...",
+      "thinking": "思考中...",
       "send": "发送",
       "stop": "停止",
       "addAttachment": "添加附件",
