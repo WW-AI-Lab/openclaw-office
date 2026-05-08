@@ -681,6 +681,7 @@
     "chat": {
       "inputPlaceholder": "Describe the skill you want to create...",
       "inputPlaceholderEdit": "Describe what you want to change...",
+      "generating": "AI is generating the flowchart, please wait...",
       "send": "Send",
       "stop": "Stop",
       "addAttachment": "Add attachment",

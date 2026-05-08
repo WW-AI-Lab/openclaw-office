@@ -170,7 +170,8 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
           {/* Attachment button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="shrink-0 rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            disabled={isStreaming}
+            className="shrink-0 rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"
             title={t("skillWorkbench.chat.addAttachment")}
           >
             <Paperclip className="h-4 w-4" />
@@ -190,9 +191,10 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
             onKeyDown={handleKeyDown}
             onCompositionStart={() => setIsComposing(true)}
             onCompositionEnd={() => setIsComposing(false)}
-            placeholder={placeholder}
+            placeholder={isStreaming ? t("skillWorkbench.chat.generating") : placeholder}
             maxRows={6}
-            className="min-h-[36px] flex-1 resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:focus:border-blue-600 dark:focus:ring-blue-800"
+            disabled={isStreaming}
+            className="min-h-[36px] flex-1 resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:focus:border-blue-600 dark:focus:ring-blue-800"
           />
 
           {/* Send/Stop */}

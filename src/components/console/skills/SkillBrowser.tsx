@@ -112,16 +112,36 @@ export const SkillBrowser = memo(function SkillBrowser() {
     if (!selectedSkill) return;
     setIsGenerating(true);
 
-    // Switch to edit mode with this skill, then send a chat message
+    // Switch to edit mode — switchSession is synchronous in Zustand,
+    // so currentSessionKey is updated immediately after setMode.
     setCurrentSkill(selectedSkill.slug, selectedSkill.name);
     setMode("edit");
 
-    // Wait a tick for session switch, then send the generation prompt
-    setTimeout(() => {
-      const prompt = `请分析技能 "${selectedSkill.name}" (slug: ${selectedSkill.slug}) 的 SKILL.md 文件，为其生成 Mermaid 流程图。\n\n请先读取该技能的 SKILL.md 内容，理解其执行逻辑，然后输出完整的 mermaid 流程图代码块。生成完成后，将流程图保存为该技能目录下的 FLOWCHART.md 文件。`;
-      void useChatDockStore.getState().sendMessage(prompt);
+    const sessionKey = `agent:default:skill-workbench-edit-${selectedSkill.slug}`;
+
+    try {
+      const adapter = getAdapter();
+
+      // Inject skill-flow-visualizer skill instructions as system context
+      // so the agent follows the structured analysis framework.
+      try {
+        const sfv = await adapter.agentsFilesGet("skill-flow-visualizer", "SKILL.md");
+        await adapter.chatInject(
+          sessionKey,
+          `[系统：本次对话请遵循以下 skill-flow-visualizer 分析框架执行任务]\n\n${sfv.file.content}`,
+        );
+      } catch {
+        // Gracefully degrade: skill-flow-visualizer may not be installed
+      }
+
+      // Send the structured task message matching skill-flow-visualizer's trigger format
+      const taskMessage = `分析 skills/${selectedSkill.slug} 的工作流程，生成 Mermaid 流程图。生成完成后，将流程图保存为该技能目录下的 FLOWCHART.md 文件。`;
+      void useChatDockStore.getState().sendMessage(taskMessage);
+    } catch {
+      // sendMessage error is handled by the store
+    } finally {
       setIsGenerating(false);
-    }, 300);
+    }
   }, [selectedSkill, setCurrentSkill, setMode]);
 
   return (
