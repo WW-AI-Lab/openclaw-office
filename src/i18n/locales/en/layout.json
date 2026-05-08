@@ -52,6 +52,7 @@
     "agents": "Agents",
     "channels": "Channels",
     "skills": "Skills",
+    "skillWorkbench": "Skill Workbench",
     "cron": "Cron Tasks",
     "settings": "Settings"
   }

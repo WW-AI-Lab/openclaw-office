@@ -52,6 +52,7 @@
     "agents": "智能体",
     "channels": "渠道",
     "skills": "技能",
+    "skillWorkbench": "技能工作台",
     "cron": "定时任务",
     "settings": "设置"
   }

@@ -667,5 +667,54 @@
       "delete": "删除",
       "deleting": "删除中..."
     }
+  },
+  "skillWorkbench": {
+    "title": "技能工作台",
+    "placeholder": "加载中...",
+    "toolbar": {
+      "create": "创建",
+      "browse": "浏览",
+      "edit": "编辑",
+      "save": "保存",
+      "confirmFlow": "确认流程"
+    },
+    "chat": {
+      "inputPlaceholder": "描述你想创建的技能...",
+      "inputPlaceholderEdit": "描述要修改的内容...",
+      "send": "发送",
+      "stop": "停止",
+      "addAttachment": "添加附件",
+      "emptyState": "描述你想创建的技能，AI 将先为你生成执行流程图",
+      "sessionProtectSaved": "已保存当前会话",
+      "sessionProtectRestored": "已恢复之前的会话"
+    },
+    "flowchart": {
+      "preview": "预览",
+      "source": "源码",
+      "emptyState": "等待 AI 生成流程图...",
+      "emptyHint": "在左侧对话中描述你的技能需求，AI 会自动生成 Mermaid 流程图",
+      "renderError": "流程图渲染失败",
+      "confirmed": "流程已确认",
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "resetZoom": "重置缩放"
+    },
+    "browser": {
+      "title": "技能目录",
+      "searchPlaceholder": "搜索技能...",
+      "noSkills": "暂无自定义技能",
+      "noFlowchart": "此技能暂无流程图",
+      "noFlowchartHint": "点击编辑为此技能生成流程图",
+      "editSkill": "编辑此技能",
+      "loading": "加载中...",
+      "loadError": "加载失败"
+    },
+    "status": {
+      "creating": "创建中",
+      "editing": "编辑中",
+      "browsing": "浏览中",
+      "currentSkill": "当前技能",
+      "noSkill": "未选择技能"
+    }
   }
 }

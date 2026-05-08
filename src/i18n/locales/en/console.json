@@ -667,5 +667,54 @@
       "delete": "Delete",
       "deleting": "Deleting..."
     }
+  },
+  "skillWorkbench": {
+    "title": "Skill Workbench",
+    "placeholder": "Loading...",
+    "toolbar": {
+      "create": "Create",
+      "browse": "Browse",
+      "edit": "Edit",
+      "save": "Save",
+      "confirmFlow": "Confirm Flow"
+    },
+    "chat": {
+      "inputPlaceholder": "Describe the skill you want to create...",
+      "inputPlaceholderEdit": "Describe what you want to change...",
+      "send": "Send",
+      "stop": "Stop",
+      "addAttachment": "Add attachment",
+      "emptyState": "Describe the skill you want to create, AI will generate a flowchart first",
+      "sessionProtectSaved": "Current session saved",
+      "sessionProtectRestored": "Previous session restored"
+    },
+    "flowchart": {
+      "preview": "Preview",
+      "source": "Source",
+      "emptyState": "Waiting for AI to generate flowchart...",
+      "emptyHint": "Describe your skill requirements in the chat panel, AI will generate a Mermaid flowchart automatically",
+      "renderError": "Flowchart render failed",
+      "confirmed": "Flow confirmed",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetZoom": "Reset zoom"
+    },
+    "browser": {
+      "title": "Skill Directory",
+      "searchPlaceholder": "Search skills...",
+      "noSkills": "No custom skills yet",
+      "noFlowchart": "No flowchart for this skill",
+      "noFlowchartHint": "Click edit to generate a flowchart for this skill",
+      "editSkill": "Edit this skill",
+      "loading": "Loading...",
+      "loadError": "Load failed"
+    },
+    "status": {
+      "creating": "Creating",
+      "editing": "Editing",
+      "browsing": "Browsing",
+      "currentSkill": "Current skill",
+      "noSkill": "No skill selected"
+    }
   }
 }

@@ -1,6 +1,19 @@
-import { memo } from "react";
+import { memo, Suspense, lazy } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+const MermaidPreview = lazy(() =>
+  import("@/components/shared/MermaidPreview").then((m) => ({ default: m.MermaidPreview })),
+);
+
+function extractTextContent(children: unknown): string {
+  if (typeof children === "string") return children;
+  if (Array.isArray(children)) return children.map(extractTextContent).join("");
+  if (children && typeof children === "object" && "props" in (children as Record<string, unknown>)) {
+    return extractTextContent((children as { props: { children?: unknown } }).props.children);
+  }
+  return "";
+}
 
 interface MarkdownContentProps {
   content: string;
@@ -78,6 +91,20 @@ export const MarkdownContent = memo(function MarkdownContent({ content }: Markdo
                 >
                   {children}
                 </code>
+              );
+            }
+            if (className === "language-mermaid") {
+              const text = extractTextContent(children);
+              return (
+                <Suspense
+                  fallback={
+                    <pre className="overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs dark:border-gray-700 dark:bg-gray-950">
+                      <code>{text}</code>
+                    </pre>
+                  }
+                >
+                  <MermaidPreview source={text} />
+                </Suspense>
               );
             }
             return (

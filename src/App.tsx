@@ -10,6 +10,7 @@ import { DashboardPage } from "@/components/pages/DashboardPage";
 import { ChatPage } from "@/components/pages/ChatPage";
 import { SettingsPage } from "@/components/pages/SettingsPage";
 import { SkillsPage } from "@/components/pages/SkillsPage";
+import { SkillWorkbenchPage } from "@/components/pages/SkillWorkbenchPage";
 import { ChatWorkspaceBootstrap } from "@/components/chat/ChatWorkspaceBootstrap";
 import type { PageId } from "@/gateway/types";
 import { useGatewayConnection } from "@/hooks/useGatewayConnection";
@@ -38,6 +39,7 @@ const PAGE_MAP: Record<string, PageId> = {
   "/agents": "agents",
   "/channels": "channels",
   "/skills": "skills",
+  "/skill-workbench": "skill-workbench",
   "/cron": "cron",
   "/settings": "settings",
 };
@@ -110,6 +112,7 @@ export function App() {
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/channels" element={<ChannelsPage />} />
           <Route path="/skills" element={<SkillsPage />} />
+          <Route path="/skill-workbench" element={<SkillWorkbenchPage />} />
           <Route path="/cron" element={<CronPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

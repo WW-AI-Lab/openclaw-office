@@ -273,6 +273,7 @@ export type PageId =
   | "agents"
   | "channels"
   | "skills"
+  | "skill-workbench"
   | "cron"
   | "settings";
 

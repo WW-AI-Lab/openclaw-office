@@ -1,4 +1,4 @@
-import { Home, Bot, Radio, Puzzle, Clock, Settings } from "lucide-react";
+import { Home, Bot, Radio, Puzzle, Wand2, Clock, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { RestartBanner } from "@/components/shared/RestartBanner";
@@ -9,12 +9,14 @@ export function ConsoleLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isChatRoute = location.pathname === "/chat";
+  const isFullWidthRoute = location.pathname === "/skill-workbench";
 
   const sidebarNavItems = [
     { path: "/dashboard", labelKey: "consoleNav.dashboard", icon: Home },
     { path: "/agents", labelKey: "consoleNav.agents", icon: Bot },
     { path: "/channels", labelKey: "consoleNav.channels", icon: Radio },
     { path: "/skills", labelKey: "consoleNav.skills", icon: Puzzle },
+    { path: "/skill-workbench", labelKey: "consoleNav.skillWorkbench", icon: Wand2 },
     { path: "/cron", labelKey: "consoleNav.cron", icon: Clock },
     { path: "/settings", labelKey: "consoleNav.settings", icon: Settings },
   ] as const;
@@ -47,7 +49,7 @@ export function ConsoleLayout() {
           </nav>
         )}
         <main className="flex-1 overflow-auto">
-          <div className={isChatRoute ? "h-full p-6" : "mx-auto max-w-6xl p-6"}>
+          <div className={isChatRoute || isFullWidthRoute ? "h-full p-6" : "mx-auto max-w-6xl p-6"}>
             <Outlet />
           </div>
         </main>
