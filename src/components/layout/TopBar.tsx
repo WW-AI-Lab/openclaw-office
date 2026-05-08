@@ -97,11 +97,13 @@ function TopNav({ currentPage }: { currentPage: PageId }) {
   const navigate = useNavigate();
   const isOfficePage = currentPage === "office";
   const isChatPage = currentPage === "chat";
-  const isConsolePage = !isOfficePage && !isChatPage;
+  const isWorkbenchPage = currentPage === "skill-workbench";
+  const isConsolePage = !isOfficePage && !isChatPage && !isWorkbenchPage;
 
   const items: { active: boolean; label: string; onClick: () => void }[] = [
     { active: isOfficePage, label: t("topbar.office"), onClick: () => navigate("/") },
     { active: isChatPage, label: t("topbar.chat"), onClick: () => navigate("/chat") },
+    { active: isWorkbenchPage, label: t("topbar.workbench"), onClick: () => navigate("/skill-workbench") },
     { active: isConsolePage, label: t("topbar.console"), onClick: () => navigate("/dashboard") },
   ];
 

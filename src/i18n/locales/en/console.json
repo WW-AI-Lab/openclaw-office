@@ -706,6 +706,8 @@
       "noFlowchart": "No flowchart for this skill",
       "noFlowchartHint": "Click edit to generate a flowchart for this skill",
       "editSkill": "Edit this skill",
+      "generateFlowchart": "Generate Flowchart",
+      "generating": "Generating flowchart...",
       "loading": "Loading...",
       "loadError": "Load failed"
     },

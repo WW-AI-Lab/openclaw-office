@@ -1,4 +1,4 @@
-import { Home, Bot, Radio, Puzzle, Wand2, Clock, Settings } from "lucide-react";
+import { Home, Bot, Radio, Puzzle, Clock, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { RestartBanner } from "@/components/shared/RestartBanner";
@@ -9,14 +9,14 @@ export function ConsoleLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isChatRoute = location.pathname === "/chat";
-  const isFullWidthRoute = location.pathname === "/skill-workbench";
+  const isWorkbenchRoute = location.pathname === "/skill-workbench";
+  const isFullWidthRoute = isChatRoute || isWorkbenchRoute;
 
   const sidebarNavItems = [
     { path: "/dashboard", labelKey: "consoleNav.dashboard", icon: Home },
     { path: "/agents", labelKey: "consoleNav.agents", icon: Bot },
     { path: "/channels", labelKey: "consoleNav.channels", icon: Radio },
     { path: "/skills", labelKey: "consoleNav.skills", icon: Puzzle },
-    { path: "/skill-workbench", labelKey: "consoleNav.skillWorkbench", icon: Wand2 },
     { path: "/cron", labelKey: "consoleNav.cron", icon: Clock },
     { path: "/settings", labelKey: "consoleNav.settings", icon: Settings },
   ] as const;
@@ -26,7 +26,7 @@ export function ConsoleLayout() {
       <RestartBanner />
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
-        {!isChatRoute && (
+        {!isFullWidthRoute && (
           <nav className="flex w-52 shrink-0 flex-col border-r border-gray-200 bg-white py-3 dark:border-gray-700 dark:bg-gray-900">
             {sidebarNavItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -49,7 +49,7 @@ export function ConsoleLayout() {
           </nav>
         )}
         <main className="flex-1 overflow-auto">
-          <div className={isChatRoute || isFullWidthRoute ? "h-full p-6" : "mx-auto max-w-6xl p-6"}>
+          <div className={isFullWidthRoute ? "h-full" : "mx-auto max-w-6xl p-6"}>
             <Outlet />
           </div>
         </main>

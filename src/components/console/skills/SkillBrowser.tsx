@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Pencil } from "lucide-react";
+import { Search, Pencil, Sparkles, Loader2 } from "lucide-react";
 import { getAdapter } from "@/gateway/adapter-provider";
 import { useSkillsStore } from "@/store/console-stores/skills-store";
 import { useSkillWorkbenchStore } from "@/store/console-stores/skill-workbench-store";
+import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import type { SkillInfo } from "@/gateway/adapter-types";
 import { SkillFileTree } from "./SkillFileTree";
 import { SkillFileViewer } from "./SkillFileViewer";
@@ -23,6 +24,8 @@ export const SkillBrowser = memo(function SkillBrowser() {
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [hasFlowchart, setHasFlowchart] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     void fetchSkills();
@@ -47,6 +50,7 @@ export const SkillBrowser = memo(function SkillBrowser() {
       setSelectedSkill(skill);
       setSelectedFile(null);
       setFileContent(null);
+      setHasFlowchart(false);
       setIsLoadingFiles(true);
       try {
         const adapter = getAdapter();
@@ -59,6 +63,7 @@ export const SkillBrowser = memo(function SkillBrowser() {
           (n) => n.toUpperCase() === "FLOWCHART.MD",
         );
         if (flowchartFile) {
+          setHasFlowchart(true);
           try {
             const fc = await adapter.agentsFilesGet(skill.slug, flowchartFile);
             // Extract mermaid from the file content
@@ -101,6 +106,22 @@ export const SkillBrowser = memo(function SkillBrowser() {
     if (!selectedSkill) return;
     setCurrentSkill(selectedSkill.slug, selectedSkill.name);
     setMode("edit");
+  }, [selectedSkill, setCurrentSkill, setMode]);
+
+  const handleGenerateFlowchart = useCallback(async () => {
+    if (!selectedSkill) return;
+    setIsGenerating(true);
+
+    // Switch to edit mode with this skill, then send a chat message
+    setCurrentSkill(selectedSkill.slug, selectedSkill.name);
+    setMode("edit");
+
+    // Wait a tick for session switch, then send the generation prompt
+    setTimeout(() => {
+      const prompt = `请分析技能 "${selectedSkill.name}" (slug: ${selectedSkill.slug}) 的 SKILL.md 文件，为其生成 Mermaid 流程图。\n\n请先读取该技能的 SKILL.md 内容，理解其执行逻辑，然后输出完整的 mermaid 流程图代码块。生成完成后，将流程图保存为该技能目录下的 FLOWCHART.md 文件。`;
+      void useChatDockStore.getState().sendMessage(prompt);
+      setIsGenerating(false);
+    }, 300);
   }, [selectedSkill, setCurrentSkill, setMode]);
 
   return (
@@ -167,7 +188,7 @@ export const SkillBrowser = memo(function SkillBrowser() {
                 content={fileContent}
                 isLoading={isLoadingContent}
               />
-              <div className="border-t border-gray-200 px-4 py-2 dark:border-gray-700">
+              <div className="flex items-center gap-2 border-t border-gray-200 px-4 py-2 dark:border-gray-700">
                 <button
                   onClick={handleEditSkill}
                   className="flex items-center gap-1.5 rounded-md bg-blue-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-600"
@@ -175,15 +196,49 @@ export const SkillBrowser = memo(function SkillBrowser() {
                   <Pencil className="h-3 w-3" />
                   {t("skillWorkbench.browser.editSkill")}
                 </button>
+                {!hasFlowchart && (
+                  <button
+                    onClick={handleGenerateFlowchart}
+                    disabled={isGenerating}
+                    className="flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+                  >
+                    {isGenerating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3" />
+                    )}
+                    {isGenerating
+                      ? t("skillWorkbench.browser.generating")
+                      : t("skillWorkbench.browser.generateFlowchart")}
+                  </button>
+                )}
               </div>
             </>
           ) : selectedSkill && !selectedFile ? (
-            <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
-              {isLoadingFiles
-                ? t("skillWorkbench.browser.loading")
-                : fileList.length === 0
-                  ? t("skillWorkbench.browser.noFlowchart")
-                  : t("skillWorkbench.browser.noFlowchartHint")}
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-gray-400">
+              <span>
+                {isLoadingFiles
+                  ? t("skillWorkbench.browser.loading")
+                  : fileList.length === 0
+                    ? t("skillWorkbench.browser.noFlowchart")
+                    : t("skillWorkbench.browser.noFlowchartHint")}
+              </span>
+              {!isLoadingFiles && !hasFlowchart && (
+                <button
+                  onClick={handleGenerateFlowchart}
+                  disabled={isGenerating}
+                  className="flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  {isGenerating
+                    ? t("skillWorkbench.browser.generating")
+                    : t("skillWorkbench.browser.generateFlowchart")}
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex flex-1 items-center justify-center text-sm text-gray-400">

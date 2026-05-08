@@ -706,6 +706,8 @@
       "noFlowchart": "此技能暂无流程图",
       "noFlowchartHint": "点击编辑为此技能生成流程图",
       "editSkill": "编辑此技能",
+      "generateFlowchart": "一键生成流程图",
+      "generating": "流程图生成中...",
       "loading": "加载中...",
       "loadError": "加载失败"
     },
