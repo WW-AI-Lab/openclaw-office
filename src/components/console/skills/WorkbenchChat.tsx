@@ -1,12 +1,16 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Paperclip, Send, Square, ArrowDown } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useChatStreamingText } from "@/hooks/useChatStreamingText";
 import { useChatDockStore, type ChatDockMessage } from "@/store/console-stores/chat-dock-store";
-import { useSkillWorkbenchStore, extractLatestMermaid } from "@/store/console-stores/skill-workbench-store";
+import {
+  useSkillWorkbenchStore,
+  extractLatestMermaid,
+  type WorkbenchMode,
+} from "@/store/console-stores/skill-workbench-store";
 import { MessageBubble } from "@/components/chat/MessageBubble";
-import type { WorkbenchMode } from "./WorkbenchToolbar";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -19,9 +23,15 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 interface WorkbenchChatProps {
   mode: WorkbenchMode;
+  /**
+   * Optional rich content to render in place of the default empty-state text
+   * when the session has no messages yet. Used by the create page to surface
+   * skill-creation suggestions (SOP/methodology prompts).
+   */
+  emptyStateSlot?: ReactNode;
 }
 
-export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChatProps) {
+export const WorkbenchChat = memo(function WorkbenchChat({ mode, emptyStateSlot }: WorkbenchChatProps) {
   const { t } = useTranslation("console");
   const messages = useChatDockStore((s) => s.messages);
   const isStreaming = useChatDockStore((s) => s.isStreaming);
@@ -45,6 +55,10 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
     mode === "edit"
       ? t("skillWorkbench.chat.inputPlaceholderEdit")
       : t("skillWorkbench.chat.inputPlaceholder");
+  const emptyState =
+    mode === "edit"
+      ? t("skillWorkbench.chat.emptyStateEdit")
+      : t("skillWorkbench.chat.emptyState");
 
   // Auto-scroll
   useEffect(() => {
@@ -126,11 +140,15 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode }: WorkbenchChat
         className="flex-1 overflow-y-auto px-4 py-3"
       >
         {isEmpty ? (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-center text-sm text-gray-400 dark:text-gray-500">
-              {t("skillWorkbench.chat.emptyState")}
-            </p>
-          </div>
+          emptyStateSlot ? (
+            <div className="h-full">{emptyStateSlot}</div>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-center text-sm text-gray-400 dark:text-gray-500">
+                {emptyState}
+              </p>
+            </div>
+          )
         ) : (
           <div className="space-y-3">
             {messages.map((msg) => (

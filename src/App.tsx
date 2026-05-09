@@ -10,7 +10,10 @@ import { DashboardPage } from "@/components/pages/DashboardPage";
 import { ChatPage } from "@/components/pages/ChatPage";
 import { SettingsPage } from "@/components/pages/SettingsPage";
 import { SkillsPage } from "@/components/pages/SkillsPage";
-import { SkillWorkbenchPage } from "@/components/pages/SkillWorkbenchPage";
+import { SkillWorkbenchLayout } from "@/components/pages/SkillWorkbenchLayout";
+import { SkillWorkbenchHomePage } from "@/components/pages/SkillWorkbenchHomePage";
+import { SkillWorkbenchCreatePage } from "@/components/pages/SkillWorkbenchCreatePage";
+import { SkillWorkbenchDetailPage } from "@/components/pages/SkillWorkbenchDetailPage";
 import { ChatWorkspaceBootstrap } from "@/components/chat/ChatWorkspaceBootstrap";
 import type { PageId } from "@/gateway/types";
 import { useGatewayConnection } from "@/hooks/useGatewayConnection";
@@ -40,6 +43,7 @@ const PAGE_MAP: Record<string, PageId> = {
   "/channels": "channels",
   "/skills": "skills",
   "/skill-workbench": "skill-workbench",
+  "/skill-workbench/new": "skill-workbench",
   "/cron": "cron",
   "/settings": "settings",
 };
@@ -66,7 +70,10 @@ function PageTracker() {
   const setCurrentPage = useOfficeStore((s) => s.setCurrentPage);
 
   useEffect(() => {
-    const page = PAGE_MAP[location.pathname] ?? "office";
+    // Treat any /skill-workbench/* (including /:slug) as the skill-workbench page.
+    const page = location.pathname.startsWith("/skill-workbench")
+      ? "skill-workbench"
+      : (PAGE_MAP[location.pathname] ?? "office");
     setCurrentPage(page);
   }, [location.pathname, setCurrentPage]);
 
@@ -112,7 +119,11 @@ export function App() {
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/channels" element={<ChannelsPage />} />
           <Route path="/skills" element={<SkillsPage />} />
-          <Route path="/skill-workbench" element={<SkillWorkbenchPage />} />
+          <Route path="/skill-workbench" element={<SkillWorkbenchLayout />}>
+            <Route index element={<SkillWorkbenchHomePage />} />
+            <Route path="new" element={<SkillWorkbenchCreatePage />} />
+            <Route path=":slug" element={<SkillWorkbenchDetailPage />} />
+          </Route>
           <Route path="/cron" element={<CronPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
