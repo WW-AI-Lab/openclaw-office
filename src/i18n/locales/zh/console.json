@@ -72,6 +72,7 @@
     },
     "fields": {
       "botToken": "Bot Token",
+      "chatId": "Chat ID",
       "applicationId": "Application ID",
       "phoneNumber": "手机号",
       "appId": "App ID",
@@ -86,6 +87,7 @@
     },
     "placeholders": {
       "botToken": "输入 Bot Token",
+      "chatId": "例如 -1001234567890",
       "applicationId": "输入 Application ID",
       "phoneNumber": "+86...",
       "appId": "输入 App ID",
@@ -115,6 +117,11 @@
     "logout": {
       "title": "登出渠道",
       "description": "确认要登出「{{name}}」吗？登出后需要重新配对。"
+    },
+    "gcpNotice": {
+      "title": "需要配置 Telegram 告警或广播通道？",
+      "body": "由 GCP Secret Manager 托管的通知渠道（管理员 Telegram Bot、分支广播 Bot 等）在「GCP 配置」中统一管理，支持 Chat ID、凭据轮换和内置测试。",
+      "cta": "打开 GCP 配置"
     }
   },
   "skills": {
@@ -666,6 +673,155 @@
       "cancel": "取消",
       "delete": "删除",
       "deleting": "删除中..."
+    }
+  },
+  "setupGcp": {
+    "title": "GCP 配置",
+    "description": "审批新接入的分支节点，并管理由 GCP Secret Manager 托管的通知渠道（Telegram 等）。",
+    "tabs": {
+      "pairing": "配对请求",
+      "channels": "通知渠道",
+      "openhands": "OpenHands"
+    },
+    "secretsNotice": {
+      "title": "凭据保存在 GCP Secret Manager",
+      "body": "Bot Token 等凭据由 fleet-registry-api 写入 GCP Secret Manager。明文不会保存在浏览器或注册中心数据库中。"
+    },
+    "notConfigured": {
+      "title": "Registry API 未配置",
+      "body": "请设置 VITE_REGISTRY_API_URL，或在运行时注入 window.__OPENCLAW_CONFIG__.registryApiUrl。默认指向 Tailscale 上的 HQ 边车（http://openclaw-hq:8781），信任边界即 VPN — 无需 Bearer 令牌。"
+    },
+    "pairing": {
+      "title": "待审批的配对请求",
+      "description": "通过 Tailscale 注册并等待 HQ 授权的分支节点。",
+      "coordinator": "协调智能体",
+      "rejectReason": "拒绝原因",
+      "rejectReasonPlaceholder": "请说明拒绝该请求的原因",
+      "empty": {
+        "title": "当前没有该状态的请求",
+        "description": "新分支接入时会显示在这里。"
+      },
+      "statusFilter": {
+        "pending": "待审批",
+        "approved": "已批准",
+        "rejected": "已拒绝",
+        "smoke_passed": "Smoke 通过",
+        "smoke_failed": "Smoke 失败",
+        "all": "全部"
+      },
+      "status": {
+        "pending": "待审批",
+        "approved": "已批准",
+        "rejected": "已拒绝",
+        "smoke_passed": "smoke 通过",
+        "smoke_failed": "smoke 失败"
+      },
+      "fields": {
+        "delegateUrl": "Delegate URL",
+        "allowedAgents": "允许的 Agent",
+        "tokenFingerprint": "委托 Token 指纹",
+        "decidedBy": "审批人",
+        "decidedAt": "审批时间",
+        "metadata": "Metadata"
+      }
+    },
+    "channels": {
+      "title": "通知渠道",
+      "description": "HQ-Cloud 与分支节点用于发送告警的渠道。当前优先支持 Telegram。",
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "noSecret": "未设置凭据",
+      "lastTest": "上次测试",
+      "testOk": "测试消息已送达。",
+      "testFailed": "测试失败：{{detail}}",
+      "secretValue": "凭据值",
+      "secretPlaceholder": "粘贴 Bot Token 或 Webhook 凭据",
+      "secretHint": "保存为 GCP Secret Manager 的新版本，旧版本会保留以便回滚。",
+      "testMessage": "测试消息",
+      "testMessagePlaceholder": "可选 — 留空则发送默认 ping",
+      "empty": {
+        "title": "尚未配置通知渠道",
+        "description": "添加渠道以开始接收 fleet 通知。"
+      },
+      "createDialog": {
+        "title": "添加通知渠道"
+      },
+      "fields": {
+        "kind": "类型",
+        "name": "显示名称",
+        "namePlaceholder": "例如 Admin Bot",
+        "scope": "Scope",
+        "chatId": "Chat ID",
+        "chatIdPlaceholder": "例如 -1001234567890",
+        "botToken": "Bot Token（初始凭据）",
+        "botTokenPlaceholder": "1234567890:ABC..."
+      },
+      "deleteDialog": {
+        "title": "删除渠道",
+        "description": "确认删除「{{name}}」？关联的 GCP Secret 也会被删除。"
+      }
+    },
+    "actions": {
+      "refresh": "刷新",
+      "approve": "批准",
+      "reject": "拒绝",
+      "confirmReject": "确认拒绝",
+      "cancel": "取消",
+      "addChannel": "添加渠道",
+      "save": "保存",
+      "create": "创建",
+      "creating": "创建中...",
+      "test": "测试",
+      "sendTest": "发送测试",
+      "setSecret": "设置凭据",
+      "enable": "启用",
+      "disable": "禁用"
+    },
+    "openhands": {
+      "title": "OpenHands LLM 配置",
+      "description": "Alekhine OpenHands 封装使用的 LLM 提供方配置。被设为默认的配置将驱动 fleet 中所有 OpenHands 运行。",
+      "createProfile": "新建配置",
+      "defaultBadge": "默认",
+      "secretSet": "已设置凭据",
+      "noSecret": "未设置凭据",
+      "lastTest": "上次测试",
+      "testOk": "LLM 往返测试成功。",
+      "testFailed": "测试失败：{{detail}}",
+      "banner": {
+        "title": "默认配置驱动 OpenHands",
+        "body": "被标记为默认的配置即 Alekhine OpenHands 封装实际使用的配置。API Key 保存在 GCP Secret Manager —— 永不写入浏览器或注册中心数据库。"
+      },
+      "empty": {
+        "title": "尚未配置任何 LLM 配置",
+        "description": "创建一个配置，将 LLM 提供方/模型 + API Key 绑定到 OpenHands。"
+      },
+      "createDialog": {
+        "title": "创建 LLM 配置"
+      },
+      "deleteDialog": {
+        "title": "删除配置",
+        "description": "确认删除「{{label}}」？关联的 GCP Secret 也会被删除。"
+      },
+      "fields": {
+        "provider": "提供方",
+        "model": "模型",
+        "modelPlaceholder": "例如 claude-sonnet-4-5, gpt-4o, gemini-2.5-pro",
+        "label": "名称",
+        "labelPlaceholder": "例如 Sonnet 主用",
+        "apiKey": "API Key",
+        "apiKeyOptional": "API Key（可选，稍后再设置）",
+        "apiKeyPlaceholder": "sk-... / 粘贴原始 Secret",
+        "apiKeyHint": "保存为 GCP Secret Manager 的新版本，旧版本会保留以便回滚。",
+        "testPrompt": "测试提示词",
+        "testPromptPlaceholder": "可选 — 留空则发送默认 ping"
+      },
+      "actions": {
+        "activate": "激活",
+        "setSecret": "设置凭据",
+        "test": "测试",
+        "edit": "编辑",
+        "runTest": "运行测试"
+      }
     }
   }
 }

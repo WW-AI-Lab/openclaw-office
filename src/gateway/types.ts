@@ -274,7 +274,8 @@ export type PageId =
   | "channels"
   | "skills"
   | "cron"
-  | "settings";
+  | "settings"
+  | "setupGcp";
 
 export interface TokenSnapshot {
   timestamp: number;

@@ -30,6 +30,13 @@ export const CHANNEL_SCHEMAS: Record<ChannelType, ChannelSchema> = {
         required: true,
         placeholderKey: "console:channels.placeholders.botToken",
       },
+      {
+        key: "chatId",
+        labelKey: "console:channels.fields.chatId",
+        type: "text",
+        required: true,
+        placeholderKey: "console:channels.placeholders.chatId",
+      },
     ],
   },
   discord: {

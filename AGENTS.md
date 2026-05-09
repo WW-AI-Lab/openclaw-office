@@ -8,6 +8,17 @@ This document provides context and rules for AI coding assistants (Codex, Claude
 
 OpenClaw Office is the visual monitoring and management frontend for the [OpenClaw](https://github.com/openclaw/openclaw) Multi-Agent system. It connects to the OpenClaw Gateway via WebSocket to visualize Agent collaboration as a "digital office" and provides a full console management interface.
 
+## SitioUno Repository Boundaries
+
+This repo is the canonical home for the graphical/product UI only: React/Vite source, office visualization, console, chat workspace, assets, i18n, and frontend service scripts.
+
+Do not add GCP Terraform, VM provisioning, Tailscale setup, branch registry code, MCP infrastructure, Zeus/Hermes runtime config, MiroFish product code, or software-factory code here. Use the repo map in `SITIOUNO-REPO-MAP.md`:
+
+- `sitiouno/gcloud-office` for infra, node runbooks, branch registry, MCP routing, and Sicilia/Zeus/MiroFish node fichas.
+- `SiteOneTech/sitiouno-software-factory-ai` for the software factory.
+- `SiteOneTech/hermes-agent` for Zeus/Hermes implementation.
+- `SiteOneTech/mirofish-original-ai-forecast` for MiroFish.
+
 ## Tech Stack
 
 | Category         | Technology                                  |

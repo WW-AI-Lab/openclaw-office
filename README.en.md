@@ -8,6 +8,10 @@
 
 **Core Metaphor:** Agent = Digital Employee | Office = Agent Runtime | Desk = Session | Meeting Pod = Collaboration Context
 
+## SitioUno Fork Scope
+
+This fork owns the graphical/product surface of OpenClaw Office: React UI, visual office, console, chat, assets, i18n, and frontend service scripts. GCP infrastructure, node runbooks, MCP routing, Zeus/Hermes, MiroFish, and the software factory live in their own repositories. See [SITIOUNO-REPO-MAP.md](SITIOUNO-REPO-MAP.md).
+
 ---
 
 ## Features

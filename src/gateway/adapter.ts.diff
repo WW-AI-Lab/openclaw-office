@@ -1,0 +1,9 @@
+--- src/gateway/adapter.ts
++++ src/gateway/adapter.ts
+@@ -73,6 +73,8 @@
+   skillsStatus(agentId?: string): Promise<SkillInfo[]>;
+   skillsInstall(name: string, installId: string): Promise<SkillInstallResult>;
+   skillsUpdate(skillKey: string, patch: SkillUpdatePatch): Promise<{ ok: boolean }>;
++
++  agentFiles(agentId: string): Promise<{ name: string, content: string }[]>;
+ }

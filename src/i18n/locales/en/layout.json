@@ -16,6 +16,7 @@
       "cron": "Cron Tasks",
       "agents": "Agents",
       "settings": "Settings",
+      "setupGcp": "Setup GCP",
       "fallback": "Console"
     },
     "theme": {
@@ -53,6 +54,7 @@
     "channels": "Channels",
     "skills": "Skills",
     "cron": "Cron Tasks",
+    "setupGcp": "Setup GCP",
     "settings": "Settings"
   }
 }

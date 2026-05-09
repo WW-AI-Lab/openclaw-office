@@ -23,7 +23,7 @@ import {
 } from "@/lib/config-patch-helpers";
 import { clearAgentChannelSessions } from "./agent-session-cleanup";
 
-export type AgentTab = "overview" | "files" | "tools" | "skills" | "channels" | "cronJobs";
+export type AgentTab = "overview" | "files" | "tools" | "skills" | "local_skills" | "channels" | "cronJobs";
 
 export interface SystemModelOption {
   id: string;

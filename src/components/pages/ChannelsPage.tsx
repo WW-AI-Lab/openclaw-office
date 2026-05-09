@@ -1,6 +1,7 @@
-import { RefreshCw, Inbox } from "lucide-react";
+import { RefreshCw, Inbox, Cloud } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { AvailableChannelGrid } from "@/components/console/channels/AvailableChannelGrid";
 import { ChannelCard } from "@/components/console/channels/ChannelCard";
 import { ChannelConfigDialog } from "@/components/console/channels/ChannelConfigDialog";
@@ -14,6 +15,7 @@ import { useChannelsStore } from "@/store/console-stores/channels-store";
 
 export function ChannelsPage() {
   const { t } = useTranslation("console");
+  const navigate = useNavigate();
   const {
     channels,
     isLoading,
@@ -74,6 +76,23 @@ export function ChannelsPage() {
         loading={isLoading}
       />
       <ChannelStatsBar channels={channels} />
+
+      <div className="flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
+        <Cloud className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex-1">
+          <p className="font-medium">{t("channels.gcpNotice.title")}</p>
+          <p className="mt-1 text-xs leading-relaxed text-blue-800/90 dark:text-blue-300/90">
+            {t("channels.gcpNotice.body")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate("/setup-gcp")}
+          className="shrink-0 rounded-md border border-blue-300 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 transition-colors"
+        >
+          {t("channels.gcpNotice.cta")}
+        </button>
+      </div>
 
       {channels.length === 0 ? (
         <EmptyState

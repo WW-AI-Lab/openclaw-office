@@ -1,6 +1,6 @@
 {
   "name": "@ww-ai-lab/openclaw-office",
-  "version": "2026.4.10-2",
+  "version": "2026.4.25-1",
   "description": "Visual monitoring & management frontend for OpenClaw Multi-Agent system",
   "keywords": [
     "ai-agents",

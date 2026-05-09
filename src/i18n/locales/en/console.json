@@ -6,6 +6,7 @@
     "stats": {
       "channels": "Channels",
       "skills": "Skills",
+      "local_skills": "Local Skills",
       "usage": "Provider Usage",
       "uptime": "Uptime",
       "uptimeOnline": "Online"
@@ -72,6 +73,7 @@
     },
     "fields": {
       "botToken": "Bot Token",
+      "chatId": "Chat ID",
       "applicationId": "Application ID",
       "phoneNumber": "Phone Number",
       "appId": "App ID",
@@ -86,6 +88,7 @@
     },
     "placeholders": {
       "botToken": "Enter Bot Token",
+      "chatId": "e.g. -1001234567890",
       "applicationId": "Enter Application ID",
       "phoneNumber": "+1...",
       "appId": "Enter App ID",
@@ -115,6 +118,11 @@
     "logout": {
       "title": "Logout Channel",
       "description": "Are you sure you want to logout \"{{name}}\"? You will need to re-pair."
+    },
+    "gcpNotice": {
+      "title": "Looking for Telegram alerts and broadcast channels?",
+      "body": "Notification channels backed by GCP Secret Manager (admin Telegram bot, branch broadcast bots) are managed in Setup GCP, with Chat ID, secret rotation, and a built-in test button.",
+      "cta": "Open Setup GCP"
     }
   },
   "skills": {
@@ -522,6 +530,7 @@
       "files": "Files",
       "tools": "Tools",
       "skills": "Skills",
+      "local_skills": "Local Skills",
       "channels": "Channels",
       "cronJobs": "Cron Jobs"
     },
@@ -666,6 +675,155 @@
       "cancel": "Cancel",
       "delete": "Delete",
       "deleting": "Deleting..."
+    }
+  },
+  "setupGcp": {
+    "title": "Setup GCP",
+    "description": "Approve new branch nodes joining the fleet and manage notification channels (Telegram, etc.) backed by GCP Secret Manager.",
+    "tabs": {
+      "pairing": "Pairing Requests",
+      "channels": "Notification Channels",
+      "openhands": "OpenHands"
+    },
+    "secretsNotice": {
+      "title": "Secrets stay in GCP Secret Manager",
+      "body": "Bot tokens and other credentials are stored in GCP Secret Manager via the fleet-registry-api. Plaintext values are never persisted in the browser or in the registry database."
+    },
+    "notConfigured": {
+      "title": "Registry API not configured",
+      "body": "Set VITE_REGISTRY_API_URL or inject window.__OPENCLAW_CONFIG__.registryApiUrl at runtime. The default targets the HQ sidecar over Tailscale (http://openclaw-hq:8781) and trusts the VPN as the perimeter — no bearer token is required."
+    },
+    "pairing": {
+      "title": "Pending pairing requests",
+      "description": "Branch nodes that have published themselves over Tailscale and are waiting for HQ to authorize delegation.",
+      "coordinator": "coordinator",
+      "rejectReason": "Rejection reason",
+      "rejectReasonPlaceholder": "Why is this request being rejected?",
+      "empty": {
+        "title": "No requests in this state",
+        "description": "Branches that contact the registry will appear here."
+      },
+      "statusFilter": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "smoke_passed": "Smoke OK",
+        "smoke_failed": "Smoke failed",
+        "all": "All"
+      },
+      "status": {
+        "pending": "pending",
+        "approved": "approved",
+        "rejected": "rejected",
+        "smoke_passed": "smoke ok",
+        "smoke_failed": "smoke failed"
+      },
+      "fields": {
+        "delegateUrl": "Delegate URL",
+        "allowedAgents": "Allowed agents",
+        "tokenFingerprint": "Token fingerprint",
+        "decidedBy": "Decided by",
+        "decidedAt": "Decided at",
+        "metadata": "Metadata"
+      }
+    },
+    "channels": {
+      "title": "Notification channels",
+      "description": "Channels used by HQ-Cloud and branches to send alerts. Telegram is the first supported transport.",
+      "enabled": "enabled",
+      "disabled": "disabled",
+      "noSecret": "no secret set",
+      "lastTest": "last tested",
+      "testOk": "Test message delivered.",
+      "testFailed": "Test failed: {{detail}}",
+      "secretValue": "Secret value",
+      "secretPlaceholder": "Paste bot token or webhook secret",
+      "secretHint": "Stored as a new GCP Secret Manager version. Earlier versions are kept for rollback.",
+      "testMessage": "Test message",
+      "testMessagePlaceholder": "Optional — leave blank for default ping",
+      "empty": {
+        "title": "No channels configured",
+        "description": "Add a channel to start receiving fleet notifications."
+      },
+      "createDialog": {
+        "title": "Add notification channel"
+      },
+      "fields": {
+        "kind": "Kind",
+        "name": "Display name",
+        "namePlaceholder": "e.g. Admin Bot",
+        "scope": "Scope",
+        "chatId": "Chat ID",
+        "chatIdPlaceholder": "e.g. -1001234567890",
+        "botToken": "Bot Token (initial secret)",
+        "botTokenPlaceholder": "1234567890:ABC..."
+      },
+      "deleteDialog": {
+        "title": "Delete channel",
+        "description": "Delete \"{{name}}\"? The associated GCP secret will also be removed."
+      }
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "approve": "Approve",
+      "reject": "Reject",
+      "confirmReject": "Reject",
+      "cancel": "Cancel",
+      "addChannel": "Add Channel",
+      "save": "Save",
+      "create": "Create",
+      "creating": "Creating...",
+      "test": "Test",
+      "sendTest": "Send test",
+      "setSecret": "Set Secret",
+      "enable": "Enable",
+      "disable": "Disable"
+    },
+    "openhands": {
+      "title": "OpenHands LLM profiles",
+      "description": "Provider profiles consumed by Alekhine's OpenHands wrapper. The active profile drives every OpenHands run on this fleet.",
+      "createProfile": "Create profile",
+      "defaultBadge": "default",
+      "secretSet": "Secret set",
+      "noSecret": "No secret",
+      "lastTest": "last tested",
+      "testOk": "LLM round-trip OK.",
+      "testFailed": "Test failed: {{detail}}",
+      "banner": {
+        "title": "Active profile drives OpenHands",
+        "body": "The profile marked default is what Alekhine's OpenHands wrapper uses. API keys are persisted in GCP Secret Manager — never in the browser or registry DB."
+      },
+      "empty": {
+        "title": "No profiles configured",
+        "description": "Create a profile to bind an LLM provider/model + API key to OpenHands."
+      },
+      "createDialog": {
+        "title": "Create LLM profile"
+      },
+      "deleteDialog": {
+        "title": "Delete profile",
+        "description": "Delete \"{{label}}\"? The associated GCP secret will also be removed."
+      },
+      "fields": {
+        "provider": "Provider",
+        "model": "Model",
+        "modelPlaceholder": "e.g. claude-sonnet-4-5, gpt-4o, gemini-2.5-pro",
+        "label": "Label",
+        "labelPlaceholder": "e.g. Sonnet primary",
+        "apiKey": "API key",
+        "apiKeyOptional": "API key (optional, can be set later)",
+        "apiKeyPlaceholder": "sk-... / paste raw secret",
+        "apiKeyHint": "Stored as a new GCP Secret Manager version. Earlier versions are kept for rollback.",
+        "testPrompt": "Test prompt",
+        "testPromptPlaceholder": "Optional — leave blank for default ping"
+      },
+      "actions": {
+        "activate": "Activate",
+        "setSecret": "Set Secret",
+        "test": "Test",
+        "edit": "Edit",
+        "runTest": "Run test"
+      }
     }
   }
 }
