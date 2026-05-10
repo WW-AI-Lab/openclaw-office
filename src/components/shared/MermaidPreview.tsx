@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useMermaidRenderer } from "@/hooks/useMermaidRenderer";
 
 interface MermaidPreviewProps {
@@ -7,9 +7,9 @@ interface MermaidPreviewProps {
 }
 
 export const MermaidPreview = memo(function MermaidPreview({ source, className }: MermaidPreviewProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const { render } = useMermaidRenderer();
   const [error, setError] = useState<string | null>(null);
+  const [svg, setSvg] = useState("");
   const [loading, setLoading] = useState(true);
 
   const doRender = useCallback(
@@ -18,13 +18,13 @@ export const MermaidPreview = memo(function MermaidPreview({ source, className }
       const { svg, error: renderError } = await render(src);
       if (renderError) {
         setError(renderError);
+        setSvg("");
         setLoading(false);
         return;
       }
+
       setError(null);
-      if (containerRef.current) {
-        containerRef.current.innerHTML = svg;
-      }
+      setSvg(svg);
       setLoading(false);
     },
     [render],
@@ -34,6 +34,8 @@ export const MermaidPreview = memo(function MermaidPreview({ source, className }
     if (source.trim()) {
       doRender(source);
     } else {
+      setError(null);
+      setSvg("");
       setLoading(false);
     }
   }, [source, doRender]);
@@ -59,5 +61,5 @@ export const MermaidPreview = memo(function MermaidPreview({ source, className }
     );
   }
 
-  return <div ref={containerRef} className={`mermaid-preview overflow-x-auto ${className ?? ""}`} />;
+  return <div className={`mermaid-preview overflow-x-auto ${className ?? ""}`} dangerouslySetInnerHTML={{ __html: svg }} />;
 });

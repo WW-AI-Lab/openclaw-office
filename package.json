@@ -1,6 +1,6 @@
 {
   "name": "@ww-ai-lab/openclaw-office",
-  "version": "2026.4.13",
+  "version": "2026.5.10-beta.1",
   "description": "Visual monitoring & management frontend for OpenClaw Multi-Agent system",
   "keywords": [
     "ai-agents",
@@ -28,8 +28,10 @@
   "files": [
     "dist/",
     "bin/",
+    "bin/skills/",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "SKILL-WORKBENCH.md"
   ],
   "type": "module",
   "scripts": {
@@ -50,6 +52,7 @@
     "i18next": "^25.8.13",
     "i18next-browser-languagedetector": "^8.2.1",
     "immer": "^10.1.1",
+    "js-yaml": "^4.1.1",
     "lucide-react": "^0.575.0",
     "mermaid": "^11.14.0",
     "react": "^19.1.0",
@@ -66,6 +69,7 @@
     "@tailwindcss/vite": "^4.1.0",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.3.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.5.0",

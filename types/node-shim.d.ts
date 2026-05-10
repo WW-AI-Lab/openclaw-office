@@ -10,13 +10,28 @@ declare module "node:fs" {
 }
 
 declare module "node:fs/promises" {
+  export interface Dirent {
+    name: string;
+    isDirectory(): boolean;
+    isFile(): boolean;
+  }
+  export interface Stats {
+    size: number;
+    mtimeMs: number;
+    mtime: Date;
+  }
   export function readFile(path: string, encoding: string): Promise<string>;
   export function writeFile(path: string, data: string, encoding: string): Promise<void>;
   export function readdir(path: string): Promise<string[]>;
+  export function readdir(
+    path: string,
+    options: { withFileTypes: true },
+  ): Promise<Dirent[]>;
   export function unlink(path: string): Promise<void>;
   export function access(path: string): Promise<void>;
   export function mkdir(path: string, options?: { recursive?: boolean }): Promise<void>;
   export function rmdir(path: string): Promise<void>;
+  export function stat(path: string): Promise<Stats>;
 }
 
 declare module "node:url" {

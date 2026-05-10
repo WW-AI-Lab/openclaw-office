@@ -1,8 +1,9 @@
-import { resolve, join } from "node:path";
+import { resolve, join, dirname, relative } from "node:path";
 import { readFileSync, existsSync, mkdirSync } from "node:fs";
-import { readFile, writeFile, readdir, unlink, access, mkdir, rmdir } from "node:fs/promises";
+import { readFile, writeFile, readdir, unlink, access, mkdir, rmdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
+import { execFile } from "node:child_process";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -14,6 +15,7 @@ const gatewayTarget = `${gatewayUrl.protocol === "wss:" ? "https:" : gatewayUrl.
 const gatewayPath = `${gatewayUrl.pathname}${gatewayUrl.search}` || "/";
 // --- Per-day sharded chat cache helpers (shared with bin/openclaw-office.js) ---
 const CHAT_CACHE_DIR = join(homedir(), ".openclaw", "office-cache", "chat");
+const WORKSPACE_SKILLS_DIR = join(homedir(), ".openclaw", "workspace", "skills");
 const MAX_DAY_FILES = 90;
 function ensureCacheDir() {
     if (!existsSync(CHAT_CACHE_DIR)) {
@@ -98,6 +100,111 @@ async function deleteSessionDir(sessionDir) {
         await rmdir(sessionDir);
     }
     catch { /* ok */ }
+}
+function ensureInside(baseDir, targetPath) {
+    const normalizedBase = `${resolve(baseDir)}/`;
+    const normalizedTarget = resolve(targetPath);
+    if (normalizedTarget !== resolve(baseDir) && !normalizedTarget.startsWith(normalizedBase)) {
+        throw new Error("Invalid workspace skill path");
+    }
+    return normalizedTarget;
+}
+async function listWorkspaceSkillFiles(skillSlug) {
+    const skillDir = ensureInside(WORKSPACE_SKILLS_DIR, join(WORKSPACE_SKILLS_DIR, skillSlug));
+    const entries = await readdir(skillDir, { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+        const fullPath = join(skillDir, entry.name);
+        if (entry.isDirectory()) {
+            const childFiles = await listWorkspaceSkillFiles(join(skillSlug, entry.name));
+            files.push(...childFiles.map((file) => ({
+                ...file,
+                name: `${entry.name}/${file.name}`,
+            })));
+            continue;
+        }
+        const info = await stat(fullPath);
+        files.push({
+            name: entry.name,
+            size: info.size,
+            modifiedAt: info.mtimeMs,
+        });
+    }
+    return files.sort((left, right) => left.name.localeCompare(right.name));
+}
+async function readWorkspaceSkillFile(skillSlug, name) {
+    const skillDir = ensureInside(WORKSPACE_SKILLS_DIR, join(WORKSPACE_SKILLS_DIR, skillSlug));
+    const filePath = ensureInside(skillDir, join(skillDir, name));
+    const [content, info] = await Promise.all([
+        readFile(filePath, "utf-8"),
+        stat(filePath),
+    ]);
+    return {
+        name,
+        content,
+        size: info.size,
+        modifiedAt: info.mtime.toISOString(),
+    };
+}
+async function writeWorkspaceSkillFile(skillSlug, name, content) {
+    const skillDir = ensureInside(WORKSPACE_SKILLS_DIR, join(WORKSPACE_SKILLS_DIR, skillSlug));
+    const filePath = ensureInside(skillDir, join(skillDir, name));
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, content, "utf-8");
+    const info = await stat(filePath);
+    return { name, size: info.size, modifiedAt: info.mtime.toISOString() };
+}
+async function findGitRoot(startDir) {
+    let current = resolve(startDir);
+    for (let i = 0; i < 10; i++) {
+        try {
+            await access(join(current, ".git"));
+            return current;
+        }
+        catch {
+            /* not here, walk up */
+        }
+        const parent = dirname(current);
+        if (parent === current)
+            return null;
+        current = parent;
+    }
+    return null;
+}
+function runGit(repoRoot, args) {
+    return new Promise((resolveRun) => {
+        execFile("git", ["-C", repoRoot, ...args], { timeout: 5000, encoding: "utf-8" }, (err, stdout, stderr) => {
+            const code = err && typeof err.code === "number"
+                ? (err.code)
+                : err
+                    ? 1
+                    : 0;
+            resolveRun({ stdout: String(stdout ?? ""), stderr: String(stderr ?? ""), code });
+        });
+    });
+}
+async function commitWorkspaceSkillFile(skillSlug, name, message) {
+    const skillDir = ensureInside(WORKSPACE_SKILLS_DIR, join(WORKSPACE_SKILLS_DIR, skillSlug));
+    const filePath = ensureInside(skillDir, join(skillDir, name));
+    const repoRoot = await findGitRoot(dirname(filePath));
+    if (!repoRoot)
+        return { committed: false, reason: "not_a_git_repo" };
+    const rel = relative(repoRoot, filePath);
+    const add = await runGit(repoRoot, ["add", "--", rel]);
+    if (add.code !== 0) {
+        return { committed: false, reason: "failure", error: add.stderr || add.stdout };
+    }
+    const commit = await runGit(repoRoot, ["commit", "--only", "--", rel, "-m", message]);
+    if (commit.code !== 0) {
+        const out = `${commit.stdout}\n${commit.stderr}`.toLowerCase();
+        if (out.includes("nothing to commit") || out.includes("no changes added")) {
+            return { committed: false, reason: "nothing_to_commit" };
+        }
+        return { committed: false, reason: "failure", error: commit.stderr || commit.stdout };
+    }
+    const rev = await runGit(repoRoot, ["rev-parse", "--short", "HEAD"]);
+    const sha = rev.stdout.trim();
+    return { committed: true, commit: sha };
 }
 function chatCacheMiddleware() {
     ensureCacheDir();
@@ -213,11 +320,123 @@ function chatCacheMiddleware() {
         },
     };
 }
+function workspaceSkillsMiddleware() {
+    return {
+        name: "workspace-skills-api",
+        configureServer(server) {
+            server.middlewares.use(async (incomingReq, res, next) => {
+                const req = incomingReq;
+                const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+                const pathname = url.pathname;
+                if (!pathname.startsWith("/api/workspace-skills/")) {
+                    next();
+                    return;
+                }
+                const sendJson = (statusCode, data) => {
+                    const body = JSON.stringify(data);
+                    res.writeHead(statusCode, {
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type",
+                    });
+                    res.end(body);
+                };
+                const readBody = () => new Promise((resolvePromise, rejectPromise) => {
+                    const parts = [];
+                    req.on("data", (chunk) => parts.push(String(chunk)));
+                    req.on("end", () => {
+                        try {
+                            const raw = parts.join("");
+                            resolvePromise(raw ? JSON.parse(raw) : {});
+                        }
+                        catch (err) {
+                            rejectPromise(err);
+                        }
+                    });
+                    req.on("error", (err) => rejectPromise(err));
+                });
+                try {
+                    if (req.method === "OPTIONS") {
+                        res.writeHead(204, {
+                            "Access-Control-Allow-Origin": "*",
+                            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                            "Access-Control-Allow-Headers": "Content-Type",
+                        });
+                        res.end();
+                        return;
+                    }
+                    if (req.method === "GET" && pathname === "/api/workspace-skills/list") {
+                        const skillSlug = url.searchParams.get("slug");
+                        if (!skillSlug) {
+                            sendJson(400, { error: "Missing slug" });
+                            return;
+                        }
+                        const files = await listWorkspaceSkillFiles(skillSlug);
+                        sendJson(200, {
+                            agentId: skillSlug,
+                            workspace: "~/.openclaw/workspace/skills",
+                            files,
+                        });
+                        return;
+                    }
+                    if (req.method === "GET" && pathname === "/api/workspace-skills/file") {
+                        const skillSlug = url.searchParams.get("slug");
+                        const name = url.searchParams.get("name");
+                        if (!skillSlug || !name) {
+                            sendJson(400, { error: "Missing slug or name" });
+                            return;
+                        }
+                        const file = await readWorkspaceSkillFile(skillSlug, name);
+                        sendJson(200, {
+                            agentId: skillSlug,
+                            workspace: "~/.openclaw/workspace/skills",
+                            file,
+                        });
+                        return;
+                    }
+                    if (req.method === "POST" && pathname === "/api/workspace-skills/save") {
+                        const body = await readBody();
+                        const skillSlug = typeof body.slug === "string" ? body.slug : "";
+                        const name = typeof body.name === "string" ? body.name : "";
+                        const content = typeof body.content === "string" ? body.content : null;
+                        if (!skillSlug || !name || content === null) {
+                            sendJson(400, { error: "Missing slug, name or content" });
+                            return;
+                        }
+                        const info = await writeWorkspaceSkillFile(skillSlug, name, content);
+                        sendJson(200, { agentId: skillSlug, file: info });
+                        return;
+                    }
+                    if (req.method === "POST" && pathname === "/api/workspace-skills/commit") {
+                        const body = await readBody();
+                        const skillSlug = typeof body.slug === "string" ? body.slug : "";
+                        const name = typeof body.name === "string" ? body.name : "";
+                        const message = typeof body.message === "string" && body.message.trim().length > 0
+                            ? body.message
+                            : `chore(skill): update ${skillSlug}/${name} via OpenClaw Office`;
+                        if (!skillSlug || !name) {
+                            sendJson(400, { error: "Missing slug or name" });
+                            return;
+                        }
+                        const result = await commitWorkspaceSkillFile(skillSlug, name, message);
+                        sendJson(200, result);
+                        return;
+                    }
+                    next();
+                }
+                catch (error) {
+                    sendJson(500, { error: String(error) });
+                }
+            });
+        },
+    };
+}
 export default defineConfig({
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
     },
-    plugins: [react(), tailwindcss(), chatCacheMiddleware()],
+    plugins: [react(), tailwindcss(), chatCacheMiddleware(), workspaceSkillsMiddleware()],
     resolve: {
         alias: {
             "@": resolve(rootDir, "./src"),

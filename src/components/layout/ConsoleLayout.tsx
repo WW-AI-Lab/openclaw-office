@@ -9,7 +9,7 @@ export function ConsoleLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isChatRoute = location.pathname === "/chat";
-  const isWorkbenchRoute = location.pathname === "/skill-workbench";
+  const isWorkbenchRoute = location.pathname.startsWith("/skill-workbench");
   const isFullWidthRoute = isChatRoute || isWorkbenchRoute;
 
   const sidebarNavItems = [

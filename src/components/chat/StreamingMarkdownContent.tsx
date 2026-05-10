@@ -24,6 +24,14 @@ interface StreamingMarkdownContentProps {
 const PARAGRAPH_BREAK = /\n\n/;
 const CHUNK_THRESHOLD = 500;
 
+function renderCodeFence(text: string) {
+  return (
+    <pre className="overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-800 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+      <code>{text}</code>
+    </pre>
+  );
+}
+
 function isCodeBlockOpen(text: string): boolean {
   const fenceMatches = text.match(/^```/gm);
   return fenceMatches !== null && fenceMatches.length % 2 !== 0;
@@ -60,7 +68,8 @@ function splitCompletedChunks(text: string): { completed: string; tail: string }
   };
 }
 
-const markdownComponents = {
+function createMarkdownComponents(renderMermaidPreview: boolean) {
+  return {
   p: ({ children, ...props }: Record<string, unknown>) => {
     const { node: _node, ...rest } = props as Record<string, unknown> & { node?: unknown };
     return (
@@ -159,14 +168,11 @@ const markdownComponents = {
     }
     if (className === "language-mermaid") {
       const text = extractTextContent(children);
+      if (!renderMermaidPreview) {
+        return renderCodeFence(text);
+      }
       return (
-        <Suspense
-          fallback={
-            <pre className="overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs dark:border-gray-700 dark:bg-gray-950">
-              <code>{text}</code>
-            </pre>
-          }
-        >
+        <Suspense fallback={renderCodeFence(text)}>
           <MermaidPreview source={text} />
         </Suspense>
       );
@@ -193,7 +199,8 @@ const markdownComponents = {
       </a>
     );
   },
-};
+  };
+}
 
 export const StreamingMarkdownContent = memo(function StreamingMarkdownContent({
   content,
@@ -233,6 +240,7 @@ export const StreamingMarkdownContent = memo(function StreamingMarkdownContent({
     () => (isStreaming ? splitCompletedChunks(renderSource) : { completed: "", tail: renderSource }),
     [renderSource, isStreaming],
   );
+  const markdownComponents = useMemo(() => createMarkdownComponents(!isStreaming), [isStreaming]);
 
   const completedNode = useMemo(() => {
     if (!completed) return null;

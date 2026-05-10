@@ -129,7 +129,7 @@ export class WsAdapter implements GatewayAdapter {
   async chatInject(sessionKey: string, content: string): Promise<void> {
     await this.rpcClient.request("chat.inject", {
       sessionKey,
-      content,
+      message: content,
     });
   }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Check, Copy, PanelRightClose, Pencil } from "lucide-react";
@@ -8,6 +8,7 @@ import {
   readMermaidFromContent,
   useSkillWorkbenchStore,
 } from "@/store/console-stores/skill-workbench-store";
+import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import { WorkbenchChat } from "@/components/console/skills/WorkbenchChat";
 import { FlowchartPanel } from "@/components/console/skills/FlowchartPanel";
 import { SkillFileViewer } from "@/components/console/skills/SkillFileViewer";
@@ -28,6 +29,9 @@ export function SkillWorkbenchDetailPage() {
   const setMermaidSource = useSkillWorkbenchStore((s) => s.setMermaidSource);
   const setFlowchartDocument = useSkillWorkbenchStore((s) => s.setFlowchartDocument);
   const resetMermaid = useSkillWorkbenchStore((s) => s.resetMermaid);
+  const setPendingAutoSendMessage = useSkillWorkbenchStore((s) => s.setPendingAutoSendMessage);
+  const flowchartDocument = useSkillWorkbenchStore((s) => s.flowchartDocument);
+  const isChatStreaming = useChatDockStore((s) => s.isStreaming);
 
   const [fileList, setFileList] = useState<string[]>([]);
   const [selectedItem, setSelectedItem] = useState<string>(FLOWCHART_ITEM);
@@ -37,6 +41,7 @@ export function SkillWorkbenchDetailPage() {
   const [hasFlowchart, setHasFlowchart] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editingSessionStarted, setEditingSessionStarted] = useState(false);
+  const [isGeneratingFlowchart, setIsGeneratingFlowchart] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const skill = useMemo(() => skills.find((s) => s.slug === slug), [skills, slug]);
@@ -58,9 +63,29 @@ export function SkillWorkbenchDetailPage() {
     resetMermaid();
     setEditingSessionStarted(false);
     setSidebarOpen(false);
+    setIsGeneratingFlowchart(false);
   }, [slug, skill?.name, setCurrentSkill, setMode, resetMermaid]);
 
   // Load file tree + flowchart for this skill.
+  const loadFlowchartFromDisk = useCallback(
+    async (targetSlug: string, opts?: { markLoaded?: boolean }) => {
+      try {
+        const flowchart = await workspaceSkillsGet(targetSlug, FLOWCHART_FILE_NAME);
+        const mermaid = readMermaidFromContent(flowchart.file.content);
+        setFlowchartDocument(flowchart.file.content);
+        if (mermaid) {
+          setMermaidSource(mermaid);
+          if (opts?.markLoaded) setHasFlowchart(true);
+        }
+        return true;
+      } catch {
+        // FLOWCHART.md may not exist yet.
+        return false;
+      }
+    },
+    [setFlowchartDocument, setMermaidSource],
+  );
+
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
@@ -70,17 +95,10 @@ export function SkillWorkbenchDetailPage() {
       setFileList([]);
       setHasFlowchart(false);
       try {
-        try {
-          const flowchart = await workspaceSkillsGet(slug, FLOWCHART_FILE_NAME);
-          if (cancelled) return;
-          const mermaid = readMermaidFromContent(flowchart.file.content);
-          setFlowchartDocument(flowchart.file.content);
-          if (mermaid) {
-            setMermaidSource(mermaid);
-            setHasFlowchart(true);
-          }
-        } catch {
-          // FLOWCHART.md may not exist yet.
+        const loaded = await loadFlowchartFromDisk(slug, { markLoaded: true });
+        if (cancelled) return;
+        if (!loaded) {
+          // Nothing on disk yet; keep state cleared.
         }
 
         try {
@@ -103,7 +121,41 @@ export function SkillWorkbenchDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, setFlowchartDocument, setMermaidSource]);
+  }, [slug, loadFlowchartFromDisk]);
+
+  // Refresh FLOWCHART.md + file list from disk when a chat streaming turn
+  // finishes while the user is actively editing/generating in this detail
+  // page. This keeps the multi-chart preview in sync after the AI writes
+  // FLOWCHART.md via tools, without requiring a manual page refresh.
+  const wasStreamingRef = useRef(false);
+  useEffect(() => {
+    if (!slug) return;
+    const prev = wasStreamingRef.current;
+    wasStreamingRef.current = isChatStreaming;
+    if (!prev || isChatStreaming) return;
+    if (!editingSessionStarted) return;
+
+    let cancelled = false;
+    const refresh = async () => {
+      await loadFlowchartFromDisk(slug, { markLoaded: true });
+      if (cancelled) return;
+      try {
+        const result = await workspaceSkillsList(slug);
+        if (cancelled) return;
+        const names = result.files.map((f) => f.name);
+        setFileList(names);
+        if (names.some((n) => n.toUpperCase() === FLOWCHART_FILE_NAME.toUpperCase())) {
+          setHasFlowchart(true);
+        }
+      } catch {
+        // Ignore list refresh errors.
+      }
+    };
+    void refresh();
+    return () => {
+      cancelled = true;
+    };
+  }, [isChatStreaming, slug, editingSessionStarted, loadFlowchartFromDisk]);
 
   // Load selected file content.
   useEffect(() => {
@@ -143,6 +195,31 @@ export function SkillWorkbenchDetailPage() {
     setEditingSessionStarted(true);
     setSidebarOpen(true);
   }, [setMode, enterWorkbench]);
+
+  // One-click flowchart generation: same interaction as "modify this skill",
+  // but also asks enterWorkbench() to auto-send the flowchart generation prompt
+  // (via pendingAutoSendMessage). The prompt itself lives in skill-workbench-store.
+  const handleGenerateFlowchart = useCallback(() => {
+    setPendingAutoSendMessage("generate");
+    setMode("edit");
+    void enterWorkbench();
+    setEditingSessionStarted(true);
+    setSidebarOpen(true);
+    // Mark the preview as "generating" so the empty state shows a spinner
+    // instead of the generate button while the AI is working.
+    setIsGeneratingFlowchart(true);
+  }, [setPendingAutoSendMessage, setMode, enterWorkbench]);
+
+  // Clear the generating flag only once FLOWCHART.md has actually been
+  // loaded from disk. The panel now renders the full markdown document
+  // directly, so streaming-extracted mermaid source alone is not enough
+  // to dismiss the "generating" placeholder.
+  useEffect(() => {
+    if (!isGeneratingFlowchart) return;
+    if (flowchartDocument.trim()) {
+      setIsGeneratingFlowchart(false);
+    }
+  }, [isGeneratingFlowchart, flowchartDocument]);
 
   return (
     <>
@@ -215,7 +292,10 @@ export function SkillWorkbenchDetailPage() {
         {/* Middle: main view */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {selectedItem === FLOWCHART_ITEM ? (
-            <FlowchartPanel />
+            <FlowchartPanel
+              onGenerate={handleGenerateFlowchart}
+              isGenerating={isGeneratingFlowchart}
+            />
           ) : (
             <SkillFileViewer
               skillSlug={slug}

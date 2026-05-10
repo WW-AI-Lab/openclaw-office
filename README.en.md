@@ -43,6 +43,7 @@ Full system management interface with dedicated pages:
 | **Agents**    | Agent list/create/delete, detail tabs (Overview, Channels, Cron, Skills, Tools, Files)                         |
 | **Channels**  | Channel cards, configuration dialogs, stats, WhatsApp QR binding                                               |
 | **Skills**    | Skill marketplace, install options, skill detail dialogs                                                       |
+| **Skill Workbench** ✨ | **Skills development platform** — nested routes (list / create / detail), AI-assisted creation and editing via side chat, automated FLOWCHART.md generation with pure-Markdown multi-chart preview |
 | **Cron**      | Scheduled task management and statistics                                                                       |
 | **Settings**  | Provider management (add/edit/model editor), appearance, Gateway, developer, advanced, about, update            |
 
@@ -57,6 +58,20 @@ Full system management interface with dedicated pages:
 - **i18n** — Full Chinese/English bilingual support with runtime language switching
 - **Mock Mode** — Develop without a live Gateway connection
 - **Responsive** — Mobile-optimized with automatic 2D fallback
+
+---
+
+## New: Skill Workbench (Skills Development Platform)
+
+Starting from `2026.5.10-beta.1`, the console ships a new **Skill Workbench** — a full AI-assisted development environment for Skills:
+
+- **Nested three-page routing**: `/skill-workbench` (list), `/skill-workbench/create` (wizard), `/skill-workbench/:slug` (detail)
+- **Chat-side-panel driven development**: create and modify Skills through a conversation; file changes are flushed to disk in real time
+- **Automated FLOWCHART.md generation**: a built-in guard skill (`skill-workbench-mermaid-guard`) produces compliant, colored Mermaid flowcharts (single- or multi-chart mode) on demand
+- **Pure-Markdown multi-chart preview**: the flowchart panel renders multiple Mermaid fenced blocks directly through the Markdown pipeline
+- **Zero-setup default skill install**: on first entry, the embedded server copies bundled default skills from the npm package into `~/.openclaw/workspace/skills/` — no manual install required
+
+See the full guide in [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md).
 
 ---
 

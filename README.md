@@ -43,6 +43,7 @@
 | **Agents**    | Agent 列表/创建/删除，详情多 Tab（Overview/Channels/Cron/Skills/Tools/Files）                                        |
 | **Channels**  | 渠道卡片、配置对话框、统计、WhatsApp QR 绑定流程                                                                     |
 | **Skills**    | 技能市场、安装选项、技能详情                                                                                         |
+| **Skill Workbench** ✨ | **Skills 开发平台** — 三页面（列表 / 创建 / 详情）嵌套路由，聊天侧边栏驱动 AI 协作创建和修改 Skill，FLOWCHART.md 自动生成并提供纯 Markdown 多图预览 |
 | **Cron**      | 定时任务管理和统计                                                                                                   |
 | **Settings**  | Provider 管理（添加/编辑/模型编辑器）、外观/Gateway/开发者/高级/关于/更新                                            |
 
@@ -57,6 +58,20 @@
 - **国际化** — 完整的中英文双语支持，运行时语言切换
 - **Mock 模式** — 无需连接 Gateway 即可开发
 - **响应式** — 移动端优化，自动切换 2D 模式
+
+---
+
+## 新特性：Skill Workbench（Skills 开发平台）
+
+从 `2026.5.10-beta.1` 起，控制台新增了 **Skill Workbench**（Skills 开发平台），把「创建 Skill / 修改 Skill / 生成流程图」整合成一个完整的 AI 协作开发环境：
+
+- **三页面嵌套路由**：`/skill-workbench` 列表页、`/skill-workbench/create` 创建向导、`/skill-workbench/:slug` 详情页
+- **聊天侧边栏驱动开发**：在侧边栏和 AI 对话即可创建、修改 Skill，文件变动实时同步磁盘
+- **FLOWCHART.md 自动生成**：内置 [`skill-workbench-mermaid-guard`](./SKILL-WORKBENCH.md) 守卫技能，一键生成符合规范的彩色 Mermaid 流程图，支持单图与多图模式
+- **纯 Markdown 多图预览**：流程图预览完全走 Markdown 渲染链路，一次渲染多个 Mermaid 代码块
+- **默认技能自动安装**：首次进入工作台时，嵌入式服务端会自动把 npm 包内置的默认 Skill 拷贝到 `~/.openclaw/workspace/skills/`，无需手工安装
+
+详细使用指南见 [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md)。
 
 ---
 

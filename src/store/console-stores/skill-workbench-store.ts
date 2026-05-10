@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { getAdapter } from "@/gateway/adapter-provider";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
+import { workspaceSkillsEnsureDefaults } from "@/gateway/workspace-skills-client";
 
 /**
  * Workbench interaction mode.
@@ -43,16 +44,19 @@ function buildFlowchartTaskPrompt(skillSlug: string): string {
   const flowchartFile = `${skillDir}/FLOWCHART.md`;
 
   return [
-    `为 skill ${skillSlug} 生成或回显 Mermaid 流程图，并确保 FLOWCHART.md 可用。严格遵循已自动加载的默认 Skill：${MERMAID_GUARD_SKILL}。`,
+    `为 skill ${skillSlug} 生成或更新 Mermaid 流程图，并确保 FLOWCHART.md 可用。严格遵循已自动加载的默认 Skill：${MERMAID_GUARD_SKILL}。`,
     "直接执行，不要先解释。",
-    `1. 先读取 ${skillFile}。`,
-    `2. 如果 ${flowchartFile} 已存在，先读取它；若其中已有 Mermaid 代码块，只复用或最小修订第一个总览流程图，不要回显第二个或第三个 Mermaid 代码块。`,
-    `3. 如果 ${flowchartFile} 不存在或内容不足，再根据 SKILL.md 生成一个总览 Mermaid 流程图，并写入 ${flowchartFile}。`,
-    "4. 统一格式要求：flowchart TD；节点 ID 仅用 ASCII 字母/数字/下划线；中文或含空格/斜杠/括号/问号/冒号/emoji 的节点和子图标题必须放进双引号；节点内换行一律使用 <br/>；边标签只使用短标签（如 是/否/成功/失败）。",
-    "5. 在输出前自检：只保留一个完整的 ```mermaid 代码块；围栏闭合；不得夹带分析过程；不得输出自然语言摘要替代流程图。",
-    "6. 优先使用 read / write / edit 工具。",
+    `1. 先读取 ${skillFile}，必要时读取 ${flowchartFile}。`,
+    `2. 如果 ${flowchartFile} 已存在且结构合理，优先做最小修订；如果不存在或不足以覆盖 SKILL.md 的执行逻辑，请基于 SKILL.md 生成完整的 FLOWCHART.md 并写入 ${flowchartFile}。`,
+    "3. 允许在 FLOWCHART.md 中使用 **一个或多个** Mermaid 代码块：",
+    "   - 第一个代码块必须是总览流程图（flowchart TD）。",
+    "   - 复杂 Skill 可按阶段/分支/降级策略等补充多个子流程图，每个子图前用 `##` 二级标题说明用途。",
+    "   - 每个 Mermaid 代码块必须各自完整，不要跨代码块互相引用节点 ID。",
+    "4. 统一格式要求：节点 ID 仅用 ASCII 字母/数字/下划线；中文或含空格/斜杠/括号/问号/冒号/emoji 的节点和子图标题必须放进双引号；节点内换行一律使用 <br/>；边标签只使用短标签（如 是/否/成功/失败）。",
+    "5. 在输出前自检：每个 ```mermaid 围栏都闭合；每块首行是合法的 diagram type（flowchart TD/LR、sequenceDiagram 等）；不得夹带分析过程；不得输出自然语言摘要替代流程图。",
+    "6. 优先使用 read / write / edit 工具直接把完整 FLOWCHART.md 写入磁盘。",
     "7. 最终回复必须只有两部分：",
-    "   - 第一部分：且仅有一个 ```mermaid 代码块",
+    "   - 第一部分：FLOWCHART.md 的主要章节（标题 + mermaid 代码块，使用三个反引号围栏），可包含一个或多个代码块",
     `   - 第二部分：一句中文状态说明，明确说明已读取现有 FLOWCHART.md 或已写入 ${flowchartFile}`,
     "8. 不要把流程图改写成条目列表、段落摘要或说明文。",
     "9. 不要输出分析过程，不要停留在中间状态。",
@@ -96,6 +100,17 @@ function extractMermaidFromText(text: string): string | null {
 
 export function readMermaidFromContent(text: string): string {
   return extractMermaidFromText(text) ?? "";
+}
+
+/**
+ * Count the number of ```mermaid``` fenced code blocks in a text.
+ * Used by FlowchartPanel to decide whether to fall back to single-chart
+ * preview or keep multi-chart document preview while the user edits.
+ */
+export function countMermaidBlocks(text: string): number {
+  if (!text) return 0;
+  const re = /```mermaid\s*\n[\s\S]*?```/g;
+  return (text.match(re) ?? []).length;
 }
 
 interface SkillWorkbenchState {
@@ -174,6 +189,18 @@ export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => 
   resetMermaid: () => set({ mermaidSource: "", flowchartDocument: "", mermaidConfirmed: false }),
 
   enterWorkbench: async () => {
+    // Ensure that the built-in default workbench skills (e.g. the mermaid
+    // guard) are installed into the user's ~/.openclaw/workspace/skills/
+    // directory before we try to inject them as system context. The embedded
+    // server ships these skills inside the npm package and will copy them
+    // on demand. Failures here are silent: the workbench still works, the
+    // injected skill section for a missing skill will just be dropped.
+    try {
+      await workspaceSkillsEnsureDefaults(DEFAULT_WORKBENCH_SKILLS);
+    } catch (err) {
+      console.warn("[skill-workbench] ensure default skills failed:", err);
+    }
+
     const chatStore = useChatDockStore.getState();
     const { savedSessionKey, mode, currentSkillSlug } = get();
     // Use the currently active agent (e.g. "main") so the Gateway routes correctly.
