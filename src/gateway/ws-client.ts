@@ -14,6 +14,8 @@ const MAX_RECONNECT_ATTEMPTS = 20;
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
 const JITTER_MS = 1000;
+const MIN_PROTOCOL_VERSION = 3;
+const MAX_PROTOCOL_VERSION = 4;
 
 type EventHandler = (event: GatewayEventFrame) => void;
 type StatusHandler = (status: ConnectionStatus, error?: string) => void;
@@ -200,8 +202,8 @@ export class GatewayWsClient {
     const role = "operator";
     const scopes = ["operator.admin", "operator.read"];
     const params: ConnectParams = {
-      minProtocol: 3,
-      maxProtocol: 3,
+      minProtocol: MIN_PROTOCOL_VERSION,
+      maxProtocol: MAX_PROTOCOL_VERSION,
       role,
       client: {
         id: "openclaw-control-ui",

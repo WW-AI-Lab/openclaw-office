@@ -63,7 +63,7 @@ Full system management interface with dedicated pages:
 
 ## New: Skill Workbench (Skills Development Platform)
 
-Starting from `2026.5.10-beta.1`, the console ships a new **Skill Workbench** — a full AI-assisted development environment for Skills:
+Starting with `2026.5.20`, the console formally ships **Skill Workbench** — a full AI-assisted development environment for Skills:
 
 - **Nested three-page routing**: `/skill-workbench` (list), `/skill-workbench/create` (wizard), `/skill-workbench/:slug` (detail)
 - **Chat-side-panel driven development**: create and modify Skills through a conversation; file changes are flushed to disk in real time

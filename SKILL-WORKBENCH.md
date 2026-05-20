@@ -1,7 +1,7 @@
 # Skill Workbench — Skills 开发平台使用指南
 
 > 一个面向 OpenClaw Skills 的可视化开发平台，集成在 OpenClaw Office 控制台中。
-> 发布版本：`2026.5.10-beta.1` 起正式提供。
+> 正式发布版本：`2026.5.20`。
 
 ---
 
@@ -106,7 +106,7 @@
 | `skill-workbench-creator`            | 引导 AI 生成规范的 `SKILL.md` 骨架                    |
 | `skill-workbench-mermaid-guard` ✨   | 保障 `FLOWCHART.md` 输出的格式 / 颜色 / 规范           |
 
-从 `2026.5.10-beta.1` 起：
+从 `2026.5.20` 起：
 
 - `skill-workbench-mermaid-guard` 的完整源码随 npm 包一起发布（放在 `bin/skills/` 目录下）
 - 嵌入式 Node 服务端新增 `POST /api/workspace-skills/ensure-defaults` 端点
@@ -164,6 +164,9 @@ A: 详情页的文件树与 FLOWCHART 预览会在每一轮聊天流结束时自
 
 ## 10. 版本记录
 
+- **2026.5.20** — 正式版，兼容新版 OpenClaw Gateway 握手协议
+  - WebSocket connect 改为协商 `protocol 3-4`
+  - 兼容本机新版 OpenClaw / Gateway `2026.5.12`
 - **2026.5.10-beta.1** — 首次对外发布 Skill Workbench
   - 三页面嵌套路由
   - FLOWCHART.md 纯 Markdown 多图预览

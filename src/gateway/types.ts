@@ -1,5 +1,5 @@
 // Gateway WebSocket 协议类型定义
-// 基于 OpenClaw Gateway 源码（protocol v3）对齐
+// 基于 OpenClaw Gateway 源码（protocol v3-v4）对齐
 
 // --- 请求/响应帧 ---
 

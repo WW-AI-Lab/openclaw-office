@@ -102,6 +102,8 @@ describe("GatewayWsClient", () => {
     const req = JSON.parse(ws.sent[0]);
     expect(req.type).toBe("req");
     expect(req.method).toBe("connect");
+    expect(req.params.minProtocol).toBe(3);
+    expect(req.params.maxProtocol).toBe(4);
     expect(req.params.client.id).toBe("openclaw-control-ui");
     expect(req.params.auth.token).toBe("test-token");
   });

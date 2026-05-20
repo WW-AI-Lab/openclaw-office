@@ -63,7 +63,7 @@
 
 ## 新特性：Skill Workbench（Skills 开发平台）
 
-从 `2026.5.10-beta.1` 起，控制台新增了 **Skill Workbench**（Skills 开发平台），把「创建 Skill / 修改 Skill / 生成流程图」整合成一个完整的 AI 协作开发环境：
+从 `2026.5.20` 起，控制台正式提供 **Skill Workbench**（Skills 开发平台），把「创建 Skill / 修改 Skill / 生成流程图」整合成一个完整的 AI 协作开发环境：
 
 - **三页面嵌套路由**：`/skill-workbench` 列表页、`/skill-workbench/create` 创建向导、`/skill-workbench/:slug` 详情页
 - **聊天侧边栏驱动开发**：在侧边栏和 AI 对话即可创建、修改 Skill，文件变动实时同步磁盘
