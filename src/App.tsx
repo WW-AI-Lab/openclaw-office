@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
+import { AuthGate } from "@/components/auth/AuthGate";
 import { ConsoleLayout } from "@/components/layout/ConsoleLayout";
 import { FloorPlan } from "@/components/office-2d/FloorPlan";
 import { AgentsPage } from "@/components/pages/AgentsPage";
@@ -18,6 +19,7 @@ import { ChatWorkspaceBootstrap } from "@/components/chat/ChatWorkspaceBootstrap
 import type { PageId } from "@/gateway/types";
 import { useGatewayConnection } from "@/hooks/useGatewayConnection";
 import { useResponsive } from "@/hooks/useResponsive";
+import { useAuthStore } from "@/store/auth-store";
 import { useOfficeStore } from "@/store/office-store";
 
 function ThemeSync() {
@@ -93,6 +95,13 @@ export function App() {
   );
   const gatewayToken = injected?.gatewayToken || import.meta.env.VITE_GATEWAY_TOKEN || "";
   const { isMobile } = useResponsive();
+
+  // Seed the auth store defaults and restore any stored session before connecting.
+  const hydrate = useAuthStore((s) => s.hydrate);
+  useEffect(() => {
+    hydrate({ gatewayUrl, token: gatewayToken });
+  }, [hydrate, gatewayUrl, gatewayToken]);
+
   const { wsClient } = useGatewayConnection({ url: gatewayUrl, token: gatewayToken });
 
   // DEV-only: 暴露手动会议 API 到浏览器控制台以便调试
@@ -110,25 +119,27 @@ export function App() {
     <>
       <ThemeSync />
       <PageTracker />
-      <ChatWorkspaceBootstrap wsClient={wsClient} />
-      <Routes>
-        <Route path="/" element={<AppShell isMobile={isMobile}><FloorPlan /></AppShell>} />
-        <Route element={<ConsoleLayout />}>
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/agents" element={<AgentsPage />} />
-          <Route path="/channels" element={<ChannelsPage />} />
-          <Route path="/skills" element={<SkillsPage />} />
-          <Route path="/skill-workbench" element={<SkillWorkbenchLayout />}>
-            <Route index element={<SkillWorkbenchHomePage />} />
-            <Route path="new" element={<SkillWorkbenchCreatePage />} />
-            <Route path=":slug" element={<SkillWorkbenchDetailPage />} />
+      <AuthGate>
+        <ChatWorkspaceBootstrap wsClient={wsClient} />
+        <Routes>
+          <Route path="/" element={<AppShell isMobile={isMobile}><FloorPlan /></AppShell>} />
+          <Route element={<ConsoleLayout />}>
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/channels" element={<ChannelsPage />} />
+            <Route path="/skills" element={<SkillsPage />} />
+            <Route path="/skill-workbench" element={<SkillWorkbenchLayout />}>
+              <Route index element={<SkillWorkbenchHomePage />} />
+              <Route path="new" element={<SkillWorkbenchCreatePage />} />
+              <Route path=":slug" element={<SkillWorkbenchDetailPage />} />
+            </Route>
+            <Route path="/cron" element={<CronPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
-          <Route path="/cron" element={<CronPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthGate>
     </>
   );
 }

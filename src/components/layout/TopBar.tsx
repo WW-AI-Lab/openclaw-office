@@ -1,7 +1,10 @@
+import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
+import { isMockMode } from "@/gateway/adapter-provider";
 import type { ConnectionStatus, ThemeMode, PageId } from "@/gateway/types";
+import { useAuthStore } from "@/store/auth-store";
 import { useOfficeStore } from "@/store/office-store";
 
 const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";
@@ -48,6 +51,7 @@ export function TopBar({ isMobile = false }: TopBarProps) {
           connectionError={connectionError}
           connectionStatus={connectionStatus}
         />
+        <LogoutButton />
       </div>
     </header>
   );
@@ -151,6 +155,26 @@ function ConnectionIndicator({
         {connectionError && connectionStatus === "error" ? connectionError : statusCfg.label}
       </span>
     </div>
+  );
+}
+
+function LogoutButton() {
+  const { t } = useTranslation("layout");
+  const logout = useAuthStore((s) => s.logout);
+
+  if (isMockMode()) {
+    return null;
+  }
+
+  return (
+    <button
+      onClick={logout}
+      title={t("topbar.logout")}
+      aria-label={t("topbar.logout")}
+      className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
+    >
+      <LogOut className="h-4 w-4" />
+    </button>
   );
 }
 

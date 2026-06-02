@@ -14,11 +14,20 @@
 - [clawhub-store.ts](file://src/store/console-stores/clawhub-store.ts)
 - [skill-workbench-store.ts](file://src/store/console-stores/skill-workbench-store.ts)
 - [chat-dock-store.ts](file://src/store/console-stores/chat-dock-store.ts)
+- [chat-message-normalizer.ts](file://src/store/console-stores/chat-message-normalizer.ts)
+- [chat-session-helpers.ts](file://src/store/console-stores/chat-session-helpers.ts)
 - [office-store.ts](file://src/store/office-store.ts)
 - [session-key-utils.ts](file://src/lib/session-key-utils.ts)
 - [agent-session-cleanup.ts](file://src/store/console-stores/agent-session-cleanup.ts)
 - [adapter-types.ts](file://src/gateway/adapter-types.ts)
 </cite>
+
+## 更新摘要
+**变更内容**
+- Chat Dock Store 从单一文件重构为模块化架构
+- 新增 chat-message-normalizer.ts 专用模块，负责消息标准化处理
+- 新增 chat-session-helpers.ts 专用模块，负责会话管理辅助函数
+- 提高代码可维护性和可测试性，分离关注点
 
 ## 目录
 1. [简介](#简介)
@@ -34,6 +43,8 @@
 
 ## 简介
 本文件系统化梳理控制台 Store 系统，聚焦四大控制台 Store 模块：agents-store（智能体）、channels-store（通信渠道）、skills-store（技能市场与工作台）、cron-store（定时任务）。文档覆盖职责分工、数据流与事件路由、状态初始化与依赖注入、异步操作与错误处理、扩展性与性能监控、调试工具使用等主题，帮助开发者快速理解并高效维护该系统。
+
+**更新** Chat Dock Store 已重构为模块化架构，将消息处理和会话管理功能分离到专用模块中，提高了代码的可维护性和可测试性。
 
 ## 项目结构
 控制台 Store 采用按功能域划分的模块化组织方式，每个 Store 使用 Zustand 管理自身状态与副作用，统一通过 Gateway 适配器访问后端能力。核心 Store 位于 src/store/console-stores，另有 office-store 等全局状态 Store 与通用工具库。
@@ -52,6 +63,11 @@ SVC["service-store.ts"]
 SET["settings-store.ts"]
 CLAW["clawhub-store.ts"]
 WB["skill-workbench-store.ts"]
+CHAT["chat-dock-store.ts"]
+subgraph "Chat Dock 专用模块"
+CMN["chat-message-normalizer.ts"]
+CSH["chat-session-helpers.ts"]
+end
 end
 subgraph "通用"
 ADP["adapter-types.ts"]
@@ -60,7 +76,6 @@ SESSCLEAN["agent-session-cleanup.ts"]
 end
 subgraph "全局"
 OFFICE["office-store.ts"]
-CHAT["chat-dock-store.ts"]
 end
 AS --> ADP
 CS --> ADP
@@ -72,30 +87,19 @@ LOGS --> ADP
 SVC --> ADP
 CLAW --> ADP
 WB --> ADP
+CHAT --> ADP
+CHAT --> CMN
+CHAT --> CSH
 OFFICE --> SK
 OFFICE --> SESSCLEAN
-CHAT --> ADP
 ```
 
-图表来源
-- [agents-store.ts:1-642](file://src/store/console-stores/agents-store.ts#L1-L642)
-- [channels-store.ts:1-104](file://src/store/console-stores/channels-store.ts#L1-L104)
-- [skills-store.ts:1-168](file://src/store/console-stores/skills-store.ts#L1-L168)
-- [cron-store.ts:1-125](file://src/store/console-stores/cron-store.ts#L1-L125)
-- [config-store.ts:1-420](file://src/store/console-stores/config-store.ts#L1-L420)
-- [dashboard-store.ts:1-55](file://src/store/console-stores/dashboard-store.ts#L1-L55)
-- [log-store.ts:1-108](file://src/store/console-stores/log-store.ts#L1-L108)
-- [service-store.ts:1-205](file://src/store/console-stores/service-store.ts#L1-L205)
-- [settings-store.ts:1-51](file://src/store/console-stores/settings-store.ts#L1-L51)
-- [clawhub-store.ts:1-135](file://src/store/console-stores/clawhub-store.ts#L1-L135)
-- [skill-workbench-store.ts:1-247](file://src/store/console-stores/skill-workbench-store.ts#L1-L247)
-- [chat-dock-store.ts:1-800](file://src/store/console-stores/chat-dock-store.ts#L1-L800)
-- [office-store.ts:1-800](file://src/store/office-store.ts#L1-L800)
-- [session-key-utils.ts:1-54](file://src/lib/session-key-utils.ts#L1-L54)
-- [agent-session-cleanup.ts:1-53](file://src/store/console-stores/agent-session-cleanup.ts#L1-L53)
-- [adapter-types.ts:1-200](file://src/gateway/adapter-types.ts#L1-L200)
+**图表来源**
+- [chat-dock-store.ts:18-40](file://src/store/console-stores/chat-dock-store.ts#L18-L40)
+- [chat-message-normalizer.ts:1-261](file://src/store/console-stores/chat-message-normalizer.ts#L1-L261)
+- [chat-session-helpers.ts:1-150](file://src/store/console-stores/chat-session-helpers.ts#L1-L150)
 
-章节来源
+**章节来源**
 - [agents-store.ts:1-642](file://src/store/console-stores/agents-store.ts#L1-L642)
 - [channels-store.ts:1-104](file://src/store/console-stores/channels-store.ts#L1-L104)
 - [skills-store.ts:1-168](file://src/store/console-stores/skills-store.ts#L1-L168)
@@ -107,7 +111,9 @@ CHAT --> ADP
 - [settings-store.ts:1-51](file://src/store/console-stores/settings-store.ts#L1-L51)
 - [clawhub-store.ts:1-135](file://src/store/console-stores/clawhub-store.ts#L1-L135)
 - [skill-workbench-store.ts:1-247](file://src/store/console-stores/skill-workbench-store.ts#L1-L247)
-- [chat-dock-store.ts:1-800](file://src/store/console-stores/chat-dock-store.ts#L1-L800)
+- [chat-dock-store.ts:1-1325](file://src/store/console-stores/chat-dock-store.ts#L1-L1325)
+- [chat-message-normalizer.ts:1-261](file://src/store/console-stores/chat-message-normalizer.ts#L1-L261)
+- [chat-session-helpers.ts:1-150](file://src/store/console-stores/chat-session-helpers.ts#L1-L150)
 - [office-store.ts:1-800](file://src/store/office-store.ts#L1-L800)
 - [session-key-utils.ts:1-54](file://src/lib/session-key-utils.ts#L1-L54)
 - [agent-session-cleanup.ts:1-53](file://src/store/console-stores/agent-session-cleanup.ts#L1-L53)
@@ -125,10 +131,14 @@ CHAT --> ADP
 - settings-store：主题、语言、开发模式偏好持久化。
 - clawhub-store：ClawHub 技能市场搜索、探索与离线模式处理。
 - skill-workbench-store：技能工作台模式切换、会话隔离与上下文注入。
-- chat-dock-store：聊天面板消息队列、历史加载、事件处理与附件管理。
+- chat-dock-store：聊天面板消息队列、历史加载、事件处理与附件管理。**更新**现已模块化，分离消息处理和会话管理功能。
 - office-store：全局办公态（Agent 视觉化、zone 迁移、runIdMap/sessionKeyMap 事件路由）。
 
-章节来源
+**更新** chat-dock-store 现已重构为模块化架构：
+- chat-message-normalizer.ts：负责消息标准化、附件处理、工具调用重建等功能
+- chat-session-helpers.ts：负责会话键构建、会话选择、会话持久化等辅助功能
+
+**章节来源**
 - [agents-store.ts:1-642](file://src/store/console-stores/agents-store.ts#L1-L642)
 - [channels-store.ts:1-104](file://src/store/console-stores/channels-store.ts#L1-L104)
 - [skills-store.ts:1-168](file://src/store/console-stores/skills-store.ts#L1-L168)
@@ -140,7 +150,9 @@ CHAT --> ADP
 - [settings-store.ts:1-51](file://src/store/console-stores/settings-store.ts#L1-L51)
 - [clawhub-store.ts:1-135](file://src/store/console-stores/clawhub-store.ts#L1-L135)
 - [skill-workbench-store.ts:1-247](file://src/store/console-stores/skill-workbench-store.ts#L1-L247)
-- [chat-dock-store.ts:1-800](file://src/store/console-stores/chat-dock-store.ts#L1-L800)
+- [chat-dock-store.ts:1-1325](file://src/store/console-stores/chat-dock-store.ts#L1-L1325)
+- [chat-message-normalizer.ts:1-261](file://src/store/console-stores/chat-message-normalizer.ts#L1-L261)
+- [chat-session-helpers.ts:1-150](file://src/store/console-stores/chat-session-helpers.ts#L1-L150)
 - [office-store.ts:1-800](file://src/store/office-store.ts#L1-L800)
 
 ## 架构总览
@@ -154,6 +166,9 @@ participant CS as "channels-store"
 participant SLS as "skills-store"
 participant CRON as "cron-store"
 participant CFG as "config-store"
+participant CHAT as "chat-dock-store"
+participant CMN as "chat-message-normalizer"
+participant CSH as "chat-session-helpers"
 participant ADP as "Gateway 适配器"
 participant OFF as "office-store"
 UI->>AS : 调用 fetchAgents()/updateAgentModel()
@@ -173,17 +188,20 @@ UI->>CRON : fetchTasks()/addTask()/runTask()
 CRON->>ADP : cronList()/cronAdd()/cronRun()
 ADP-->>CRON : 返回结果
 CRON->>CFG : setRuntimeApplied()
+UI->>CHAT : sendMessage()/handleChatEvent()
+CHAT->>CMN : normalizeHistoryMessages()/appendAssistantSegment()
+CHAT->>CSH : buildSessionKey()/resolveSessionAgentId()
+CHAT->>ADP : chatSend()/chatHistory()/sessionsList()
+ADP-->>CHAT : 返回结果
+CHAT->>CFG : setRuntimeApplied()
 OFF->>OFF : 处理 Agent 事件<br/>解析 runIdMap/sessionKeyMap
 OFF-->>UI : 更新视觉 Agent 与 zone
 ```
 
-图表来源
-- [agents-store.ts:166-449](file://src/store/console-stores/agents-store.ts#L166-L449)
-- [channels-store.ts:39-98](file://src/store/console-stores/channels-store.ts#L39-L98)
-- [skills-store.ts:95-132](file://src/store/console-stores/skills-store.ts#L95-L132)
-- [cron-store.ts:35-87](file://src/store/console-stores/cron-store.ts#L35-L87)
-- [config-store.ts:138-175](file://src/store/console-stores/config-store.ts#L138-L175)
-- [office-store.ts:762-822](file://src/store/office-store.ts#L762-L822)
+**图表来源**
+- [chat-dock-store.ts:18-40](file://src/store/console-stores/chat-dock-store.ts#L18-L40)
+- [chat-message-normalizer.ts:170-182](file://src/store/console-stores/chat-message-normalizer.ts#L170-L182)
+- [chat-session-helpers.ts:40-55](file://src/store/console-stores/chat-session-helpers.ts#L40-L55)
 
 ## 详细组件分析
 
@@ -206,12 +224,7 @@ ClearSessions --> NotifyCfg["通知配置生效"]
 NotifyCfg --> End(["完成"])
 ```
 
-图表来源
-- [agents-store.ts:297-449](file://src/store/console-stores/agents-store.ts#L297-L449)
-- [agent-session-cleanup.ts:38-52](file://src/store/console-stores/agent-session-cleanup.ts#L38-L52)
-- [config-store.ts:177-186](file://src/store/console-stores/config-store.ts#L177-L186)
-
-章节来源
+**章节来源**
 - [agents-store.ts:1-642](file://src/store/console-stores/agents-store.ts#L1-L642)
 - [agent-session-cleanup.ts:1-53](file://src/store/console-stores/agent-session-cleanup.ts#L1-L53)
 - [config-store.ts:1-420](file://src/store/console-stores/config-store.ts#L1-L420)
@@ -238,11 +251,7 @@ CS->>ADP : channelsStatus()
 ADP-->>CS : 渠道列表
 ```
 
-图表来源
-- [channels-store.ts:81-98](file://src/store/console-stores/channels-store.ts#L81-L98)
-- [channels-store.ts:39-48](file://src/store/console-stores/channels-store.ts#L39-L48)
-
-章节来源
+**章节来源**
 - [channels-store.ts:1-104](file://src/store/console-stores/channels-store.ts#L1-L104)
 
 ### skills-store（技能市场与工作台）
@@ -261,11 +270,7 @@ Install --> Poll["轮询安装结果"]
 Poll --> Done["安装完成/失败提示"]
 ```
 
-图表来源
-- [skills-store.ts:95-166](file://src/store/console-stores/skills-store.ts#L95-L166)
-- [config-store.ts:177-186](file://src/store/console-stores/config-store.ts#L177-L186)
-
-章节来源
+**章节来源**
 - [skills-store.ts:1-168](file://src/store/console-stores/skills-store.ts#L1-L168)
 
 ### cron-store（定时任务）
@@ -289,12 +294,7 @@ ADP-->>CRON : 返回结果
 CRON->>CFG : setRuntimeApplied()
 ```
 
-图表来源
-- [cron-store.ts:101-123](file://src/store/console-stores/cron-store.ts#L101-L123)
-- [cron-store.ts:35-87](file://src/store/console-stores/cron-store.ts#L35-L87)
-- [config-store.ts:177-186](file://src/store/console-stores/config-store.ts#L177-L186)
-
-章节来源
+**章节来源**
 - [cron-store.ts:1-125](file://src/store/console-stores/cron-store.ts#L1-L125)
 - [config-store.ts:1-420](file://src/store/console-stores/config-store.ts#L1-L420)
 
@@ -302,7 +302,7 @@ CRON->>CFG : setRuntimeApplied()
 - 职责：配置快照、schema、状态、更新、重启调度；生命周期状态机（保存/应用/重启/断开/重连/完成）。
 - 关键状态：config/hash/path/raw/valid、schemaHints、status/statusLoading/error、updateResult/updateLoading、catalogModels、restartState、lifecycleState。
 - 异步操作：configGet/set/apply/patch、configSchema、statusSummary、modelsList、updateRun。
-- 生命周期：setLifecycleFromWriteResult 根据 restart.scheduled 决定“热重载/需重启/CLI重启”；setRuntimeApplied 标记“即时生效”。
+- 生命周期：setLifecycleFromWriteResult 根据 restart.scheduled 决定"热重载/需重启/CLI重启"；setRuntimeApplied 标记"即时生效"。
 
 ```mermaid
 flowchart TD
@@ -317,18 +317,14 @@ HotReload --> Refresh
 Refresh --> End(["完成"])
 ```
 
-图表来源
-- [config-store.ts:235-349](file://src/store/console-stores/config-store.ts#L235-L349)
-- [config-store.ts:138-186](file://src/store/console-stores/config-store.ts#L138-L186)
-
-章节来源
+**章节来源**
 - [config-store.ts:1-420](file://src/store/console-stores/config-store.ts#L1-L420)
 
 ### dashboard-store（仪表盘）
 - 职责：并发拉取渠道、技能、用量概览，汇总错误。
 - 异步操作：Promise.allSettled 并发调用 channelsStatus/skillsStatus/usageStatus。
 
-章节来源
+**章节来源**
 - [dashboard-store.ts:1-55](file://src/store/console-stores/dashboard-store.ts#L1-L55)
 
 ### log-store（日志）
@@ -336,7 +332,7 @@ Refresh --> End(["完成"])
 - 异步操作：logsTail 定时轮询；visibilitychange 自动暂停/恢复。
 - 性能：最大行数限制与批量追加，避免内存膨胀。
 
-章节来源
+**章节来源**
 - [log-store.ts:1-108](file://src/store/console-stores/log-store.ts#L1-L108)
 
 ### service-store（平台服务）
@@ -344,36 +340,63 @@ Refresh --> End(["完成"])
 - 异步操作：checkAvailable、getServiceStatus、start/stop/restart/install/uninstall。
 - 重试：autoStartGateway 最多重试 3 次，间隔 3 秒。
 
-章节来源
+**章节来源**
 - [service-store.ts:1-205](file://src/store/console-stores/service-store.ts#L1-L205)
 
 ### settings-store（设置）
 - 职责：主题、语言、开发模式偏好本地持久化。
 - 存储：localStorage 键值读写。
 
-章节来源
+**章节来源**
 - [settings-store.ts:1-51](file://src/store/console-stores/settings-store.ts#L1-L51)
 
 ### clawhub-store（ClawHub 市场）
 - 职责：搜索、探索、详情、离线模式；防抖搜索。
 - 异步操作：clawhubSearch/clawhubExplore/clawhubSkillDetail；网络错误标记 offlineMode。
 
-章节来源
+**章节来源**
 - [clawhub-store.ts:1-135](file://src/store/console-stores/clawhub-store.ts#L1-L135)
 
 ### skill-workbench-store（技能工作台）
 - 职责：工作台模式切换、会话隔离、上下文注入、Mermaid 提取。
 - 会话策略：根据当前 Agent 生成独立会话 key，离开时恢复原会话；可注入系统提示。
 
-章节来源
+**章节来源**
 - [skill-workbench-store.ts:1-247](file://src/store/console-stores/skill-workbench-store.ts#L1-L247)
 
 ### chat-dock-store（聊天面板）
 - 职责：消息队列、历史加载、事件处理、附件管理、导出。
 - 事件处理：applyChatEventToRuntime 解析 delta/final/error/aborted 状态，合并消息与工具调用。
+- **更新**模块化重构：消息标准化和会话管理功能已分离到专用模块。
 
-章节来源
-- [chat-dock-store.ts:1-800](file://src/store/console-stores/chat-dock-store.ts#L1-L800)
+**更新** 模块化架构改进：
+- **消息标准化**：chat-message-normalizer.ts 提供消息提取、附件处理、工具调用重建、助手消息拼接等功能
+- **会话管理**：chat-session-helpers.ts 提供会话键构建、会话选择、会话持久化、消息计数提示等辅助功能
+- **事件处理**：chat-dock-store 专注于事件路由、状态管理和用户交互
+
+```mermaid
+flowchart TD
+Start(["聊天事件处理"]) --> Parse["解析事件状态"]
+Parse --> Delta{"delta/final/error/aborted?"}
+Delta -- delta --> Stream["流式消息处理"]
+Delta -- final --> Append["追加助手消息"]
+Delta -- error --> Error["错误处理"]
+Delta -- aborted --> Abort["中断处理"]
+Stream --> Normalize["消息标准化"]
+Append --> Normalize
+Normalize --> Persist["持久化存储"]
+Persist --> Queue["处理消息队列"]
+Queue --> End(["完成"])
+```
+
+**图表来源**
+- [chat-dock-store.ts:185-317](file://src/store/console-stores/chat-dock-store.ts#L185-L317)
+- [chat-message-normalizer.ts:170-182](file://src/store/console-stores/chat-message-normalizer.ts#L170-L182)
+
+**章节来源**
+- [chat-dock-store.ts:1-1325](file://src/store/console-stores/chat-dock-store.ts#L1-L1325)
+- [chat-message-normalizer.ts:1-261](file://src/store/console-stores/chat-message-normalizer.ts#L1-L261)
+- [chat-session-helpers.ts:1-150](file://src/store/console-stores/chat-session-helpers.ts#L1-L150)
 
 ### office-store（全局办公态）
 - 职责：Agent 视觉化、zone 迁移、协作链接、指标计算；runIdMap 与 sessionKeyMap 事件路由。
@@ -394,11 +417,11 @@ KeyMap2 --> Assign["分配到具体 Agent"]
 Assign --> Update["更新视觉状态/zone/会话映射"]
 ```
 
-图表来源
+**图表来源**
 - [office-store.ts:762-822](file://src/store/office-store.ts#L762-L822)
 - [session-key-utils.ts:15-53](file://src/lib/session-key-utils.ts#L15-L53)
 
-章节来源
+**章节来源**
 - [office-store.ts:1-800](file://src/store/office-store.ts#L1-L800)
 - [session-key-utils.ts:1-54](file://src/lib/session-key-utils.ts#L1-L54)
 
@@ -406,6 +429,11 @@ Assign --> Update["更新视觉状态/zone/会话映射"]
 - Store 间耦合：低耦合，通过各自暴露的 actions 与状态读取；config-store 作为生命周期中枢被多个 Store 调用。
 - 外部依赖：Gateway 适配器（adapter-provider）封装 RPC/WS 能力；Zustand 提供轻量状态管理；Immer 优化不可变更新。
 - 事件链路：office-store 负责事件路由与会话映射；chat-dock-store 负责聊天事件；cron-store 订阅 cron 事件；agents-store 在模型变更后触发会话清理与生命周期提示。
+
+**更新** Chat Dock Store 依赖关系：
+- chat-dock-store 依赖 chat-message-normalizer.ts 进行消息标准化处理
+- chat-dock-store 依赖 chat-session-helpers.ts 进行会话管理辅助
+- 两个模块都依赖 adapter-types.ts 进行类型定义
 
 ```mermaid
 graph LR
@@ -422,19 +450,16 @@ OFF --> AS
 CFG["config-store"] --> AS
 CFG --> SLS
 CFG --> CRON
+CHAT --> CMN["chat-message-normalizer"]
+CHAT --> CSH["chat-session-helpers"]
+CMN --> ADT["adapter-types"]
+CSH --> ADT
 ```
 
-图表来源
-- [agents-store.ts:166-449](file://src/store/console-stores/agents-store.ts#L166-L449)
-- [channels-store.ts:39-98](file://src/store/console-stores/channels-store.ts#L39-L98)
-- [skills-store.ts:95-166](file://src/store/console-stores/skills-store.ts#L95-L166)
-- [cron-store.ts:35-123](file://src/store/console-stores/cron-store.ts#L35-L123)
-- [dashboard-store.ts:24-53](file://src/store/console-stores/dashboard-store.ts#L24-L53)
-- [log-store.ts:24-58](file://src/store/console-stores/log-store.ts#L24-L58)
-- [service-store.ts:51-203](file://src/store/console-stores/service-store.ts#L51-L203)
-- [chat-dock-store.ts:792-799](file://src/store/console-stores/chat-dock-store.ts#L792-L799)
-- [office-store.ts:762-822](file://src/store/office-store.ts#L762-L822)
-- [config-store.ts:138-186](file://src/store/console-stores/config-store.ts#L138-L186)
+**图表来源**
+- [chat-dock-store.ts:18-40](file://src/store/console-stores/chat-dock-store.ts#L18-L40)
+- [chat-message-normalizer.ts:1-8](file://src/store/console-stores/chat-message-normalizer.ts#L1-L8)
+- [chat-session-helpers.ts:1-4](file://src/store/console-stores/chat-session-helpers.ts#L1-L4)
 
 ## 性能考量
 - 并发请求：dashboard-store 使用 Promise.allSettled 并发拉取多源数据，降低首屏等待时间。
@@ -442,6 +467,7 @@ CFG --> CRON
 - 事件路由：office-store 通过 runIdMap/sessionKeyMap 快速定位 Agent，减少遍历成本。
 - 会话清理：agents-store 在模型变更后清理相关通道会话，避免陈旧状态影响性能。
 - 生命周期提示：config-store 的生命周期状态机避免频繁刷新，提升用户体验。
+- **更新** 消息处理优化：chat-message-normalizer.ts 通过模块化设计，将消息标准化逻辑独立出来，提高处理效率和可测试性。
 
 ## 故障排查指南
 - 适配器未就绪：所有 Store 使用 waitForAdapter/getAdapter，若超时或断开，检查网关连接与 WebSocket 状态。
@@ -451,8 +477,9 @@ CFG --> CRON
 - 定时任务状态不同步：cron-store 通过 initEventListeners 订阅 cron 事件，确认事件通道是否正常。
 - 日志不更新：log-store 在 visibilitychange 时自动暂停/恢复，检查页面可见性与轮询定时器。
 - 子 Agent 事件错配：office-store 的事件路由依赖 runIdMap/sessionKeyMap，确认会话键格式与映射是否正确。
+- **更新** 消息处理问题：chat-dock-store 模块化后，如遇消息显示异常，检查 chat-message-normalizer.ts 的消息标准化逻辑；如遇会话管理问题，检查 chat-session-helpers.ts 的会话辅助函数。
 
-章节来源
+**章节来源**
 - [channels-store.ts:81-98](file://src/store/console-stores/channels-store.ts#L81-L98)
 - [skills-store.ts:134-166](file://src/store/console-stores/skills-store.ts#L134-L166)
 - [cron-store.ts:101-123](file://src/store/console-stores/cron-store.ts#L101-L123)
@@ -462,15 +489,20 @@ CFG --> CRON
 ## 结论
 控制台 Store 系统以清晰的职责边界与统一的适配器抽象实现了高内聚、低耦合的状态管理。通过 runIdMap 与 sessionKeyMap 的事件路由机制，结合 office-store 的可视化 Agent 管理，系统在复杂多 Agent 场景下仍保持稳定与可扩展。配合 config-store 的生命周期状态机与各类 Store 的异步错误处理，整体具备良好的可观测性与可维护性。
 
+**更新** Chat Dock Store 的模块化重构进一步提升了系统的可维护性和可测试性。通过将消息处理和会话管理功能分离到专用模块，开发者可以更专注于特定功能的实现和测试，同时保持代码的清晰度和可扩展性。
+
 ## 附录
 - 扩展性建议
   - 新增 Store 时遵循 create 模式，统一使用 waitForAdapter/getAdapter。
   - 将生命周期提示统一委托给 config-store，保证一致的用户体验。
   - 对于高频事件（如聊天流式事件），优先使用 runIdMap/sessionKeyMap 进行路由，避免全量扫描。
+  - **更新** 新增模块化开发模式：将复杂功能拆分为专用模块，提高代码复用性和测试覆盖率。
 - 性能监控
   - 使用浏览器性能面板观察 Zustand 状态更新频率与渲染开销。
   - 对长列表（技能、渠道、会话）启用虚拟化与懒加载。
+  - **更新** 监控模块化性能：关注 chat-message-normalizer.ts 和 chat-session-helpers.ts 的处理效率。
 - 调试工具
   - 使用 React DevTools + Zustand Devtools 查看 Store 状态变化。
   - 在 office-store 中打印 runIdMap/sessionKeyMap 变化，验证事件路由正确性。
   - 在 agents-store 中观察模型变更后的会话清理与生命周期提示。
+  - **更新** 模块化调试：使用专门的测试工具验证 chat-message-normalizer.ts 和 chat-session-helpers.ts 的功能正确性。

@@ -747,12 +747,15 @@
       "scopePrefix": "[本轮仅限修改 skill: {{slug}}（目录 ~/.openclaw/workspace/skills/{{slug}}/）。禁止修改其他 skill 或全局配置。]"
     },
     "flowchart": {
+      "previewTitle": "流程图预览",
       "preview": "预览",
       "source": "源码",
       "emptyState": "等待 AI 生成流程图...",
       "emptyHint": "在左侧对话中描述你的技能需求，AI 会自动生成 Mermaid 流程图",
       "generate": "一键生成流程图",
       "generateHint": "通过对话自动生成并写入 FLOWCHART.md",
+      "regenerate": "重新生成",
+      "regenerateHint": "AI 将重新基于 SKILL.md 生成流程图并覆盖 FLOWCHART.md",
       "generating": "正在生成流程图...",
       "generatingHint": "AI 正在基于 SKILL.md 生成 Mermaid 流程图，稍后将自动落盘到 FLOWCHART.md",
       "renderError": "流程图渲染失败",

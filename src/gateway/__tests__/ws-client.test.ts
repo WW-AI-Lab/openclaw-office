@@ -108,6 +108,39 @@ describe("GatewayWsClient", () => {
     expect(req.params.auth.token).toBe("test-token");
   });
 
+  it("includes password in connect auth when provided", async () => {
+    client.connect("ws://localhost:18789", "", "secret-pass");
+
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = MockWebSocket.instances[0];
+    ws.simulateMessage({
+      type: "event",
+      event: "connect.challenge",
+      payload: { nonce: "abc" },
+    });
+
+    const req = JSON.parse(ws.sent[0]);
+    expect(req.params.auth.password).toBe("secret-pass");
+    expect(req.params.auth.token).toBeUndefined();
+  });
+
+  it("omits auth entirely when no credentials are provided", async () => {
+    client.connect("ws://localhost:18789", "");
+
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = MockWebSocket.instances[0];
+    ws.simulateMessage({
+      type: "event",
+      event: "connect.challenge",
+      payload: { nonce: "abc" },
+    });
+
+    const req = JSON.parse(ws.sent[0]);
+    expect(req.params.auth).toBeUndefined();
+  });
+
   it("includes signed device identity in secure contexts", async () => {
     Object.defineProperty(window, "isSecureContext", {
       configurable: true,

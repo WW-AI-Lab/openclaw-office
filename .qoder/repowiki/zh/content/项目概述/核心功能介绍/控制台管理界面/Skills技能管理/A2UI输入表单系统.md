@@ -83,13 +83,13 @@ M --> C
 **图表来源**
 - [A2uiForm.tsx:1-393](file://src/components/chat/A2uiForm.tsx#L1-L393)
 - [a2ui-schema.ts:1-321](file://src/lib/a2ui-schema.ts#L1-L321)
-- [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
+- [index.ts:1-63](file://src/i18n/index.ts#L1-L63)
 - [A2uiDebugPanel.tsx:1-103](file://src/components/console/skills/A2uiDebugPanel.tsx#L1-L103)
 
 **章节来源**
 - [A2uiForm.tsx:1-393](file://src/components/chat/A2uiForm.tsx#L1-L393)
 - [a2ui-schema.ts:1-321](file://src/lib/a2ui-schema.ts#L1-L321)
-- [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
+- [index.ts:1-63](file://src/i18n/index.ts#L1-L63)
 - [A2uiDebugPanel.tsx:1-103](file://src/components/console/skills/A2uiDebugPanel.tsx#L1-L103)
 
 ## 核心组件
@@ -125,7 +125,7 @@ a2ui-schema模块提供了完整的表单Schema定义和解析功能，确保表
 
 **章节来源**
 - [a2ui-schema.ts:16-78](file://src/lib/a2ui-schema.ts#L16-L78)
-- [a2ui-schema.ts:291-320](file://src/lib/a2ui-schema.ts#L291-L320)
+- [a2ui-schema.ts:291-321](file://src/lib/a2ui-schema.ts#L291-L321)
 
 ### A2ui调试面板
 
@@ -175,7 +175,7 @@ Debug->>Form : 实时渲染表单
 ```
 
 **图表来源**
-- [index.ts:22-56](file://src/i18n/index.ts#L22-L56)
+- [index.ts:22-60](file://src/i18n/index.ts#L22-L60)
 - [A2uiForm.tsx:319-328](file://src/components/chat/A2uiForm.tsx#L319-L328)
 - [a2ui-schema.ts:254-284](file://src/lib/a2ui-schema.ts#L254-L284)
 - [A2uiDebugPanel.tsx:42-45](file://src/components/console/skills/A2uiDebugPanel.tsx#L42-L45)
@@ -251,7 +251,7 @@ Complete --> End
 
 **图表来源**
 - [A2uiForm.tsx:191-296](file://src/components/chat/A2uiForm.tsx#L191-L296)
-- [a2ui-schema.ts:291-320](file://src/lib/a2ui-schema.ts#L291-L320)
+- [a2ui-schema.ts:291-321](file://src/lib/a2ui-schema.ts#L291-L321)
 
 **章节来源**
 - [A2uiForm.tsx:165-296](file://src/components/chat/A2uiForm.tsx#L165-L296)
@@ -310,7 +310,7 @@ SendData --> Success([提交成功])
 **章节来源**
 - [chat.json:7-21](file://src/i18n/locales/zh/chat.json#L7-L21)
 - [chat.json:7-21](file://src/i18n/locales/en/chat.json#L7-L21)
-- [index.ts:17-56](file://src/i18n/index.ts#L17-L56)
+- [index.ts:17-60](file://src/i18n/index.ts#L17-L60)
 
 ## 依赖关系分析
 
@@ -356,11 +356,11 @@ O --> K
 
 **图表来源**
 - [A2uiForm.tsx:1-12](file://src/components/chat/A2uiForm.tsx#L1-L12)
-- [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
+- [index.ts:1-63](file://src/i18n/index.ts#L1-L63)
 
 **章节来源**
 - [A2uiForm.tsx:1-12](file://src/components/chat/A2uiForm.tsx#L1-L12)
-- [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
+- [index.ts:1-63](file://src/i18n/index.ts#L1-L63)
 
 ## 性能考虑
 

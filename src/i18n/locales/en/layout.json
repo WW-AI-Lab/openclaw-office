@@ -9,6 +9,7 @@
     "chat": "Chat",
     "workbench": "Skills Workbench",
     "navigation": "Primary navigation",
+    "logout": "Sign out",
     "pageTitles": {
       "chat": "Chat",
       "dashboard": "Dashboard",

@@ -50,6 +50,7 @@ export interface ConnectParams {
   scopes?: string[];
   auth?: {
     token?: string;
+    password?: string;
     deviceToken?: string;
   };
   device?: {

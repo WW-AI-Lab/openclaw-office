@@ -9,6 +9,7 @@
     "chat": "聊天",
     "workbench": "技能工作台",
     "navigation": "主导航",
+    "logout": "退出登录",
     "pageTitles": {
       "chat": "聊天",
       "dashboard": "仪表盘",

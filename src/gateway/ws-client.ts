@@ -25,6 +25,7 @@ export class GatewayWsClient {
   private ws: WebSocket | null = null;
   private url = "";
   private token = "";
+  private password = "";
   private status: ConnectionStatus = "disconnected";
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -59,9 +60,10 @@ export class GatewayWsClient {
     return this.status === "connected" && this.ws?.readyState === WebSocket.OPEN;
   }
 
-  connect(url: string, token: string): void {
+  connect(url: string, token: string, password = ""): void {
     this.url = url;
     this.token = token;
+    this.password = password;
     this.shutdownReceived = false;
     this.reconnectAttempt = 0;
     this.doConnect();
@@ -227,8 +229,14 @@ export class GatewayWsClient {
       locale: typeof navigator !== "undefined" ? navigator.language : undefined,
     };
 
-    if (this.token) {
-      params.auth = { token: this.token };
+    if (this.token || this.password) {
+      params.auth = {};
+      if (this.token) {
+        params.auth.token = this.token;
+      }
+      if (this.password) {
+        params.auth.password = this.password;
+      }
     }
 
     const canUseDeviceIdentity =

@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
+import enAuth from "./locales/en/auth.json";
 import enChat from "./locales/en/chat.json";
 import enCommon from "./locales/en/common.json";
 import enConsole from "./locales/en/console.json";
@@ -13,11 +14,12 @@ import zhConsole from "./locales/zh/console.json";
 import zhLayout from "./locales/zh/layout.json";
 import zhOffice from "./locales/zh/office.json";
 import zhPanels from "./locales/zh/panels.json";
+import zhAuth from "./locales/zh/auth.json";
 
 export const supportedLngs = ["zh", "en"] as const;
 export type SupportedLng = (typeof supportedLngs)[number];
 
-export const namespaces = ["common", "layout", "office", "panels", "chat", "console"] as const;
+export const namespaces = ["common", "layout", "office", "panels", "chat", "console", "auth"] as const;
 
 i18n
   .use(LanguageDetector)
@@ -31,6 +33,7 @@ i18n
         panels: zhPanels,
         chat: zhChat,
         console: zhConsole,
+        auth: zhAuth,
       },
       en: {
         common: enCommon,
@@ -39,6 +42,7 @@ i18n
         panels: enPanels,
         chat: enChat,
         console: enConsole,
+        auth: enAuth,
       },
     },
     supportedLngs: [...supportedLngs],

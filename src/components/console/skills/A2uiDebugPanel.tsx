@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, RefreshCw, Sparkles } from "lucide-react";
+import { LayoutDashboard, Pencil, Sparkles } from "lucide-react";
 import { parseA2ui, buildSubmissionMessage, type A2uiValue } from "@/lib/a2ui-schema";
 import type { ChatAttachment } from "@/gateway/adapter-types";
 import { A2uiForm } from "@/components/chat/A2uiForm";
@@ -12,8 +12,8 @@ interface A2uiDebugPanelProps {
   isGenerating: boolean;
   /** Fired when the user requests one-click generation / regeneration of ui.json. */
   onGenerate: () => void;
-  /** Fired when the user reloads ui.json from disk. */
-  onReload: () => void;
+  /** Fired when the user requests to start an edit session for this skill. */
+  onEditSkill?: () => void;
   /** Fired when the preview form is submitted with collected values and optional file attachments. */
   onSubmitForm: (message: string, attachments?: ChatAttachment[]) => void;
 }
@@ -32,7 +32,7 @@ export const A2uiDebugPanel = memo(function A2uiDebugPanel({
   isLoading,
   isGenerating,
   onGenerate,
-  onReload,
+  onEditSkill,
   onSubmitForm,
 }: A2uiDebugPanelProps) {
   const { t } = useTranslation("console");
@@ -52,13 +52,16 @@ export const A2uiDebugPanel = memo(function A2uiDebugPanel({
           {t("skillWorkbench.a2ui.title")}
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={onReload}
-            className="flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-          >
-            <RefreshCw className="h-3 w-3" />
-            {t("skillWorkbench.a2ui.reload")}
-          </button>
+          {onEditSkill && (
+            <button
+              onClick={onEditSkill}
+              className="flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              title={t("skillWorkbench.detail.editSkill")}
+            >
+              <Pencil className="h-3 w-3" />
+              {t("skillWorkbench.detail.editSkill")}
+            </button>
+          )}
           <button
             onClick={onGenerate}
             disabled={isGenerating}

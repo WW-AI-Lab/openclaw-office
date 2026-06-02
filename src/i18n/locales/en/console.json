@@ -747,12 +747,15 @@
       "scopePrefix": "[This turn is limited to skill: {{slug}} (directory ~/.openclaw/workspace/skills/{{slug}}/). Do NOT modify other skills or global configuration.]"
     },
     "flowchart": {
+      "previewTitle": "Flowchart Preview",
       "preview": "Preview",
       "source": "Source",
       "emptyState": "Waiting for AI to generate flowchart...",
       "emptyHint": "Describe your skill requirements in the chat panel, AI will generate a Mermaid flowchart automatically",
       "generate": "Generate flowchart",
       "generateHint": "Generate via chat and write to FLOWCHART.md automatically",
+      "regenerate": "Regenerate",
+      "regenerateHint": "AI will regenerate the flowchart from SKILL.md and overwrite FLOWCHART.md",
       "generating": "Generating flowchart...",
       "generatingHint": "AI is generating the Mermaid flowchart from SKILL.md and will persist it to FLOWCHART.md",
       "renderError": "Flowchart render failed",

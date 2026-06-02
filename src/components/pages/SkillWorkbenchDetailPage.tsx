@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Check, Copy, PanelRightClose, Pencil } from "lucide-react";
+import { ArrowLeft, PanelRightClose } from "lucide-react";
 import { workspaceSkillsGet, workspaceSkillsList } from "@/gateway/workspace-skills-client";
 import { useSkillsStore } from "@/store/console-stores/skills-store";
 import {
@@ -52,9 +52,7 @@ export function SkillWorkbenchDetailPage() {
   const [isLoadingUiJson, setIsLoadingUiJson] = useState(false);
   const [isGeneratingUi, setIsGeneratingUi] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [editingSessionStarted, setEditingSessionStarted] = useState(false);
   const [isGeneratingFlowchart, setIsGeneratingFlowchart] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const skill = useMemo(() => skills.find((s) => s.slug === slug), [skills, slug]);
   const displayName = skill?.name ?? slug;
@@ -79,8 +77,6 @@ export function SkillWorkbenchDetailPage() {
 
     setMode("browse");
     resetMermaid();
-    setEditingSessionStarted(false);
-    setSidebarOpen(false);
     setIsGeneratingFlowchart(false);
     setIsGeneratingUi(false);
     setUiJsonContent(null);
@@ -184,13 +180,17 @@ export function SkillWorkbenchDetailPage() {
     const prev = wasStreamingRef.current;
     wasStreamingRef.current = isChatStreaming;
     if (!prev || isChatStreaming) return;
-    if (!editingSessionStarted) return;
 
     let cancelled = false;
     const refresh = async () => {
       await loadFlowchartFromDisk(slug, { markLoaded: true });
       await loadUiJsonFromDisk(slug);
       if (cancelled) return;
+      // Always reset generating flags once streaming ends, even if the agent
+      // failed to produce the expected files (the dedicated useEffects only
+      // reset when the content becomes non-empty).
+      setIsGeneratingUi(false);
+      setIsGeneratingFlowchart(false);
       try {
         const result = await workspaceSkillsList(slug);
         if (cancelled) return;
@@ -210,7 +210,7 @@ export function SkillWorkbenchDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [isChatStreaming, slug, editingSessionStarted, loadFlowchartFromDisk, loadUiJsonFromDisk]);
+  }, [isChatStreaming, slug, loadFlowchartFromDisk, loadUiJsonFromDisk]);
 
   // Load selected file content.
   useEffect(() => {
@@ -237,17 +237,9 @@ export function SkillWorkbenchDetailPage() {
   }, [slug, selectedItem]);
 
   const handleBack = useCallback(() => navigate("/skill-workbench"), [navigate]);
-  const handleCopySlug = useCallback(() => {
-    if (!slug) return;
-    void navigator.clipboard.writeText(slug);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
-  }, [slug]);
-  const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
-  const handleStartEditing = useCallback(() => {
+  const handleEditSkill = useCallback(() => {
     setMode("edit");
     void enterWorkbench();
-    setEditingSessionStarted(true);
     setSidebarOpen(true);
   }, [setMode, enterWorkbench]);
 
@@ -258,7 +250,6 @@ export function SkillWorkbenchDetailPage() {
     setPendingAutoSendMessage("generate");
     setMode("edit");
     void enterWorkbench();
-    setEditingSessionStarted(true);
     setSidebarOpen(true);
     // Mark the preview as "generating" so the empty state shows a spinner
     // instead of the generate button while the AI is working.
@@ -287,19 +278,15 @@ export function SkillWorkbenchDetailPage() {
   // Ensure an edit session is active so the embedded debug chat can talk to
   // the Gateway. Returns once the session has been established.
   const ensureEditingSession = useCallback(async () => {
-    if (editingSessionStarted) return;
     setMode("edit");
     await enterWorkbench();
-    setEditingSessionStarted(true);
-  }, [editingSessionStarted, setMode, enterWorkbench]);
+  }, [setMode, enterWorkbench]);
 
-  // Start the editing session automatically when the user opens the A2UI tab,
-  // so the embedded debug chat is immediately usable.
-  useEffect(() => {
-    if (selectedItem !== A2UI_ITEM) return;
-    if (editingSessionStarted) return;
-    void ensureEditingSession();
-  }, [selectedItem, editingSessionStarted, ensureEditingSession]);
+  // The A2UI debug panel and the flowchart panel now expose "修改技能" /
+  // "重新生成" actions in their own header bars. Those are the only entry
+  // points that should actively start an edit session and open the chat
+  // sidebar — switching tabs is just a preview action and must not create
+  // sessions or send messages on the user's behalf.
 
   const handleGenerateInputUi = useCallback(async () => {
     setIsGeneratingUi(true);
@@ -307,10 +294,6 @@ export function SkillWorkbenchDetailPage() {
     setSidebarOpen(true);
     void useChatDockStore.getState().sendMessage(buildInputUiTaskPrompt(slug));
   }, [ensureEditingSession, slug]);
-
-  const handleReloadInputUi = useCallback(() => {
-    void loadUiJsonFromDisk(slug);
-  }, [loadUiJsonFromDisk, slug]);
 
   const handleSubmitInputUi = useCallback(
     async (message: string, attachments?: ChatAttachment[]) => {
@@ -336,45 +319,6 @@ export function SkillWorkbenchDetailPage() {
         <span className="text-gray-300 dark:text-gray-600">/</span>
         <span className="font-medium text-gray-800 dark:text-gray-100">{displayName}</span>
         <span className="ml-1 font-mono text-xs text-gray-400">{slug}</span>
-
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={handleCopySlug}
-            className="flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-          >
-            {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-            {t("skillWorkbench.detail.copySlug")}
-          </button>
-          {!editingSessionStarted ? (
-            <button
-              onClick={handleStartEditing}
-              className="flex items-center gap-1 rounded-md bg-blue-500 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-600"
-              title={t("skillWorkbench.detail.editSkill")}
-            >
-              <Pencil className="h-3 w-3" />
-              {t("skillWorkbench.detail.editSkill")}
-            </button>
-          ) : (
-            <button
-              onClick={toggleSidebar}
-              className="flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-              title={
-                sidebarOpen
-                  ? t("skillWorkbench.detail.closeChat")
-                  : t("skillWorkbench.detail.openChat")
-              }
-            >
-              {sidebarOpen ? (
-                <PanelRightClose className="h-3 w-3" />
-              ) : (
-                <Pencil className="h-3 w-3" />
-              )}
-              {sidebarOpen
-                ? t("skillWorkbench.detail.closeChat")
-                : t("skillWorkbench.detail.openChat")}
-            </button>
-          )}
-        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -395,6 +339,8 @@ export function SkillWorkbenchDetailPage() {
           {selectedItem === FLOWCHART_ITEM ? (
             <FlowchartPanel
               onGenerate={handleGenerateFlowchart}
+              onRegenerate={handleGenerateFlowchart}
+              onEditSkill={handleEditSkill}
               isGenerating={isGeneratingFlowchart}
             />
           ) : selectedItem === A2UI_ITEM ? (
@@ -403,7 +349,7 @@ export function SkillWorkbenchDetailPage() {
               isLoading={isLoadingUiJson}
               isGenerating={isGeneratingUi}
               onGenerate={handleGenerateInputUi}
-              onReload={handleReloadInputUi}
+              onEditSkill={handleEditSkill}
               onSubmitForm={handleSubmitInputUi}
             />
           ) : (
@@ -424,14 +370,33 @@ export function SkillWorkbenchDetailPage() {
           )}
         </div>
 
-        {/* Right: chat sidebar (collapsible). In the A2UI 调试 tab we pass
-            `disableA2uiForm` so the chat transcript does not duplicate the
-            interactive A2uiForm that the middle panel is already showing. */}
-        {sidebarOpen && (
-          <div className="flex w-[380px] shrink-0 flex-col overflow-hidden border-l border-gray-200 dark:border-gray-700">
+        {/* Right: chat sidebar. Collapsed by default — the user can open it
+            via the panel's "修改技能" / "重新生成" actions, and close it via
+            the close button rendered on the sidebar's own header bar. The
+            WorkbenchChat component stays mounted in both states (we just
+            collapse its width to 0) so an in-flight stream or unsent draft
+            is never interrupted by toggling the sidebar. */}
+        <div
+          className={
+            "flex shrink-0 flex-col overflow-hidden border-l border-gray-200 dark:border-gray-700 transition-[width] " +
+            (sidebarOpen ? "w-[380px]" : "w-0 border-l-0")
+          }
+        >
+          <div className="flex items-center justify-end border-b border-gray-200 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-900">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              title={t("skillWorkbench.detail.closeChat")}
+            >
+              <PanelRightClose className="h-3.5 w-3.5" />
+              {t("skillWorkbench.detail.closeChat")}
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
             <WorkbenchChat mode="edit" disableA2uiForm={selectedItem === A2UI_ITEM} />
           </div>
-        )}
+        </div>
       </div>
     </>
   );

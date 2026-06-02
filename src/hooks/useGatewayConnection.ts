@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { initAdapter, isMockMode } from "@/gateway/adapter-provider";
+import { classifyConnectError } from "@/gateway/auth-credentials";
 import { applySecurityConfigOnce } from "@/store/console-stores/config-store";
 import { GatewayRpcClient } from "@/gateway/rpc-client";
 import type {
@@ -11,19 +12,48 @@ import type {
 } from "@/gateway/types";
 import { GatewayWsClient } from "@/gateway/ws-client";
 import { EventThrottle } from "@/lib/event-throttle";
+import { useAuthStore } from "@/store/auth-store";
 import { useOfficeStore } from "@/store/office-store";
 import { useSubAgentPoller } from "./useSubAgentPoller";
 import { useUsagePoller } from "./useUsagePoller";
 
 interface UseGatewayConnectionOptions {
+  /** Resolved WebSocket URL for the configured/default Gateway endpoint. */
   url: string;
   token: string;
 }
 
-export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions) {
+function resolveGatewayWsUrl(pathOrUrl: string, fallbackUrl: string): string {
+  const value = (pathOrUrl || "").trim();
+  if (value.startsWith("ws://") || value.startsWith("wss://")) {
+    return value;
+  }
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    const url = new URL(value);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.toString();
+  }
+  if (value.startsWith("/") && typeof window !== "undefined") {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}${value}`;
+  }
+  return fallbackUrl;
+}
+
+export function useGatewayConnection({ url: fallbackUrl }: UseGatewayConnectionOptions) {
   const wsRef = useRef<GatewayWsClient | null>(null);
   const rpcRef = useRef<GatewayRpcClient | null>(null);
   const throttleRef = useRef<EventThrottle | null>(null);
+
+  const gatewayUrl = useAuthStore((s) => s.gatewayUrl);
+  const token = useAuthStore((s) => s.token);
+  const password = useAuthStore((s) => s.password);
+  const authStatus = useAuthStore((s) => s.authStatus);
+  const markAuthenticated = useAuthStore((s) => s.markAuthenticated);
+  const markAuthFailed = useAuthStore((s) => s.markAuthFailed);
+  // Both "authenticating" and "authenticated" should keep the socket open, so
+  // the authenticating -> authenticated transition must NOT tear it down.
+  const shouldConnect = authStatus !== "unauthenticated";
 
   const setConnectionStatus = useOfficeStore((s) => s.setConnectionStatus);
   const initAgents = useOfficeStore((s) => s.initAgents);
@@ -34,10 +64,6 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
   const setAgentToAgentConfig = useOfficeStore((s) => s.setAgentToAgentConfig);
 
   useEffect(() => {
-    if (!url) {
-      return;
-    }
-
     if (isMockMode()) {
       let unsubEvent: (() => void) | null = null;
 
@@ -77,6 +103,19 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       };
     }
 
+    // Only connect once the user has submitted credentials (or we are restoring
+    // a stored session). While unauthenticated we stay disconnected and the
+    // AuthGate shows the login screen.
+    if (!shouldConnect) {
+      setConnectionStatus("disconnected");
+      return;
+    }
+
+    const resolvedUrl = resolveGatewayWsUrl(gatewayUrl, fallbackUrl);
+    if (!resolvedUrl) {
+      return;
+    }
+
     const ws = new GatewayWsClient();
     const rpc = new GatewayRpcClient(ws);
     const throttle = new EventThrottle();
@@ -99,6 +138,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       setConnectionStatus(status, error);
 
       if (status === "connected") {
+        markAuthenticated();
         initAgentsFromSnapshot(ws, initAgents);
         const authScopes = ws.getAuthInfo()?.scopes;
         setOperatorScopes(Array.isArray(authScopes) ? authScopes : ["operator.admin", "operator.read"]);
@@ -107,6 +147,9 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
         void fetchGatewayConfig(rpc, setMaxSubAgents, setAgentToAgentConfig);
         void fetchAgentNamesAndUpdate(rpc, syncMainAgents);
         void applySecurityConfigOnce();
+      } else if (status === "error" && classifyConnectError(error) === "auth") {
+        // Authentication failures send the user back to the login gate.
+        markAuthFailed(error ?? null);
       }
     });
 
@@ -123,7 +166,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       }
     });
 
-    ws.connect(url, token);
+    ws.connect(resolvedUrl, token, password);
 
     return () => {
       throttle.destroy();
@@ -133,8 +176,13 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       throttleRef.current = null;
     };
   }, [
-    url,
+    gatewayUrl,
+    fallbackUrl,
     token,
+    password,
+    shouldConnect,
+    markAuthenticated,
+    markAuthFailed,
     setConnectionStatus,
     initAgents,
     syncMainAgents,
