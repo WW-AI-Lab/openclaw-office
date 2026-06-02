@@ -29,9 +29,20 @@ interface WorkbenchChatProps {
    * skill-creation suggestions (SOP/methodology prompts).
    */
   emptyStateSlot?: ReactNode;
+  /**
+   * When true, ```` ```a2ui ```` blocks in the transcript are rendered as
+   * plain code fences instead of the interactive A2uiForm. Used by the
+   * "A2UI 调试" tab so the chat does not duplicate the form that the panel
+   * is already showing.
+   */
+  disableA2uiForm?: boolean;
 }
 
-export const WorkbenchChat = memo(function WorkbenchChat({ mode, emptyStateSlot }: WorkbenchChatProps) {
+export const WorkbenchChat = memo(function WorkbenchChat({
+  mode,
+  emptyStateSlot,
+  disableA2uiForm = false,
+}: WorkbenchChatProps) {
   const { t } = useTranslation("console");
   const messages = useChatDockStore((s) => s.messages);
   const isStreaming = useChatDockStore((s) => s.isStreaming);
@@ -43,6 +54,7 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode, emptyStateSlot 
   const addAttachment = useChatDockStore((s) => s.addAttachment);
   const removeAttachment = useChatDockStore((s) => s.removeAttachment);
   const setMermaidSource = useSkillWorkbenchStore((s) => s.setMermaidSource);
+  const currentSkillSlug = useSkillWorkbenchStore((s) => s.currentSkillSlug);
   const { streamingText } = useChatStreamingText();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -99,8 +111,16 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode, emptyStateSlot 
 
   const handleSend = useCallback(() => {
     if ((!draft.trim() && attachments.length === 0) || isStreaming) return;
-    void sendMessage(draft, attachments);
-  }, [attachments, draft, isStreaming, sendMessage]);
+    // For edit/browse against a known skill, prepend a scope reminder so the
+    // model is reminded on EVERY turn (not just via the initial chatInject)
+    // that it must only touch the current skill's directory. This prevents
+    // the LLM from drifting and modifying global configs or other skills.
+    const scopedDraft =
+      (mode === "edit" || mode === "browse") && currentSkillSlug
+        ? `${t("skillWorkbench.chat.scopePrefix", { slug: currentSkillSlug })}\n\n${draft}`
+        : draft;
+    void sendMessage(scopedDraft, attachments);
+  }, [attachments, currentSkillSlug, draft, isStreaming, mode, sendMessage, t]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -152,7 +172,7 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode, emptyStateSlot 
         ) : (
           <div className="space-y-3">
             {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
+              <MessageBubble key={msg.id} message={msg} disableA2uiForm={disableA2uiForm} />
             ))}
             {isStreaming && (streamingText) && (
               <MessageBubble
@@ -163,6 +183,7 @@ export const WorkbenchChat = memo(function WorkbenchChat({ mode, emptyStateSlot 
                   timestamp: Date.now(),
                   isStreaming: true,
                 }}
+                disableA2uiForm={disableA2uiForm}
               />
             )}
             {isStreaming && !streamingText && (

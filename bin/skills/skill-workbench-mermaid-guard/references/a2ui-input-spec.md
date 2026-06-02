@@ -57,6 +57,23 @@ A2UI 表单是一段 JSON 对象，顶层字段：
 `file` 类型字段提交时，文件数据会作为聊天附件一并发送给 Agent；文本消息中仅包含文件名摘要。
 可通过 `accept` 限制可选文件类型（如 `".pdf,.docx"`、`"image/*"`），通过 `multiple: true` 启用多文件选择。
 
+### 何时优先使用 `file` 类型（强制语义识别）
+
+以下任意一种字段语义出现时，**必须**使用 `type: "file"`，不要使用 `text` 或 `textarea` 让用户手填路径或粘贴内容：
+
+- 字段标签或说明含「数据来源 / 数据文件 / 数据集 / 上传 / 附件 / 导入」等关键词。
+- 字段需要 CSV / Excel(xlsx, xls) / JSON / TSV / Parquet / PDF / Word / PPT / 图片 / 音视频 等二进制或半结构化文件。
+- 占位符示例提到「文件路径」「文件 URL」「上传 ...」「拖入 ...」。
+- Skill 的 SKILL.md 描述要求用户提供本地文件、附件、原始素材等。
+
+配套要求：
+
+- 必须设置 `accept`，准确列出该 Skill 支持的扩展名或 MIME（例如数据分析类设为 `".csv,.xlsx,.xls,.json,.tsv,.parquet"`）。
+- 当业务确实可能需要多个文件（多份数据集、批量素材）时设置 `multiple: true`，否则保持单文件。
+- 反例：`{"key":"data_source","type":"text","placeholder":"CSV 文件路径"}` ❌——必须改为 `type: "file"` + `accept`。
+
+如果同一字段同时可能是文件**或**字符串（如「数据库连接串 OR CSV 文件」），请拆成两个字段：一个 `file`、一个 `text`，并通过 `placeholder`/`label` 区分；不要混在一个 `text` 里。
+
 ## 预填 value 来源
 
 生成表单前，先从上下文中尽可能识别已知信息并写入 `value`，减少用户输入成本：

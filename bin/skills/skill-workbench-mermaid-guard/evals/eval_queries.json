@@ -1,0 +1,22 @@
+[
+  { "query": "帮我把这个 Skill 的工作流程画成流程图", "should_trigger": true },
+  { "query": "给 ~/.openclaw/workspace/skills/daily-report 整理一份 FLOWCHART.md", "should_trigger": true },
+  { "query": "这个 skill 的 FLOWCHART 渲染失败了，节点全是灰的，帮我修一下", "should_trigger": true },
+  { "query": "现在的流程图太长了，能不能拆成几张子图分阶段看", "should_trigger": true },
+  { "query": "把 SKILL.md 里描述的步骤可视化出来", "should_trigger": true },
+  { "query": "mermaid 报语法错误，菱形判断节点那里挂了", "should_trigger": true },
+  { "query": "给这个 skill 做一个第一次运行的输入表单", "should_trigger": true },
+  { "query": "我想让这个 skill 启动时先问用户几个参数，做成 ui.json", "should_trigger": true },
+  { "query": "执行到一半需要用户确认一下选项，弹个表单让他选", "should_trigger": true },
+  { "query": "这个工作台 skill 第一次交互要采集哪些字段，帮我配一下", "should_trigger": true },
+  { "query": "把我们团队的请假审批业务流程画成一张架构图放进 PPT", "should_trigger": false },
+  { "query": "用 mermaid 给我画一个 React 组件渲染生命周期的时序图讲课用", "should_trigger": false },
+  { "query": "帮我给落地页设计一个漂亮的注册表单 UI，要 Tailwind 样式", "should_trigger": false },
+  { "query": "解释一下 mermaid 的 classDef 语法是干嘛的", "should_trigger": false },
+  { "query": "帮我把这段 markdown 转成 PDF", "should_trigger": false },
+  { "query": "读一下这个 SKILL.md 然后总结它支持哪些功能", "should_trigger": false },
+  { "query": "给数据库设计一个 ER 图", "should_trigger": false },
+  { "query": "我的 Excel 预算表里公式算错了，帮我修", "should_trigger": false },
+  { "query": "skill 跑出来的结果不对，逻辑有 bug 帮我 debug 代码", "should_trigger": false },
+  { "query": "把这个流程图导出成 PNG 图片发给我", "should_trigger": false }
+]

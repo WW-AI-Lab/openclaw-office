@@ -1,10 +1,15 @@
 import { memo, Suspense, lazy } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { buildSubmissionMessage, parseA2ui } from "@/lib/a2ui-schema";
+import type { ChatAttachment } from "@/gateway/adapter-types";
+import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 
 const MermaidPreview = lazy(() =>
   import("@/components/shared/MermaidPreview").then((m) => ({ default: m.MermaidPreview })),
 );
+
+const A2uiForm = lazy(() => import("./A2uiForm").then((m) => ({ default: m.A2uiForm })));
 
 function extractTextContent(children: unknown): string {
   if (typeof children === "string") return children;
@@ -15,11 +20,76 @@ function extractTextContent(children: unknown): string {
   return "";
 }
 
-interface MarkdownContentProps {
-  content: string;
+function A2uiCodeFence({ text }: { text: string }) {
+  return (
+    <pre className="overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs dark:border-gray-700 dark:bg-gray-950">
+      <code>{text}</code>
+    </pre>
+  );
 }
 
-export const MarkdownContent = memo(function MarkdownContent({ content }: MarkdownContentProps) {
+/**
+ * When `disableA2uiForm` is true we still parse the block (so the parser
+ * exercises the same code path) but render the raw JSON as a code fence
+ * instead of the interactive A2uiForm. This is used by surfaces that
+ * already display the A2UI form elsewhere (e.g. the Workbench "A2UI 调试"
+ * tab) so the chat transcript does not duplicate the form.
+ */
+function A2uiBlock({
+  text,
+  messageId,
+  disableA2uiForm,
+}: {
+  text: string;
+  messageId?: string;
+  disableA2uiForm: boolean;
+}) {
+  const sendMessage = useChatDockStore((s) => s.sendMessage);
+  const markSubmitted = useChatDockStore((s) => s.markA2uiSubmitted);
+  const submitted = useChatDockStore((s) =>
+    messageId ? s.submittedA2uiIds.includes(messageId) : false,
+  );
+
+  const form = parseA2ui(text);
+  if (!form) {
+    return <A2uiCodeFence text={text} />;
+  }
+
+  if (disableA2uiForm) {
+    return <A2uiCodeFence text={text} />;
+  }
+
+  return (
+    <Suspense fallback={<A2uiCodeFence text={text} />}>
+      <A2uiForm
+        form={form}
+        readOnly={submitted}
+        onSubmit={(values, attachments?: ChatAttachment[]) => {
+          if (messageId) markSubmitted(messageId);
+          void sendMessage(buildSubmissionMessage(form, values), attachments);
+        }}
+      />
+    </Suspense>
+  );
+}
+
+interface MarkdownContentProps {
+  content: string;
+  messageId?: string;
+  /**
+   * When true, ```` ```a2ui ```` blocks are rendered as plain code fences
+   * rather than as the interactive A2uiForm. Useful in surfaces that already
+   * expose the A2UI form (e.g. the Workbench "A2UI 调试" tab) so the chat
+   * transcript does not duplicate the form.
+   */
+  disableA2uiForm?: boolean;
+}
+
+export const MarkdownContent = memo(function MarkdownContent({
+  content,
+  messageId,
+  disableA2uiForm = false,
+}: MarkdownContentProps) {
   return (
     <div className="prose prose-sm max-w-none break-words dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
       <Markdown
@@ -105,6 +175,15 @@ export const MarkdownContent = memo(function MarkdownContent({ content }: Markdo
                 >
                   <MermaidPreview source={text} />
                 </Suspense>
+              );
+            }
+            if (className === "language-a2ui") {
+              return (
+                <A2uiBlock
+                  text={extractTextContent(children)}
+                  messageId={messageId}
+                  disableA2uiForm={disableA2uiForm}
+                />
               );
             }
             return (

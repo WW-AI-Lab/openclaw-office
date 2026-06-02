@@ -97,6 +97,34 @@
 
 ---
 
+## 5b. A2UI 输入表单：ui.json 与「A2UI 调试」选项卡
+
+A2UI 让 Skill 的"首次交互输入"从一段自由文本，升级为**结构化的可视表单**。它有两个载体：
+
+- **`ui.json`（稳定首次交互）** — 与 `FLOWCHART.md` 一样直接落盘在 Skill 目录下，存放一份**纯 A2UI Schema JSON**（不带 ```a2ui 围栏），用于稳定的首次交互输入界面
+- **运行期 HITL（按需动态）** — Skill 执行过程中若需要补充输入，模型在对话里输出一个 ` ```a2ui ` 代码块，Chat 会动态渲染为表单；提交后以结构化消息回发，不写盘
+
+### 「A2UI 调试」选项卡
+
+在 `/skill-workbench/:slug` 详情页左侧，`流程图` 下方新增 **「A2UI 调试」** 选项卡：
+
+- 若该 Skill 尚无 `ui.json`，面板显示 **「一键生成输入表单」** 按钮：
+  1. 自动发送 `buildInputUiTaskPrompt` 指令（遵循 `skill-workbench-mermaid-guard` 的 A2UI 规范）
+  2. AI 基于 `SKILL.md` 产出纯 A2UI Schema JSON，写入 `ui.json`
+  3. 幂等地向目标 `SKILL.md` 注入 A2UI 使用提示（带 `<!-- a2ui:input-hint -->` 标记，已存在则跳过）
+  4. 流式结束后自动从磁盘重新加载 `ui.json` 并刷新预览
+- 若已有 `ui.json`：
+  - **上半部** 渲染 `A2uiForm` 实时预览，可直接填写
+  - **下半部** 内嵌 `WorkbenchChat` 调试对话
+  - 表单提交后，会以**结构化首条消息**（含字段摘要 + `[a2ui-data]` 机器可读载荷）发起对话，直接调试该 Skill 的完整链路
+- 顶部提供 **「重新生成」** 与 **「重新加载」** 按钮
+
+### Chat 动态渲染
+
+本项目的 Chat 已支持 A2UI 协议：助手消息中的 ` ```a2ui ` 代码块会被渲染成可交互表单。校验通过后提交，按字段拼装成结构化消息回发给 Agent；提交后表单进入只读态，避免重复提交。
+
+---
+
 ## 6. 默认技能的自动安装
 
 工作台依赖两个"默认技能"注入到 AI 的 system 上下文：
@@ -104,7 +132,7 @@
 | Skill slug                           | 作用                                                  |
 | ------------------------------------ | ----------------------------------------------------- |
 | `skill-workbench-creator`            | 引导 AI 生成规范的 `SKILL.md` 骨架                    |
-| `skill-workbench-mermaid-guard` ✨   | 保障 `FLOWCHART.md` 输出的格式 / 颜色 / 规范           |
+| `skill-workbench-mermaid-guard` ✨   | 保障 `FLOWCHART.md` 输出的格式 / 颜色 / 规范，并守护 `ui.json` / 运行期 A2UI 表单的生成规范（详见其 `references/a2ui-input-spec.md`） |
 
 从 `2026.5.20` 起：
 

@@ -704,6 +704,8 @@
       "filesTitle": "技能文件",
       "flowchartTab": "流程图",
       "flowchartMissing": "未生成",
+      "a2uiTab": "A2UI 调试",
+      "a2uiMissing": "未生成",
       "noFiles": "该技能尚无其他文件",
       "editSkill": "修改此技能",
       "openChat": "打开对话",
@@ -741,7 +743,8 @@
       "addAttachment": "添加附件",
       "emptyState": "描述你想创建的技能，AI 将先为你生成执行流程图",
       "sessionProtectSaved": "已保存当前会话",
-      "sessionProtectRestored": "已恢复之前的会话"
+      "sessionProtectRestored": "已恢复之前的会话",
+      "scopePrefix": "[本轮仅限修改 skill: {{slug}}（目录 ~/.openclaw/workspace/skills/{{slug}}/）。禁止修改其他 skill 或全局配置。]"
     },
     "flowchart": {
       "preview": "预览",
@@ -758,6 +761,14 @@
       "zoomOut": "缩小",
       "resetZoom": "重置缩放",
       "zoomHint": "按住 Ctrl/⌘ + 滚轮缩放"
+    },
+    "a2ui": {
+      "title": "A2UI 输入表单调试",
+      "generate": "一键生成输入表单",
+      "regenerate": "重新生成",
+      "reload": "重新加载",
+      "empty": "此技能尚未生成 A2UI 首次交互输入表单（ui.json）。点击下方按钮，让 AI 基于 SKILL.md 自动生成。",
+      "generating": "正在生成输入表单，AI 将基于 SKILL.md 生成 ui.json 并注入使用提示..."
     },
     "browser": {
       "title": "技能目录",

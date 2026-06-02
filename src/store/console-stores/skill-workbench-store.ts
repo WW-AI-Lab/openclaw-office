@@ -63,6 +63,26 @@ function buildFlowchartTaskPrompt(skillSlug: string): string {
   ].join("\n");
 }
 
+export function buildInputUiTaskPrompt(skillSlug: string): string {
+  const skillDir = `${WORKSPACE_SKILLS_DIR}/${skillSlug}`;
+  const skillFile = `${skillDir}/SKILL.md`;
+  const uiFile = `${skillDir}/ui.json`;
+
+  return [
+    `为 skill ${skillSlug} 生成或更新 A2UI 首次交互输入表单，并写入 ui.json。严格遵循已自动加载的默认 Skill：${MERMAID_GUARD_SKILL} 及其 references/a2ui-input-spec.md。`,
+    "直接执行，不要先解释。",
+    `1. 先读取 ${skillFile}，识别该 Skill 第一次运行真正需要用户提供的关键输入（通常 2~6 个字段）。`,
+    `2. 产出**纯 A2UI Schema JSON**（顶层含 version=1、skill="${skillSlug}"、fields），写入 ${uiFile}。不要用 \`\`\`a2ui 围栏或任何 Markdown 包裹文件内容。`,
+    "3. 每个字段包含 key/label/type/required，按需提供 options（select/radio/multiselect 必填）与预填 value；尽量用 SKILL.md 默认值或合理常用值预填 value。",
+    "4. 字段类型仅限：text、textarea、number、select、radio、checkbox、multiselect、file。",
+    "5. **语义识别强制要求**：当字段语义属于「数据来源 / 数据文件 / 数据集 / 上传 / 附件 / 导入 / 原始素材」，或需要 CSV / Excel / JSON / PDF / Word / 图片 / 音视频 等文件时，必须使用 type=\"file\" 且设置合理的 accept（如 \".csv,.xlsx,.xls,.json\"）；多文件场景加 multiple=true。严禁用 text/textarea 让用户手填文件路径。具体规范见 references/a2ui-input-spec.md 「何时优先使用 file 类型」节。",
+    `6. 同时向 ${skillFile} 幂等注入 A2UI 使用提示：若已存在 \`<!-- a2ui:input-hint -->\` 标记则跳过，否则按 references/a2ui-input-spec.md 中的片段模板追加。`,
+    "7. 使用 read / write / edit 工具直接把 ui.json 与 SKILL.md 写入磁盘。",
+    "8. 最终回复：先用一个 ```a2ui 代码块回显写入 ui.json 的表单内容（便于预览），再追加一句中文状态说明，明确说明已写入 ui.json 与是否注入 SKILL.md 提示。",
+    "9. 不要输出分析过程，不要停留在中间状态。",
+  ].join("\n");
+}
+
 function stripYamlFrontmatter(text: string): string {
   const trimmed = text.trim();
   if (!trimmed.startsWith("---\n")) {
@@ -245,13 +265,18 @@ export const useSkillWorkbenchStore = create<SkillWorkbenchState>((set, get) => 
       try {
         const adapter = getAdapter();
         const sections = await loadInjectedSkillSections(adapter, DEFAULT_WORKBENCH_SKILLS);
+        const skillDir = `${WORKSPACE_SKILLS_DIR}/${currentSkillSlug}`;
         await adapter.chatInject(
           key,
           [
             `[系统：当前正在${mode === "browse" ? "浏览并修改" : "修改"} skill ${currentSkillSlug}]`,
-            `目标目录：${WORKSPACE_SKILLS_DIR}/${currentSkillSlug}`,
-            "如果用户要求修改技能或流程图，优先读取并修改该目录下的 SKILL.md 与 FLOWCHART.md。",
-            "如果用户描述的是流程图结构调整，修改 FLOWCHART.md；如果描述的是技能说明或行为，修改 SKILL.md；必要时两者都改。",
+            `目标目录：${skillDir}`,
+            "【严格范围限制 - 违反视为错误】",
+            `1. 仅允许读写 ${skillDir}/ 目录下的文件（SKILL.md / FLOWCHART.md / ui.json / _meta.json / scripts/ / references/ / tests/ 等）。`,
+            "2. 禁止修改任何其他 skill 目录、全局配置文件（如 ~/.openclaw/config.* 、~/.openclaw/agents/* 、~/.openclaw/settings/*）以及 ~/.openclaw/workspace/skills/ 之外的任何路径。",
+            "3. 禁止创建/删除/重命名其他 skill；禁止修改本 skill 的 slug 与目录名。",
+            "4. 执行任何 read / write / edit / shell 之前，必须先确认目标路径以 " + skillDir + "/ 开头；若用户请求超出该范围，请拒绝并提示“仅在技能工作台中修改当前 skill”。",
+            "5. 流程图结构调整 → FLOWCHART.md；技能说明/行为 → SKILL.md；A2UI 表单 → ui.json；必要时多个同时修改。",
             ...sections,
           ].join("\n"),
         );

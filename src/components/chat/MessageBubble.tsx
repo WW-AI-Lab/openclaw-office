@@ -13,6 +13,13 @@ interface MessageBubbleProps {
   message: ChatDockMessage;
   isPinned?: boolean;
   onTogglePin?: (messageId: string) => void;
+  /**
+   * Forwarded to MarkdownContent / StreamingMarkdownContent. When true,
+   * ```` ```a2ui ```` blocks render as plain code fences instead of the
+   * interactive A2uiForm — used by surfaces that already show the form
+   * elsewhere (e.g. the Workbench "A2UI 调试" tab).
+   */
+  disableA2uiForm?: boolean;
 }
 
 function resolveAssistantName(message: ChatDockMessage, agents: ReturnType<typeof useOfficeStore.getState>["agents"]): string {
@@ -161,6 +168,7 @@ export const MessageBubble = memo(function MessageBubble({
   message,
   isPinned = false,
   onTogglePin,
+  disableA2uiForm = false,
 }: MessageBubbleProps) {
   const { t } = useTranslation("chat");
   const agents = useOfficeStore((s) => s.agents);
@@ -178,7 +186,7 @@ export const MessageBubble = memo(function MessageBubble({
       <div className="mb-4 flex justify-center">
         <div className="max-w-2xl rounded-lg bg-amber-50/80 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/20 dark:text-amber-200">
           <div className="flex items-start justify-between gap-3">
-            <MarkdownContent content={message.content} />
+            <MarkdownContent content={message.content} disableA2uiForm={disableA2uiForm} />
             <PinButton isPinned={isPinned} messageId={message.id} onTogglePin={onTogglePin} t={t} />
           </div>
         </div>
@@ -210,9 +218,17 @@ export const MessageBubble = memo(function MessageBubble({
                   <ThinkingBlock thinking={message.thinking} isStreaming={Boolean(message.isStreaming)} />
                 ) : null}
                 {message.isStreaming ? (
-                  <StreamingMarkdownContent content={message.content} isStreaming />
+                  <StreamingMarkdownContent
+                    content={message.content}
+                    isStreaming
+                    disableA2uiForm={disableA2uiForm}
+                  />
                 ) : (
-                  <MarkdownContent content={message.content} />
+                  <MarkdownContent
+                    content={message.content}
+                    messageId={message.id}
+                    disableA2uiForm={disableA2uiForm}
+                  />
                 )}
                 {message.isStreaming && <StreamingIndicator />}
               </>

@@ -704,6 +704,8 @@
       "filesTitle": "Skill Files",
       "flowchartTab": "Flowchart",
       "flowchartMissing": "missing",
+      "a2uiTab": "A2UI Debug",
+      "a2uiMissing": "missing",
       "noFiles": "No other files for this skill yet",
       "editSkill": "Modify this skill",
       "openChat": "Open chat",
@@ -741,7 +743,8 @@
       "addAttachment": "Add attachment",
       "emptyState": "Describe the skill you want to create, AI will generate a flowchart first",
       "sessionProtectSaved": "Current session saved",
-      "sessionProtectRestored": "Previous session restored"
+      "sessionProtectRestored": "Previous session restored",
+      "scopePrefix": "[This turn is limited to skill: {{slug}} (directory ~/.openclaw/workspace/skills/{{slug}}/). Do NOT modify other skills or global configuration.]"
     },
     "flowchart": {
       "preview": "Preview",
@@ -758,6 +761,14 @@
       "zoomOut": "Zoom out",
       "resetZoom": "Reset zoom",
       "zoomHint": "Hold Ctrl/⌘ + scroll to zoom"
+    },
+    "a2ui": {
+      "title": "A2UI Input Form Debug",
+      "generate": "Generate input form",
+      "regenerate": "Regenerate",
+      "reload": "Reload",
+      "empty": "This skill has no A2UI first-interaction input form (ui.json) yet. Click below to let AI generate it from SKILL.md.",
+      "generating": "Generating the input form. AI will produce ui.json from SKILL.md and inject usage hints..."
     },
     "browser": {
       "title": "Skill Directory",

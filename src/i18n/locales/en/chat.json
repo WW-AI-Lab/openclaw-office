@@ -4,6 +4,21 @@
     "expand": "Show thinking",
     "collapse": "Hide thinking"
   },
+  "a2ui": {
+    "submit": "Submit",
+    "submitted": "Submitted",
+    "submitting": "Submitting...",
+    "requiredHint": "Please complete required fields: {{fields}}",
+    "requiredMark": "required",
+    "selectPlaceholder": "Select",
+    "useText": "Answer with text instead",
+    "submittedNotice": "Form submitted. To change your answer, type a message below.",
+    "uploadFile": "Upload file",
+    "uploadFiles": "Upload files (multi-select)",
+    "fileSelected": "Selected: {{name}}",
+    "filesSelected": "{{count}} files selected",
+    "removeFile": "Remove file"
+  },
   "connection": {
     "disconnected": "Disconnected",
     "reconnecting": "Reconnecting...",

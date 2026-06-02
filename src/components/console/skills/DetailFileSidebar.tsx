@@ -10,6 +10,7 @@ import {
   FolderOpen,
   GitBranch,
   Image as ImageIcon,
+  LayoutDashboard,
 } from "lucide-react";
 import {
   buildFileTree,
@@ -18,12 +19,15 @@ import {
 } from "@/lib/build-file-tree";
 
 export const FLOWCHART_ITEM = "__flowchart__";
+export const A2UI_ITEM = "__a2ui__";
 const FLOWCHART_FILE_NAME = "FLOWCHART.md";
+const A2UI_FILE_NAME = "ui.json";
 
 interface DetailFileSidebarProps {
   files: string[];
   selected: string;
   hasFlowchart: boolean;
+  hasInputUi: boolean;
   isLoading: boolean;
   onSelect: (item: string) => void;
 }
@@ -116,13 +120,19 @@ export const DetailFileSidebar = memo(function DetailFileSidebar({
   files,
   selected,
   hasFlowchart,
+  hasInputUi,
   isLoading,
   onSelect,
 }: DetailFileSidebarProps) {
   const { t } = useTranslation("console");
 
   const fileEntries = useMemo(
-    () => files.filter((name) => name.toUpperCase() !== FLOWCHART_FILE_NAME.toUpperCase()),
+    () =>
+      files.filter(
+        (name) =>
+          name.toUpperCase() !== FLOWCHART_FILE_NAME.toUpperCase() &&
+          name.toLowerCase() !== A2UI_FILE_NAME.toLowerCase(),
+      ),
     [files],
   );
 
@@ -179,6 +189,24 @@ export const DetailFileSidebar = memo(function DetailFileSidebar({
           {!hasFlowchart && (
             <span className="text-[10px] text-gray-400">
               {t("skillWorkbench.detail.flowchartMissing")}
+            </span>
+          )}
+        </button>
+
+        {/* A2UI debug virtual entry */}
+        <button
+          onClick={() => onSelect(A2UI_ITEM)}
+          className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+            selected === A2UI_ITEM
+              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+              : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+          }`}
+        >
+          <LayoutDashboard className="h-4 w-4 shrink-0" />
+          <span className="flex-1 truncate">{t("skillWorkbench.detail.a2uiTab")}</span>
+          {!hasInputUi && (
+            <span className="text-[10px] text-gray-400">
+              {t("skillWorkbench.detail.a2uiMissing")}
             </span>
           )}
         </button>

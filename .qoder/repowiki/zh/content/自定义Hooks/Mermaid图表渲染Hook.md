@@ -12,20 +12,29 @@
 - [package.json](file://package.json)
 </cite>
 
+## 更新摘要
+**变更内容**
+- 更新了渲染机制分析，反映新的序列化渲染队列系统
+- 新增了性能优化章节，重点介绍渲染队列和并发控制
+- 更新了错误处理策略，强调预验证和DOM清理机制
+- 新增了内存泄漏防护的具体实现细节
+- 更新了架构概览，展示简化的组件关系
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
 3. [核心组件](#核心组件)
 4. [架构概览](#架构概览)
 5. [详细组件分析](#详细组件分析)
-6. [依赖关系分析](#依赖关系分析)
-7. [性能考虑](#性能考虑)
-8. [故障排除指南](#故障排除指南)
-9. [结论](#结论)
+6. [性能考虑](#性能考虑)
+7. [故障排除指南](#故障排除指南)
+8. [结论](#结论)
 
 ## 简介
 
 useMermaidRenderer是一个专门用于Mermaid图表渲染的React Hook，它提供了完整的图表渲染解决方案，包括Mermaid语法解析、DOM元素管理、图表实例化流程以及生命周期管理。该Hook通过懒加载方式引入Mermaid库，支持主题切换，并提供错误处理和降级机制。
+
+**更新** 新的渲染系统采用了更直接和高效的架构，通过渲染队列确保图表渲染的串行化，避免了并发渲染导致的DOM污染问题。
 
 ## 项目结构
 
@@ -60,13 +69,13 @@ officeStore --> zustand
 ```
 
 **图表来源**
-- [useMermaidRenderer.ts:1-52](file://src/hooks/useMermaidRenderer.ts#L1-L52)
+- [useMermaidRenderer.ts:1-82](file://src/hooks/useMermaidRenderer.ts#L1-L82)
 - [MermaidPreview.tsx:1-66](file://src/components/shared/MermaidPreview.tsx#L1-L66)
 - [MermaidEditor.tsx:1-47](file://src/components/console/skills/MermaidEditor.tsx#L1-L47)
-- [StreamingMarkdownContent.tsx:1-196](file://src/components/chat/StreamingMarkdownContent.tsx#L1-L196)
+- [StreamingMarkdownContent.tsx:1-200](file://src/components/chat/StreamingMarkdownContent.tsx#L1-L200)
 
 **章节来源**
-- [useMermaidRenderer.ts:1-52](file://src/hooks/useMermaidRenderer.ts#L1-L52)
+- [useMermaidRenderer.ts:1-82](file://src/hooks/useMermaidRenderer.ts#L1-L82)
 - [package.json:49-63](file://package.json#L49-L63)
 
 ## 核心组件
@@ -78,7 +87,10 @@ useMermaidRenderer是整个Mermaid渲染系统的核心，它提供了以下关�
 - **懒加载Mermaid库**：通过动态导入避免初始包体积过大
 - **主题感知渲染**：根据应用主题自动调整图表样式
 - **单例模式管理**：确保Mermaid实例的唯一性和复用
+- **渲染队列控制**：通过Promise链确保渲染的串行化执行
 - **错误处理机制**：提供完整的异常捕获和错误报告
+
+**更新** 新版本引入了渲染队列机制，通过`renderQueue`确保每个图表渲染都在独立的Promise链中执行，避免了并发渲染导致的DOM状态污染问题。
 
 ### MermaidPreview 组件
 
@@ -97,7 +109,7 @@ MermaidEditor集成了实时预览功能：
 - 支持大文本的性能优化
 
 **章节来源**
-- [useMermaidRenderer.ts:19-51](file://src/hooks/useMermaidRenderer.ts#L19-L51)
+- [useMermaidRenderer.ts:27-81](file://src/hooks/useMermaidRenderer.ts#L27-L81)
 - [MermaidPreview.tsx:9-65](file://src/components/shared/MermaidPreview.tsx#L9-L65)
 - [MermaidEditor.tsx:9-46](file://src/components/console/skills/MermaidEditor.tsx#L9-L46)
 
@@ -107,25 +119,29 @@ MermaidEditor集成了实时预览功能：
 sequenceDiagram
 participant App as 应用组件
 participant Hook as useMermaidRenderer
+participant Queue as 渲染队列
 participant Store as Zustand Store
 participant Mermaid as Mermaid库
 participant DOM as DOM元素
 App->>Hook : 调用render(source)
-Hook->>Store : 获取当前主题
-Store-->>Hook : 返回主题信息
+Hook->>Queue : 添加到渲染队列
+Queue->>Store : 获取当前主题
+Store-->>Queue : 返回主题信息
 alt 首次调用或主题变更
-Hook->>Mermaid : 初始化配置
-Mermaid-->>Hook : 初始化完成
+Queue->>Mermaid : 初始化配置
+Mermaid-->>Queue : 初始化完成
 end
-Hook->>Mermaid : render(id, source)
+Queue->>Mermaid : parse(source)
+Queue->>Mermaid : render(id, source)
 Mermaid->>DOM : 生成SVG元素
-Mermaid-->>Hook : 返回SVG字符串
-Hook-->>App : {svg, error}
+Mermaid-->>Queue : 返回SVG字符串
+Queue->>DOM : 清理临时容器
+Queue-->>App : {svg, error}
 Note over Hook,DOM : 错误处理和状态管理
 ```
 
 **图表来源**
-- [useMermaidRenderer.ts:23-48](file://src/hooks/useMermaidRenderer.ts#L23-L48)
+- [useMermaidRenderer.ts:31-78](file://src/hooks/useMermaidRenderer.ts#L31-L78)
 - [office-store.ts:234](file://src/store/office-store.ts#L234)
 
 ## 详细组件分析
@@ -134,7 +150,7 @@ Note over Hook,DOM : 错误处理和状态管理
 
 #### 渲染机制分析
 
-Hook采用了单例模式来管理Mermaid实例：
+Hook采用了单例模式配合渲染队列来管理Mermaid实例：
 
 ```mermaid
 flowchart TD
@@ -145,17 +161,19 @@ LazyLoad --> InitPromise[创建初始化Promise]
 InitPromise --> WaitInit[等待初始化完成]
 WaitInit --> CheckTheme
 CheckTheme --> |是| Reinit[重新初始化]
-CheckTheme --> |否| RenderChart[执行渲染]
-Reinit --> RenderChart
-RenderChart --> Success[返回SVG]
-RenderChart --> Error[捕获错误]
-Success --> End([渲染完成])
-Error --> End
+CheckTheme --> |否| EnqueueRender[加入渲染队列]
+Reinit --> EnqueueRender
+EnqueueRender --> SerialRender[串行渲染执行]
+SerialRender --> Success[返回SVG]
+SerialRender --> Error[捕获错误]
+Success --> Cleanup[清理DOM]
+Cleanup --> End([渲染完成])
+Error --> Cleanup
 ```
 
 **图表来源**
-- [useMermaidRenderer.ts:9-17](file://src/hooks/useMermaidRenderer.ts#L9-L17)
-- [useMermaidRenderer.ts:29-37](file://src/hooks/useMermaidRenderer.ts#L29-L37)
+- [useMermaidRenderer.ts:4-15](file://src/hooks/useMermaidRenderer.ts#L4-L15)
+- [useMermaidRenderer.ts:31-78](file://src/hooks/useMermaidRenderer.ts#L31-L78)
 
 #### 生命周期管理
 
@@ -163,18 +181,20 @@ Hook实现了完整的生命周期管理：
 
 1. **初始化阶段**：检查Mermaid实例是否存在
 2. **主题同步**：监听应用主题变化
-3. **渲染执行**：生成唯一ID并调用Mermaid渲染
-4. **错误处理**：统一捕获和处理渲染异常
+3. **渲染执行**：通过渲染队列确保串行化执行
+4. **DOM清理**：清理临时容器元素防止内存泄漏
+5. **错误处理**：统一捕获和处理渲染异常
 
 #### DOM元素管理
 
-虽然Hook声明了renderRef，但实际的DOM操作由Mermaid库内部处理。Hook主要负责：
-- 确保Mermaid实例正确初始化
-- 管理渲染计数器防止ID冲突
-- 提供主题变更检测机制
+Hook实现了严格的DOM管理机制：
+
+1. **临时容器清理**：Mermaid渲染会在body上创建临时容器，Hook确保在每次渲染后清理这些容器
+2. **渲染计数器**：使用递增的ID确保每个渲染都有唯一的标识符
+3. **错误状态清理**：即使渲染失败也会清理临时容器，防止DOM污染
 
 **章节来源**
-- [useMermaidRenderer.ts:19-51](file://src/hooks/useMermaidRenderer.ts#L19-L51)
+- [useMermaidRenderer.ts:27-81](file://src/hooks/useMermaidRenderer.ts#L27-L81)
 
 ### MermaidPreview 组件分析
 
@@ -239,56 +259,6 @@ CallOnChange --> Preview[触发预览更新]
 **章节来源**
 - [MermaidEditor.tsx:33-46](file://src/components/console/skills/MermaidEditor.tsx#L33-L46)
 
-## 依赖关系分析
-
-### 外部依赖
-
-项目对Mermaid库的依赖通过package.json明确声明：
-
-```mermaid
-graph TB
-subgraph "应用层"
-useMermaidRenderer[useMermaidRenderer Hook]
-MermaidComponents[Mermaid相关组件]
-end
-subgraph "第三方库"
-mermaid[mermaid ^11.14.0]
-react[react ^19.1.0]
-zustand[zustand ^5.0.0]
-end
-useMermaidRenderer --> mermaid
-MermaidComponents --> mermaid
-useMermaidRenderer --> react
-useMermaidRenderer --> zustand
-```
-
-**图表来源**
-- [package.json:54](file://package.json#L54)
-- [package.json:55](file://package.json#L55)
-- [package.json:63](file://package.json#L63)
-
-### 内部依赖关系
-
-```mermaid
-graph LR
-useMermaidRenderer --> officeStore[office-store.ts]
-MermaidPreview --> useMermaidRenderer
-MermaidEditor --> MermaidPreview
-FlowchartPanel --> MermaidPreview
-StreamingMarkdownContent --> MermaidPreview
-officeStore --> zustand[状态管理]
-useMermaidRenderer --> react[React Hooks]
-MermaidComponents --> react[React Components]
-```
-
-**图表来源**
-- [useMermaidRenderer.ts:2](file://src/hooks/useMermaidRenderer.ts#L2)
-- [MermaidPreview.tsx:2](file://src/components/shared/MermaidPreview.tsx#L2)
-- [MermaidEditor.tsx:2](file://src/components/console/skills/MermaidEditor.tsx#L2)
-
-**章节来源**
-- [package.json:49-63](file://package.json#L49-L63)
-
 ## 性能考虑
 
 ### 图表渲染优化
@@ -297,22 +267,30 @@ MermaidComponents --> react[React Components]
 2. **单例模式**：避免重复初始化Mermaid实例
 3. **主题缓存**：只有当主题真正改变时才重新初始化
 4. **防抖机制**：编辑器中的300ms防抖避免频繁渲染
+5. **渲染队列**：通过Promise链确保渲染的串行化执行，避免并发问题
+
+**更新** 新版本引入了渲染队列机制，这是性能优化的关键改进。渲染队列确保每个图表渲染都在独立的Promise链中执行，避免了并发渲染导致的DOM状态污染问题。
 
 ### 内存泄漏防护
 
 1. **清理定时器**：编辑器组件在卸载时清理防抖定时器
 2. **异步资源管理**：懒加载Promise的正确处理
 3. **状态重置**：错误状态下及时清理相关状态
+4. **DOM清理**：每次渲染后清理临时容器元素
+5. **渲染队列维护**：即使渲染失败也保持队列的完整性
+
+**更新** 新版本加强了内存泄漏防护，特别是DOM清理机制。Mermaid渲染会在body上创建临时容器元素，新版本确保这些元素在每次渲染后都会被清理，防止DOM污染和内存泄漏。
 
 ### 浏览器兼容性
 
 1. **现代浏览器支持**：基于ES2020+特性
 2. **渐进增强**：不支持的浏览器显示源码而非崩溃
 3. **CSS变量支持**：利用现代CSS特性实现主题切换
+4. **Promise支持**：依赖现代JavaScript特性
 
 **章节来源**
 - [MermaidEditor.tsx:27-31](file://src/components/console/skills/MermaidEditor.tsx#L27-L31)
-- [useMermaidRenderer.ts:29-37](file://src/hooks/useMermaidRenderer.ts#L29-L37)
+- [useMermaidRenderer.ts:31-78](file://src/hooks/useMermaidRenderer.ts#L31-L78)
 
 ## 故障排除指南
 
@@ -335,23 +313,29 @@ MermaidComponents --> react[React Components]
 **症状**：大量图表导致页面卡顿
 **解决**：使用防抖机制，避免频繁更新；考虑分页加载
 
+**更新** 新版本通过渲染队列机制解决了并发渲染导致的性能问题。如果遇到渲染卡顿，检查是否有过多的图表同时渲染。
+
 ### 调试技巧
 
 1. **启用开发模式**：查看详细的错误堆栈信息
 2. **检查网络连接**：确保Mermaid库能够正常加载
 3. **验证Mermaid语法**：使用在线工具验证语法正确性
+4. **监控渲染队列**：检查渲染任务是否正常排队执行
 
 **章节来源**
 - [MermaidPreview.tsx:43-65](file://src/components/shared/MermaidPreview.tsx#L43-L65)
-- [useMermaidRenderer.ts:43-45](file://src/hooks/useMermaidRenderer.ts#L43-L45)
+- [useMermaidRenderer.ts:31-78](file://src/hooks/useMermaidRenderer.ts#L31-L78)
 
 ## 结论
 
 useMermaidRenderer Hook提供了一个完整、高效且用户友好的Mermaid图表渲染解决方案。它通过以下特点确保了良好的用户体验：
 
-1. **性能优化**：懒加载、单例模式、防抖机制
+1. **性能优化**：懒加载、单例模式、防抖机制、渲染队列
 2. **错误处理**：完善的异常捕获和用户友好提示
 3. **主题适配**：自动响应应用主题变化
-4. **可维护性**：清晰的架构分离和模块化设计
+4. **内存安全**：严格的DOM清理机制防止内存泄漏
+5. **可维护性**：清晰的架构分离和模块化设计
 
-该Hook为技能编辑器、聊天界面和工作台等场景提供了强大的图表渲染能力，支持从简单的流程图到复杂的交互式图表的各种需求。
+**更新** 新版本的渲染系统更加直接和高效，通过渲染队列确保了图表渲染的稳定性和可靠性。这个简化的架构减少了组件间的复杂依赖，提高了系统的整体性能和可维护性。
+
+该Hook为技能编辑器、聊天界面和工作台等场景提供了强大的图表渲染能力，支持从简单的流程图到复杂的交互式图表的各种需求。新的渲染队列机制确保了在处理大量图表时的稳定性和性能表现。

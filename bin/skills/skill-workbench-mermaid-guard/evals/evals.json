@@ -1,0 +1,47 @@
+{
+  "skill_name": "skill-workbench-mermaid-guard",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我把这个 skill 的工作流程画成流程图，写进它的 FLOWCHART.md。它的 SKILL.md 里写了：先读输入，判断是否满足条件，满足就执行主流程并输出结果，不满足就返回限制说明。",
+      "expected_output": "一张 flowchart TD 总览图，包含开始/判断/主流程/成功结束/失败结束节点，全部节点带语义化颜色（classDef + :::className），可直接渲染；结尾一句中文状态说明。",
+      "files": [],
+      "assertions": [
+        "回复仅包含一个 `##` 标题 + 一个 ```mermaid 代码块 + 结尾一句状态说明，没有额外的分析或条目列表",
+        "Mermaid 块首行是 flowchart TD",
+        "Mermaid 块内完整声明了 6 个 classDef（startNode/endOk/endErr/decision/process/phase）",
+        "开始节点用 :::startNode、判断节点用 :::decision、成功结束用 :::endOk、失败结束用 :::endErr",
+        "所有含中文的节点标签都用双引号包裹",
+        "判断节点为菱形 {\"...\"} 且带 :::decision",
+        "代码块以 ```mermaid 开头并正确闭合"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "这是现有的 FLOWCHART.md，渲染出来全是灰白没颜色，而且我看判断节点写成了 B{是否继续?}。帮我修好。\n```mermaid\nflowchart TD\n  A[开始] --> B{是否继续?}\n  B -->|yes| C[执行]\n  B -->|no| D[结束]\n```",
+      "expected_output": "修复后的 Mermaid：补齐 6 个 classDef 与每个节点的颜色类，中文标签加双引号，菱形问号改全角并双引号，边标签短化；保留原结构。",
+      "files": [],
+      "assertions": [
+        "输出补齐了完整的 6 个 classDef 声明",
+        "每个节点都加上了正确语义的 :::className",
+        "判断节点写成 {\"是否继续？\"} 形式并带 :::decision",
+        "边标签使用「是/否」等短标签而非 yes/no 长串",
+        "保留了原有的开始→判断→执行/结束结构，未无故新增图"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "给这个目标 skill 做一个第一次运行的输入表单 ui.json。它需要用户提供：主题（必填，单行文本）、输出语言（中文/英文，单选，默认中文）、条数（数字，默认 3）。",
+      "expected_output": "一个纯 A2UI Schema JSON（无 ```a2ui 围栏、无 Markdown 包裹），含 version/skill/fields，字段类型与预填值正确；并向目标 SKILL.md 幂等注入 a2ui 提示片段。",
+      "files": [],
+      "assertions": [
+        "产出的是纯 JSON 对象，没有被 ```a2ui 或其它 Markdown 围栏包裹",
+        "顶层含非空 fields 数组，每个字段有唯一 key",
+        "语言字段为 select 或 radio 且带 options，预填 value 为「中文」",
+        "条数字段 type 为 number 且预填 value 为 3",
+        "主题字段 required 为 true",
+        "提到向目标 SKILL.md 注入 a2ui:input-hint 提示且检测标记避免重复"
+      ]
+    }
+  ]
+}

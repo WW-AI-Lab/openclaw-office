@@ -4,6 +4,21 @@
     "expand": "展开思考",
     "collapse": "收起思考"
   },
+  "a2ui": {
+    "submit": "提交",
+    "submitted": "已提交",
+    "submitting": "提交中...",
+    "requiredHint": "请完成必填项：{{fields}}",
+    "requiredMark": "必填",
+    "selectPlaceholder": "请选择",
+    "useText": "改用文字回答",
+    "submittedNotice": "表单已提交，如需修改请直接在下方输入文字。",
+    "uploadFile": "上传文件",
+    "uploadFiles": "上传文件（可多选）",
+    "fileSelected": "已选择：{{name}}",
+    "filesSelected": "已选择 {{count}} 个文件",
+    "removeFile": "移除文件"
+  },
   "connection": {
     "disconnected": "连接已断开，正在重连...",
     "reconnecting": "正在重连...",

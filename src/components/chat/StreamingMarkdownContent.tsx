@@ -19,6 +19,12 @@ function extractTextContent(children: unknown): string {
 interface StreamingMarkdownContentProps {
   content: string;
   isStreaming?: boolean;
+  /**
+   * When true, ```` ```a2ui ```` blocks are rendered as plain code fences
+   * instead of being passed through to the interactive A2uiForm. See
+   * `MarkdownContent` for the rationale.
+   */
+  disableA2uiForm?: boolean;
 }
 
 const PARAGRAPH_BREAK = /\n\n/;
@@ -68,7 +74,7 @@ function splitCompletedChunks(text: string): { completed: string; tail: string }
   };
 }
 
-function createMarkdownComponents(renderMermaidPreview: boolean) {
+function createMarkdownComponents(renderMermaidPreview: boolean, disableA2uiForm: boolean) {
   return {
   p: ({ children, ...props }: Record<string, unknown>) => {
     const { node: _node, ...rest } = props as Record<string, unknown> & { node?: unknown };
@@ -177,6 +183,22 @@ function createMarkdownComponents(renderMermaidPreview: boolean) {
         </Suspense>
       );
     }
+    if (className === "language-a2ui") {
+      // The streaming variant doesn't ship an A2uiForm renderer; if a
+      // surface opts out of in-chat A2UI we still want the block to appear
+      // as readable text rather than a half-rendered form.
+      const text = extractTextContent(children);
+      if (disableA2uiForm) {
+        return renderCodeFence(text);
+      }
+      return (
+        <Suspense fallback={renderCodeFence(text)}>
+          <pre className="overflow-x-auto rounded-xl border border-blue-200/70 bg-blue-50/50 p-4 text-xs text-gray-500 dark:border-blue-900/50 dark:bg-blue-950/20">
+            <code>{text}</code>
+          </pre>
+        </Suspense>
+      );
+    }
     return (
       <code
         className={`${(className as string) ?? ""} bg-transparent !text-gray-800 dark:!text-gray-100`}
@@ -205,6 +227,7 @@ function createMarkdownComponents(renderMermaidPreview: boolean) {
 export const StreamingMarkdownContent = memo(function StreamingMarkdownContent({
   content,
   isStreaming = false,
+  disableA2uiForm = false,
 }: StreamingMarkdownContentProps) {
   const cachedRef = useRef<{ key: string; node: ReactNode }>({ key: "", node: null });
   const pendingRef = useRef(content);
@@ -240,7 +263,10 @@ export const StreamingMarkdownContent = memo(function StreamingMarkdownContent({
     () => (isStreaming ? splitCompletedChunks(renderSource) : { completed: "", tail: renderSource }),
     [renderSource, isStreaming],
   );
-  const markdownComponents = useMemo(() => createMarkdownComponents(!isStreaming), [isStreaming]);
+  const markdownComponents = useMemo(
+    () => createMarkdownComponents(!isStreaming, disableA2uiForm),
+    [isStreaming, disableA2uiForm],
+  );
 
   const completedNode = useMemo(() => {
     if (!completed) return null;
