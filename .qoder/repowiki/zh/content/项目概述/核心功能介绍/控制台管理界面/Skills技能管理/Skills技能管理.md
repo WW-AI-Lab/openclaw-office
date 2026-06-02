@@ -1,7 +1,7 @@
 # Skills技能管理
 
 <cite>
-**本文引用的文件**
+**本文档引用的文件**
 - [SkillBrowser.tsx](file://src/components/console/skills/SkillBrowser.tsx)
 - [ClawHubInstallDialog.tsx](file://src/components/console/skills/ClawHubInstallDialog.tsx)
 - [SkillDetailDialog.tsx](file://src/components/console/skills/SkillDetailDialog.tsx)
@@ -28,13 +28,20 @@
 - [SkillWorkbenchCreatePage.tsx](file://src/components/pages/SkillWorkbenchCreatePage.tsx)
 - [SkillWorkbenchHomePage.tsx](file://src/components/pages/SkillWorkbenchHomePage.tsx)
 - [WorkbenchLayout.tsx](file://src/components/pages/SkillWorkbenchLayout.tsx)
+- [WorkbenchChat.tsx](file://src/components/console/skills/WorkbenchChat.tsx)
+- [DetailFileSidebar.tsx](file://src/components/console/skills/DetailFileSidebar.tsx)
+- [SKILL-WORKBENCH.md](file://SKILL-WORKBENCH.md)
+- [a2ui-input-spec.md](file://bin/skills/skill-workbench-mermaid-guard/references/a2ui-input-spec.md)
+- [evals.json](file://bin/skills/skill-workbench-mermaid-guard/evals/evals.json)
+- [console.json](file://src/i18n/locales/zh/console.json)
+- [chat.json](file://src/i18n/locales/zh/chat.json)
 </cite>
 
 ## 更新摘要
 **所做的更改**
-- 新增A2UI表单管理增强章节，详细介绍SkillWorkbenchDetailPage组件的A2UI表单调试面板功能
-- 更新技能工作台平台章节，包含A2UI表单状态管理和调试流程
-- 扩展状态管理章节，涵盖A2UI表单的生成、验证和提交机制
+- 新增A2UI表单调试系统章节，详细介绍A2uiDebugPanel组件的实时预览功能
+- 更新技能工作台平台章节，包含A2UI表单生成、验证和提交机制
+- 扩展状态管理章节，涵盖A2UI表单的生成、验证和提交状态管理
 - 新增A2UI Schema解析和表单渲染系统的核心实现细节
 - 更新架构总览以反映A2UI表单调试面板的集成
 
@@ -119,30 +126,6 @@ A2F --> A2S
 ```
 
 **图表来源**
-- [SkillsPage.tsx](file://src/pages/SkillsPage.tsx)
-- [SkillWorkbenchHomePage.tsx](file://src/components/pages/SkillWorkbenchHomePage.tsx)
-- [SkillWorkbenchCreatePage.tsx](file://src/components/pages/SkillWorkbenchCreatePage.tsx)
-- [SkillWorkbenchDetailPage.tsx](file://src/components/pages/SkillWorkbenchDetailPage.tsx)
-- [WorkbenchLayout.tsx](file://src/components/pages/SkillWorkbenchLayout.tsx)
-- [SkillBrowser.tsx](file://src/components/console/skills/SkillBrowser.tsx)
-- [SkillDetailDialog.tsx](file://src/components/console/skills/SkillDetailDialog.tsx)
-- [InstallOptionsDialog.tsx](file://src/components/console/skills/InstallOptionsDialog.tsx)
-- [SkillCard.tsx](file://src/components/console/skills/SkillCard.tsx)
-- [MarketplaceSkillCard.tsx](file://src/components/console/skills/MarketplaceSkillCard.tsx)
-- [ClawHubDetailDialog.tsx](file://src/components/console/skills/ClawHubDetailDialog.tsx)
-- [ClawHubInstallDialog.tsx](file://src/components/console/skills/ClawHubInstallDialog.tsx)
-- [A2uiDebugPanel.tsx](file://src/components/console/skills/A2uiDebugPanel.tsx)
-- [A2uiForm.tsx](file://src/components/chat/A2uiForm.tsx)
-- [a2ui-schema.ts](file://src/lib/a2ui-schema.ts)
-- [skills-store.ts](file://src/store/console-stores/skills-store.ts)
-- [skill-workbench-store.ts](file://src/store/console-stores/skill-workbench-store.ts)
-- [clawhub-store.ts](file://src/store/console-stores/clawhub-store.ts)
-- [workspace-skills-client.ts](file://src/gateway/workspace-skills-client.ts)
-- [clawhub-client.ts](file://src/gateway/clawhub-client.ts)
-- [adapter-provider.ts](file://src/gateway/adapter-provider.ts)
-- [adapter-types.ts](file://src/gateway/adapter-types.ts)
-
-**章节来源**
 - [SkillsPage.tsx](file://src/pages/SkillsPage.tsx)
 - [SkillWorkbenchHomePage.tsx](file://src/components/pages/SkillWorkbenchHomePage.tsx)
 - [SkillWorkbenchCreatePage.tsx](file://src/components/pages/SkillWorkbenchCreatePage.tsx)
@@ -508,7 +491,7 @@ Store->>Adapter : sendMessage(生成流程图指令)
 Adapter-->>Store : 返回流式响应
 Store->>Store : extractLatestMermaid()
 Store->>Store : setFlowchartDocument()
-Store-->>FP : 更新预览
+FP-->>U : 更新预览
 ```
 
 **图表来源**
@@ -608,6 +591,130 @@ Create --> Create
 **章节来源**
 - [skill-workbench-store.ts](file://src/store/console-stores/skill-workbench-store.ts)
 
+### A2UI表单调试面板（A2uiDebugPanel）
+**新增**专门的A2UI表单调试界面，提供完整的表单生命周期管理：
+
+#### 核心功能
+- **ui.json加载**：从工作区技能目录加载ui.json文件内容
+- **实时预览**：将ui.json解析为可交互的A2uiForm组件
+- **一键生成**：通过AI自动生成或重新生成ui.json文件
+- **重新加载**：从磁盘重新加载ui.json文件内容
+- **表单提交**：将表单值构建为结构化消息并提交到AI对话
+
+#### 交互流程
+- **无ui.json时**：显示"一键生成输入表单"按钮，点击后触发AI生成
+- **有ui.json时**：渲染A2uiForm进行实时预览，支持表单验证和文件上传
+- **调试集成**：与WorkbenchChat集成，支持表单提交到AI对话进行调试
+
+关键流程（A2UI表单调试）
+```mermaid
+sequenceDiagram
+participant U as "用户"
+participant A2DP as "A2uiDebugPanel"
+participant SWDP as "SkillWorkbenchDetailPage"
+participant Store as "skill-workbench-store"
+U->>A2DP : 点击"生成输入表单"
+A2DP->>Store : buildInputUiTaskPrompt(slug)
+A2DP->>Store : ensureEditingSession()
+Store-->>A2DP : 注入系统上下文
+A2DP->>Store : sendMessage(prompt)
+Store-->>A2DP : 返回生成的ui.json
+A2DP->>A2DP : 解析ui.json为A2uiForm
+U->>A2DP : 填写表单并提交
+A2DP->>Store : buildSubmissionMessage(form, values)
+A2DP->>Store : sendMessage(submission)
+Store-->>A2DP : 返回处理结果
+```
+
+**图表来源**
+- [A2uiDebugPanel.tsx](file://src/components/console/skills/A2uiDebugPanel.tsx)
+- [SkillWorkbenchDetailPage.tsx](file://src/components/pages/SkillWorkbenchDetailPage.tsx)
+- [skill-workbench-store.ts](file://src/store/console-stores/skill-workbench-store.ts)
+
+**章节来源**
+- [A2uiDebugPanel.tsx](file://src/components/console/skills/A2uiDebugPanel.tsx)
+
+### A2UI表单组件（A2uiForm）
+**新增**完整的A2UI表单渲染和验证系统：
+
+#### 支持的字段类型
+- **基础类型**：text、textarea、number
+- **选择类型**：select、radio、multiselect
+- **布尔类型**：checkbox
+- **文件类型**：file（支持单文件和多文件上传）
+
+#### 核心功能
+- **表单验证**：必填字段验证、选项值验证、文件类型验证
+- **文件上传**：支持拖拽上传、文件预览、文件移除
+- **状态管理**：表单值跟踪、验证状态、提交状态
+- **国际化支持**：完整的中英文翻译支持
+
+#### 验证机制
+- **必填验证**：检查required字段是否为空
+- **选项验证**：验证选择值是否在options范围内
+- **文件验证**：检查文件类型和大小限制
+- **显示格式**：将表单值格式化为人类可读的字符串
+
+**章节来源**
+- [A2uiForm.tsx](file://src/components/chat/A2uiForm.tsx)
+
+### A2UI Schema解析器（a2ui-schema）
+**新增**标准化的A2UI Schema解析、验证和序列化工具：
+
+#### Schema定义
+- **版本控制**：version字段支持Schema版本管理
+- **技能标识**：skill字段标识目标技能
+- **表单标题**：title和description提供表单说明
+- **字段定义**：fields数组定义表单字段
+- **提交配置**：submit对象定义提交按钮
+
+#### 解析功能
+- **JSON解析**：解析ui.json内容为结构化表单模型
+- **字段归一化**：标准化字段类型和选项
+- **文件值处理**：处理文件上传的dataURL格式
+- **块提取**：支持从```a2ui围栏代码块中提取JSON
+
+#### 序列化功能
+- **消息构建**：将表单值构建为结构化聊天消息
+- **附件提取**：从表单值中提取文件附件
+- **负载生成**：生成机器可读的JSON负载
+
+**章节来源**
+- [a2ui-schema.ts](file://src/lib/a2ui-schema.ts)
+
+### 工作台聊天系统（WorkbenchChat）
+**新增**与A2UI表单调试深度集成的聊天系统：
+
+#### 核心功能
+- **A2UI表单渲染**：支持```a2ui围栏代码块的动态表单渲染
+- **表单验证**：在聊天中验证A2UI表单的正确性
+- **调试集成**：与A2uiDebugPanel集成，避免重复渲染
+- **附件支持**：支持文件附件的上传和传输
+
+#### 交互特性
+- **智能禁用**：在A2UI调试标签页中禁用重复的表单渲染
+- **Scope提醒**：在编辑模式下自动添加技能范围提醒
+- **流式渲染**：支持AI回复的流式渲染和Mermaid提取
+
+**章节来源**
+- [WorkbenchChat.tsx](file://src/components/console/skills/WorkbenchChat.tsx)
+
+### 技能详情侧边栏（DetailFileSidebar）
+**新增**支持A2UI调试标签的文件侧边栏：
+
+#### 标签管理
+- **流程图标签**：始终显示的FLOWCHART.md预览标签
+- **A2UI调试标签**：新增的ui.json调试标签
+- **文件树导航**：支持文件夹展开折叠的文件树
+
+#### 交互功能
+- **标签切换**：在流程图预览和A2UI调试之间切换
+- **文件选择**：支持普通文件的查看和编辑
+- **状态指示**：显示文件是否存在和加载状态
+
+**章节来源**
+- [DetailFileSidebar.tsx](file://src/components/console/skills/DetailFileSidebar.tsx)
+
 ## 依赖关系分析
 - 组件到状态：技能浏览器、详情对话框、卡片组件均依赖skills-store；ClawHub详情依赖clawhub-store；**新增**工作台组件依赖skill-workbench-store；**新增**A2UI表单组件依赖a2ui-schema。
 - 状态到网关：skills-store通过适配器调用skills接口；clawhub-store调用clawhub-client；**新增**skill-workbench-store调用workspace-skills-client；**新增**A2UI表单系统通过适配器与AI交互。
@@ -690,6 +797,7 @@ end
 - **新增**懒加载：Mermaid库按需加载，首次渲染时才初始化。
 - **新增**表单优化：A2UI表单使用memo化组件，避免不必要的重新渲染。
 - **新增**状态缓存：A2UI表单状态在组件卸载时保持，提升用户体验。
+- **新增**文件上传优化：A2UI表单文件上传使用dataURL格式，避免大文件传输。
 
 ## 故障排除指南
 - 安装失败：检查安装结果中的标准输出/错误输出与警告，结合toast提示定位问题。
@@ -702,6 +810,7 @@ end
 - **新增**A2UI表单生成失败：检查AI对话是否正常，查看生成状态和错误提示。
 - **新增**表单验证失败：检查必填字段是否填写，文件类型是否符合要求。
 - **新增**表单提交失败：检查网络连接，确认AI对话会话是否有效。
+- **新增**A2UI表单重复渲染：检查WorkbenchChat的disableA2uiForm属性设置。
 
 **章节来源**
 - [skills-store.ts](file://src/store/console-stores/skills-store.ts)
@@ -731,3 +840,6 @@ A2UI表单系统提供了完整的表单生命周期管理，包括表单生成�
 - **新增**A2UI表单规范：严格遵循A2UI Schema规范，确保表单的兼容性和可维护性。
 - **新增**表单验证：在前端实现完整的表单验证逻辑，提升用户体验和数据质量。
 - **新增**调试集成：将A2UI表单调试面板与工作台聊天系统深度集成，提供一致的开发体验。
+- **新增**国际化支持：完整的中英文翻译支持，确保多语言环境下的一致用户体验。
+- **新增**错误处理：完善的错误边界和降级策略，确保系统稳定性。
+- **新增**性能监控：在关键操作中添加性能指标，便于后续优化。

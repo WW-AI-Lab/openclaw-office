@@ -5,21 +5,20 @@
 - [A2uiForm.tsx](file://src/components/chat/A2uiForm.tsx)
 - [a2ui-schema.ts](file://src/lib/a2ui-schema.ts)
 - [a2ui-input-spec.md](file://bin/skills/skill-workbench-mermaid-guard/references/a2ui-input-spec.md)
-- [chat-skill-a2ui.ts](file://src/lib/chat-skill-a2ui.ts)
 - [A2uiForm.test.tsx](file://src/components/chat/A2uiForm.test.tsx)
 - [chat.json](file://src/i18n/locales/zh/chat.json)
-- [adapter-types.ts](file://src/gateway/adapter-types.ts)
-- [SKILL.md](file://bin/skills/skill-workbench-mermaid-guard/SKILL.md)
+- [chat.json](file://src/i18n/locales/en/chat.json)
+- [index.ts](file://src/i18n/index.ts)
+- [A2uiDebugPanel.tsx](file://src/components/console/skills/A2uiDebugPanel.tsx)
+- [SKILL-WORKBENCH.md](file://SKILL-WORKBENCH.md)
 </cite>
 
 ## 更新摘要
 **变更内容**
-- 完整重构A2UI输入表单系统架构
-- 新增8种表单控件类型支持
-- 实现文件上传和附件处理机制
-- 增强表单验证和错误处理
-- 完善国际化支持和用户体验
-- 添加全面的单元测试覆盖
+- 更新国际化支持系统，完善中英文本地化
+- 增强A2UI表单的多语言文本支持
+- 优化文件上传和表单提交的国际化提示
+- 完善多语言环境下的用户体验
 
 ## 目录
 1. [简介](#简介)
@@ -38,6 +37,8 @@ A2UI输入表单系统是OpenClaw-Office项目中的关键组件，用于在聊�
 
 该系统支持多种表单控件类型，包括文本输入、下拉选择、单选按钮、复选框、多选框和文件上传等，并提供了完整的验证机制和国际化支持。系统采用声明式Schema设计，确保表单数据的一致性和可预测性。
 
+**更新** 国际化支持得到显著增强，现在提供完整的中英文本地化体验，包括表单提示、错误消息、按钮文本等所有用户界面元素。
+
 ## 项目结构
 
 A2UI输入表单系统主要分布在以下几个核心模块中：
@@ -47,36 +48,37 @@ graph TB
 subgraph "核心组件"
 A[A2uiForm 组件]
 B[a2ui-schema 解析器]
-C[chat-skill-a2ui 上下文注入]
+C[A2ui调试面板]
+end
+subgraph "国际化系统"
+D[i18n配置]
+E[中文翻译]
+F[英文翻译]
 end
 subgraph "辅助功能"
-D[国际化支持]
-E[测试用例]
-F[类型定义]
-end
-subgraph "工作台集成"
-G[技能工作台]
-H[调试面板]
+G[测试用例]
+H[工作台集成]
 I[Mermaid规范]
 end
 A --> B
-C --> B
+C --> A
 A --> D
-B --> F
-G --> C
-H --> A
-I --> G
+B --> D
+D --> E
+D --> F
+H --> C
+I --> H
 ```
 
 **图表来源**
 - [A2uiForm.tsx:1-393](file://src/components/chat/A2uiForm.tsx#L1-L393)
 - [a2ui-schema.ts:1-321](file://src/lib/a2ui-schema.ts#L1-L321)
-- [chat-skill-a2ui.ts:1-117](file://src/lib/chat-skill-a2ui.ts#L1-L117)
+- [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
 
 **章节来源**
 - [A2uiForm.tsx:1-393](file://src/components/chat/A2uiForm.tsx#L1-L393)
 - [a2ui-schema.ts:1-321](file://src/lib/a2ui-schema.ts#L1-L321)
-- [chat-skill-a2ui.ts:1-117](file://src/lib/chat-skill-a2ui.ts#L1-L117)
+- [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
 
 ## 核心组件
 
@@ -90,6 +92,8 @@ A2uiForm是整个系统的核心React组件，负责渲染和管理表单状态�
 - 文件上传处理
 - 国际化支持
 - 只读模式渲染
+
+**更新** 国际化支持得到全面增强，所有用户界面文本都支持中英文切换，包括表单标题、描述、占位符、按钮文本等。
 
 **章节来源**
 - [A2uiForm.tsx:298-393](file://src/components/chat/A2uiForm.tsx#L298-L393)
@@ -109,18 +113,18 @@ a2ui-schema模块提供了完整的表单Schema定义和解析功能，确保表
 - [a2ui-schema.ts:16-78](file://src/lib/a2ui-schema.ts#L16-L78)
 - [a2ui-schema.ts:169-199](file://src/lib/a2ui-schema.ts#L169-L199)
 
-### 技能A2UI上下文注入
+### A2ui调试面板
 
-chat-skill-a2ui模块负责在聊天会话中自动检测用户对特定技能的引用，并注入相应的A2UI表单上下文。
+A2uiDebugPanel是技能工作台中的调试组件，提供A2UI表单的可视化编辑和测试功能。
 
-**工作流程：**
-1. 检测用户消息中的技能引用
-2. 从工作空间API加载ui.json文件
-3. 构建系统上下文消息
-4. 注入到聊天会话中
+**主要功能：**
+- 实时预览A2UI表单
+- 一键生成表单
+- 表单提交调试
+- 重新生成和加载功能
 
 **章节来源**
-- [chat-skill-a2ui.ts:37-117](file://src/lib/chat-skill-a2ui.ts#L37-L117)
+- [A2uiDebugPanel.tsx:47-102](file://src/components/console/skills/A2uiDebugPanel.tsx#L47-L102)
 
 ## 架构概览
 
@@ -129,12 +133,14 @@ A2UI输入表单系统采用分层架构设计，确保各组件职责清晰、�
 ```mermaid
 sequenceDiagram
 participant User as 用户
+participant I18n as 国际化系统
 participant Chat as 聊天界面
 participant Form as A2uiForm组件
 participant Parser as a2ui-schema解析器
 participant Gateway as 网关适配器
 participant Agent as 智能体
-User->>Chat : 输入技能引用
+User->>I18n : 切换语言
+I18n-->>Chat : 更新本地化文本
 Chat->>Parser : 解析ui.json内容
 Parser-->>Chat : 返回表单模型
 Chat->>Form : 渲染交互式表单
@@ -147,7 +153,7 @@ Agent-->>User : 继续执行技能任务
 ```
 
 **图表来源**
-- [chat-skill-a2ui.ts:96-117](file://src/lib/chat-skill-a2ui.ts#L96-L117)
+- [index.ts:22-56](file://src/i18n/index.ts#L22-L56)
 - [A2uiForm.tsx:319-328](file://src/components/chat/A2uiForm.tsx#L319-L328)
 - [a2ui-schema.ts:254-284](file://src/lib/a2ui-schema.ts#L254-L284)
 
@@ -257,6 +263,8 @@ SendData --> Success([提交成功])
 
 ### 国际化支持
 
+**更新** 国际化支持系统得到全面升级，现在提供完整的中英文本地化体验：
+
 系统提供了完整的国际化支持，目前支持中文和英文两种语言：
 
 **主要国际化键值：**
@@ -265,10 +273,20 @@ SendData --> Success([提交成功])
 - `a2ui.useText`: 文本输入回退按钮
 - `a2ui.uploadFile`: 文件上传按钮
 - `a2ui.removeFile`: 移除文件按钮
+- `a2ui.submittedNotice`: 提交成功提示
+- `a2ui.selectPlaceholder`: 选择框占位符
+- `a2ui.requiredMark`: 必填标记
+
+**国际化配置：**
+- 支持语言检测：自动检测用户浏览器语言偏好
+- 本地存储：记住用户选择的语言设置
+- 回退机制：默认使用中文，不支持的语言回退到中文
+- 命名空间：专门的chat命名空间用于表单相关文本
 
 **章节来源**
 - [chat.json:7-21](file://src/i18n/locales/zh/chat.json#L7-L21)
 - [chat.json:7-21](file://src/i18n/locales/en/chat.json#L7-L21)
+- [index.ts:17-56](file://src/i18n/index.ts#L17-L56)
 
 ## 依赖关系分析
 
@@ -284,8 +302,8 @@ end
 subgraph "内部模块"
 D[A2uiForm组件]
 E[a2ui-schema解析器]
-F[聊天适配器类型]
-G[技能A2UI注入]
+F[国际化配置]
+G[A2ui调试面板]
 end
 subgraph "测试和文档"
 H[A2uiForm测试]
@@ -297,7 +315,7 @@ B --> D
 C --> D
 D --> E
 D --> F
-G --> E
+G --> D
 H --> D
 I --> E
 J --> G
@@ -305,11 +323,11 @@ J --> G
 
 **图表来源**
 - [A2uiForm.tsx:1-12](file://src/components/chat/A2uiForm.tsx#L1-L12)
-- [chat-skill-a2ui.ts:11-12](file://src/lib/chat-skill-a2ui.ts#L11-L12)
+- [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
 
 **章节来源**
 - [A2uiForm.tsx:1-12](file://src/components/chat/A2uiForm.tsx#L1-L12)
-- [chat-skill-a2ui.ts:11-12](file://src/lib/chat-skill-a2ui.ts#L11-L12)
+- [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
 
 ## 性能考虑
 
@@ -352,6 +370,11 @@ J --> G
 - 确认翻译键值是否存在
 - 验证语言切换逻辑
 
+**更新** 国际化相关问题排查：
+- 检查本地存储的语言设置
+- 验证翻译文件的完整性
+- 确认命名空间配置正确
+
 **章节来源**
 - [A2uiForm.test.tsx:24-44](file://src/components/chat/A2uiForm.test.tsx#L24-L44)
 
@@ -368,15 +391,19 @@ J --> G
 
 A2UI输入表单系统是一个设计精良、功能完整的组件，它有效地解决了传统聊天界面中信息收集的痛点。通过结构化的表单设计、完善的验证机制和良好的用户体验，该系统为OpenClaw-Office项目提供了强大的交互能力。
 
+**更新** 最新版本在国际化支持方面有了重大改进，现在提供完整的中英文本地化体验，确保全球用户都能获得优质的使用体验。
+
 系统的主要优势包括：
 - **标准化的Schema设计**: 确保表单数据的一致性和可预测性
 - **丰富的控件类型**: 满足各种复杂的输入需求
 - **完整的生命周期管理**: 从创建到提交的全流程支持
 - **优秀的用户体验**: 直观的界面设计和及时的反馈机制
 - **良好的可维护性**: 清晰的代码结构和完善的测试覆盖
+- **全面的国际化支持**: 完整的中英文本地化体验
 
 未来可以考虑的改进方向：
 - 增加更多的表单控件类型
 - 优化移动端的用户体验
 - 添加表单模板功能
 - 增强表单的动态性支持
+- 扩展更多语言支持
