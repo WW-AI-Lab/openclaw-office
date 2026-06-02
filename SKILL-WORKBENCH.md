@@ -1,7 +1,7 @@
 # Skill Workbench — Skills 开发平台使用指南
 
 > 一个面向 OpenClaw Skills 的可视化开发平台，集成在 OpenClaw Office 控制台中。
-> 正式发布版本：`2026.5.20`。
+> 正式发布版本：`2026.6.2-beta.3`。
 
 ---
 
@@ -192,6 +192,12 @@ A: 详情页的文件树与 FLOWCHART 预览会在每一轮聊天流结束时自
 
 ## 10. 版本记录
 
+- **2026.6.2-beta.3** — A2UI 可视化表单系统上线
+  - 新增 A2UI 声明式表单 Schema（`a2ui-schema.ts`），支持 text/textarea/number/select/radio/checkbox/multiselect/file 八种字段类型
+  - Chat 中 ` ```a2ui ` 代码块自动解析并渲染为交互式表单，提交后结构化回传 Gateway
+  - Skill 详情页新增「A2UI 调试」选项卡：一键生成 `ui.json`、实时预览表单、内嵌调试对话
+  - 内置 `skill-workbench-mermaid-guard` 守卫技能新增 A2UI 生成规范（`references/a2ui-input-spec.md`）
+  - WebSocket 适配层兼容新版 Gateway 握手协议，优化连接稳定性
 - **2026.5.20** — 正式版，兼容新版 OpenClaw Gateway 握手协议
   - WebSocket connect 改为协商 `protocol 3-4`
   - 兼容本机新版 OpenClaw / Gateway `2026.5.12`

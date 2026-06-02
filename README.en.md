@@ -69,6 +69,7 @@ Starting with `2026.5.20`, the console formally ships **Skill Workbench** — a 
 - **Chat-side-panel driven development**: create and modify Skills through a conversation; file changes are flushed to disk in real time
 - **Automated FLOWCHART.md generation**: a built-in guard skill (`skill-workbench-mermaid-guard`) produces compliant, colored Mermaid flowcharts (single- or multi-chart mode) on demand
 - **Pure-Markdown multi-chart preview**: the flowchart panel renders multiple Mermaid fenced blocks directly through the Markdown pipeline
+- **A2UI visual input forms** ✨: declarative form schema — `\`\`\`a2ui` fenced blocks inside chat messages are automatically rendered as interactive forms supporting text, select, file upload and more; a dedicated "A2UI Debug" tab on the detail page enables one-click generation, preview, and debugging of `ui.json` forms
 - **Zero-setup default skill install**: on first entry, the embedded server copies bundled default skills from the npm package into `~/.openclaw/workspace/skills/` — no manual install required
 
 See the full guide in [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md).

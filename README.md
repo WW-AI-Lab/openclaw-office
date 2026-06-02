@@ -63,12 +63,13 @@
 
 ## 新特性：Skill Workbench（Skills 开发平台）
 
-从 `2026.5.20` 起，控制台正式提供 **Skill Workbench**（Skills 开发平台），把「创建 Skill / 修改 Skill / 生成流程图」整合成一个完整的 AI 协作开发环境：
+从 `2026.5.20` 起，控制台正式提供 **Skill Workbench**（Skills 开发平台），把「创建 Skill / 修改 Skill / 生成流程图 / A2UI 输入表单」整合成一个完整的 AI 协作开发环境：
 
 - **三页面嵌套路由**：`/skill-workbench` 列表页、`/skill-workbench/create` 创建向导、`/skill-workbench/:slug` 详情页
 - **聊天侧边栏驱动开发**：在侧边栏和 AI 对话即可创建、修改 Skill，文件变动实时同步磁盘
 - **FLOWCHART.md 自动生成**：内置 [`skill-workbench-mermaid-guard`](./SKILL-WORKBENCH.md) 守卫技能，一键生成符合规范的彩色 Mermaid 流程图，支持单图与多图模式
 - **纯 Markdown 多图预览**：流程图预览完全走 Markdown 渲染链路，一次渲染多个 Mermaid 代码块
+- **A2UI 可视化输入表单** ✨：声明式表单 Schema，Chat 中的 `\`\`\`a2ui` 代码块自动渲染为交互式表单，支持文本、选择、文件上传等多种字段类型；详情页新增「A2UI 调试」选项卡，可一键生成、预览和调试 `ui.json` 表单
 - **默认技能自动安装**：首次进入工作台时，嵌入式服务端会自动把 npm 包内置的默认 Skill 拷贝到 `~/.openclaw/workspace/skills/`，无需手工安装
 
 详细使用指南见 [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md)。
