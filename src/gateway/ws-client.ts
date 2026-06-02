@@ -99,7 +99,17 @@ export class GatewayWsClient {
 
   send(data: unknown): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
+      let serialized: string;
+      try {
+        serialized = JSON.stringify(data);
+      } catch (err) {
+        // Surface serialization failures (e.g. circular structure) so callers
+        // can show a meaningful error instead of silently doing nothing.
+        // eslint-disable-next-line no-console
+        console.error("[ws-client] Failed to serialize message:", err);
+        throw err;
+      }
+      this.ws.send(serialized);
     }
   }
 

@@ -113,13 +113,25 @@ export class WsAdapter implements GatewayAdapter {
       })
       .filter((value): value is NonNullable<typeof value> => value !== null);
 
-    await this.rpcClient.request("chat.send", {
-      sessionKey: params.sessionKey,
-      message: params.text,
-      deliver: false,
-      idempotencyKey: uuid(),
-      attachments,
-    });
+    const hasAttachments = !!attachments && attachments.length > 0;
+
+    // Larger attachments need more time on the Gateway side (base64 decode +
+    // forwarding to the Agent). The default 10s RPC timeout is too tight for
+    // multi-MB files and was the main cause of attachments silently going
+    // missing. Bump to 60s whenever the request carries attachments.
+    const timeoutMs = hasAttachments ? 60_000 : undefined;
+
+    await this.rpcClient.request(
+      "chat.send",
+      {
+        sessionKey: params.sessionKey,
+        message: params.text,
+        deliver: false,
+        idempotencyKey: uuid(),
+        attachments: hasAttachments ? attachments : undefined,
+      },
+      timeoutMs,
+    );
   }
 
   async chatAbort(sessionKeyOrRunId: string): Promise<void> {

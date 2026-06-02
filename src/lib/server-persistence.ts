@@ -38,6 +38,26 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 
 const pendingSaves = new Map<string, ReturnType<typeof setTimeout>>();
 
+/**
+ * Strip large binary payload (dataUrl / content) from attachments before
+ * sending messages to the cache server. The cache only needs metadata
+ * (id/name/mimeType) for display; including full base64 payloads can
+ * trivially exceed the server's request body limit and cause 500 errors.
+ */
+function stripAttachmentData(messages: ChatDockMessage[]): ChatDockMessage[] {
+  return messages.map((msg) => {
+    if (!msg.attachments || msg.attachments.length === 0) return msg;
+    return {
+      ...msg,
+      attachments: msg.attachments.map((att) => ({
+        id: att.id,
+        name: att.name,
+        mimeType: att.mimeType,
+      })),
+    };
+  });
+}
+
 function debouncedSave(key: string, fn: () => Promise<void>): void {
   const existing = pendingSaves.get(key);
   if (existing) clearTimeout(existing);
@@ -63,10 +83,11 @@ export const serverPersistence = {
   },
 
   saveMessages(sessionKey: string, messages: ChatDockMessage[], agentId?: string | null): void {
+    const sanitized = stripAttachmentData(messages);
     debouncedSave(`msg:${sessionKey}`, () =>
       fetchJson(`${BASE_URL}/messages`, {
         method: "PUT",
-        body: JSON.stringify({ sessionKey, messages, agentId: agentId ?? null }),
+        body: JSON.stringify({ sessionKey, messages: sanitized, agentId: agentId ?? null }),
       }),
     );
   },
@@ -77,9 +98,10 @@ export const serverPersistence = {
       clearTimeout(existing);
       pendingSaves.delete(`msg:${sessionKey}`);
     }
+    const sanitized = stripAttachmentData(messages);
     void fetchJson(`${BASE_URL}/messages`, {
       method: "PUT",
-      body: JSON.stringify({ sessionKey, messages, agentId: agentId ?? null }),
+      body: JSON.stringify({ sessionKey, messages: sanitized, agentId: agentId ?? null }),
     }).catch(() => {});
   },
 

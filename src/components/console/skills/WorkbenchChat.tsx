@@ -53,6 +53,8 @@ export const WorkbenchChat = memo(function WorkbenchChat({
   const attachments = useChatDockStore((s) => s.attachments);
   const addAttachment = useChatDockStore((s) => s.addAttachment);
   const removeAttachment = useChatDockStore((s) => s.removeAttachment);
+  const error = useChatDockStore((s) => s.error);
+  const clearError = useChatDockStore((s) => s.clearError);
   const setMermaidSource = useSkillWorkbenchStore((s) => s.setMermaidSource);
   const currentSkillSlug = useSkillWorkbenchStore((s) => s.currentSkillSlug);
   const { streamingText } = useChatStreamingText();
@@ -209,6 +211,20 @@ export const WorkbenchChat = memo(function WorkbenchChat({
 
       {/* Input area */}
       <div className="border-t border-gray-200 px-4 py-3 dark:border-gray-700">
+        {/* Error banner */}
+        {error && (
+          <div className="mb-2 flex items-center justify-between rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/20 dark:text-red-400">
+            <span className="truncate">{error}</span>
+            <button
+              type="button"
+              onClick={clearError}
+              className="ml-3 shrink-0 text-xs font-medium hover:underline"
+            >
+              {t("common:actions.dismiss")}
+            </button>
+          </div>
+        )}
+
         {/* Attachments preview */}
         {attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">

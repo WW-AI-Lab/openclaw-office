@@ -40,47 +40,12 @@ async function loadInjectedSkillSections(adapter: ReturnType<typeof getAdapter>,
 
 function buildFlowchartTaskPrompt(skillSlug: string): string {
   const skillDir = `${WORKSPACE_SKILLS_DIR}/${skillSlug}`;
-  const skillFile = `${skillDir}/SKILL.md`;
-  const flowchartFile = `${skillDir}/FLOWCHART.md`;
-
-  return [
-    `为 skill ${skillSlug} 生成或更新 Mermaid 流程图，并确保 FLOWCHART.md 可用。严格遵循已自动加载的默认 Skill：${MERMAID_GUARD_SKILL}。`,
-    "直接执行，不要先解释。",
-    `1. 先读取 ${skillFile}，必要时读取 ${flowchartFile}。`,
-    `2. 如果 ${flowchartFile} 已存在且结构合理，优先做最小修订；如果不存在或不足以覆盖 SKILL.md 的执行逻辑，请基于 SKILL.md 生成完整的 FLOWCHART.md 并写入 ${flowchartFile}。`,
-    "3. 允许在 FLOWCHART.md 中使用 **一个或多个** Mermaid 代码块：",
-    "   - 第一个代码块必须是总览流程图（flowchart TD）。",
-    "   - 复杂 Skill 可按阶段/分支/降级策略等补充多个子流程图，每个子图前用 `##` 二级标题说明用途。",
-    "   - 每个 Mermaid 代码块必须各自完整，不要跨代码块互相引用节点 ID。",
-    "4. 统一格式要求：节点 ID 仅用 ASCII 字母/数字/下划线；中文或含空格/斜杠/括号/问号/冒号/emoji 的节点和子图标题必须放进双引号；节点内换行一律使用 <br/>；边标签只使用短标签（如 是/否/成功/失败）。",
-    "5. 在输出前自检：每个 ```mermaid 围栏都闭合；每块首行是合法的 diagram type（flowchart TD/LR、sequenceDiagram 等）；不得夹带分析过程；不得输出自然语言摘要替代流程图。",
-    "6. 优先使用 read / write / edit 工具直接把完整 FLOWCHART.md 写入磁盘。",
-    "7. 最终回复必须只有两部分：",
-    "   - 第一部分：FLOWCHART.md 的主要章节（标题 + mermaid 代码块，使用三个反引号围栏），可包含一个或多个代码块",
-    `   - 第二部分：一句中文状态说明，明确说明已读取现有 FLOWCHART.md 或已写入 ${flowchartFile}`,
-    "8. 不要把流程图改写成条目列表、段落摘要或说明文。",
-    "9. 不要输出分析过程，不要停留在中间状态。",
-  ].join("\n");
+  return `为 skill ${skillSlug} 生成或更新工作流程图，写入 ${skillDir}/FLOWCHART.md。直接执行，不要先解释。`;
 }
 
 export function buildInputUiTaskPrompt(skillSlug: string): string {
   const skillDir = `${WORKSPACE_SKILLS_DIR}/${skillSlug}`;
-  const skillFile = `${skillDir}/SKILL.md`;
-  const uiFile = `${skillDir}/ui.json`;
-
-  return [
-    `为 skill ${skillSlug} 生成或更新 A2UI 首次交互输入表单，并写入 ui.json。严格遵循已自动加载的默认 Skill：${MERMAID_GUARD_SKILL} 及其 references/a2ui-input-spec.md。`,
-    "直接执行，不要先解释。",
-    `1. 先读取 ${skillFile}，识别该 Skill 第一次运行真正需要用户提供的关键输入（通常 2~6 个字段）。`,
-    `2. 产出**纯 A2UI Schema JSON**（顶层含 version=1、skill="${skillSlug}"、fields），写入 ${uiFile}。不要用 \`\`\`a2ui 围栏或任何 Markdown 包裹文件内容。`,
-    "3. 每个字段包含 key/label/type/required，按需提供 options（select/radio/multiselect 必填）与预填 value；尽量用 SKILL.md 默认值或合理常用值预填 value。",
-    "4. 字段类型仅限：text、textarea、number、select、radio、checkbox、multiselect、file。",
-    "5. **语义识别强制要求**：当字段语义属于「数据来源 / 数据文件 / 数据集 / 上传 / 附件 / 导入 / 原始素材」，或需要 CSV / Excel / JSON / PDF / Word / 图片 / 音视频 等文件时，必须使用 type=\"file\" 且设置合理的 accept（如 \".csv,.xlsx,.xls,.json\"）；多文件场景加 multiple=true。严禁用 text/textarea 让用户手填文件路径。具体规范见 references/a2ui-input-spec.md 「何时优先使用 file 类型」节。",
-    `6. 同时向 ${skillFile} 幂等注入 A2UI 使用提示：若已存在 \`<!-- a2ui:input-hint -->\` 标记则跳过，否则按 references/a2ui-input-spec.md 中的片段模板追加。`,
-    "7. 使用 read / write / edit 工具直接把 ui.json 与 SKILL.md 写入磁盘。",
-    "8. 最终回复：先用一个 ```a2ui 代码块回显写入 ui.json 的表单内容（便于预览），再追加一句中文状态说明，明确说明已写入 ui.json 与是否注入 SKILL.md 提示。",
-    "9. 不要输出分析过程，不要停留在中间状态。",
-  ].join("\n");
+  return `为 skill ${skillSlug} 生成或更新 A2UI 首次交互输入表单，写入 ${skillDir}/ui.json，并幂等注入 SKILL.md 使用提示。直接执行，不要先解释。`;
 }
 
 function stripYamlFrontmatter(text: string): string {

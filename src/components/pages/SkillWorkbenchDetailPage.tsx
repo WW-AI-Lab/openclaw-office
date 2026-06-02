@@ -301,20 +301,10 @@ export function SkillWorkbenchDetailPage() {
     void ensureEditingSession();
   }, [selectedItem, editingSessionStarted, ensureEditingSession]);
 
-  // The A2UI 调试 tab is the one place where the embedded chat is the
-  // primary interaction surface (it drives ui.json generation + form
-  // submission). Open the right sidebar automatically so the chat is
-  // visible immediately, instead of forcing the user to click "open chat"
-  // on top of opening the tab.
-  useEffect(() => {
-    if (selectedItem !== A2UI_ITEM) return;
-    if (!editingSessionStarted) return;
-    setSidebarOpen(true);
-  }, [selectedItem, editingSessionStarted]);
-
   const handleGenerateInputUi = useCallback(async () => {
     setIsGeneratingUi(true);
     await ensureEditingSession();
+    setSidebarOpen(true);
     void useChatDockStore.getState().sendMessage(buildInputUiTaskPrompt(slug));
   }, [ensureEditingSession, slug]);
 
@@ -325,6 +315,7 @@ export function SkillWorkbenchDetailPage() {
   const handleSubmitInputUi = useCallback(
     async (message: string, attachments?: ChatAttachment[]) => {
       await ensureEditingSession();
+      setSidebarOpen(true);
       void useChatDockStore.getState().sendMessage(message, attachments);
     },
     [ensureEditingSession],
