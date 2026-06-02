@@ -10,6 +10,7 @@ import type {
 } from "@/gateway/adapter-types";
 import type { AgentEventPayload, GatewayEventFrame } from "@/gateway/types";
 import i18n from "@/i18n";
+import { injectSkillA2uiContext } from "@/lib/chat-skill-a2ui";
 import { exportChatTranscriptMarkdown } from "@/lib/chat-export";
 import { buildSlashHelpText, parseSlashCommand } from "@/lib/chat-slash-commands";
 import { localPersistence } from "@/lib/local-persistence";
@@ -75,6 +76,7 @@ interface ChatDockState {
   focusMode: boolean;
   searchQuery: string;
   pinnedMessageIds: string[];
+  submittedA2uiIds: string[];
   thinkingLevel: string | null;
 
   sendMessage: (text: string, attachments?: ChatAttachment[]) => Promise<void>;
@@ -103,6 +105,7 @@ interface ChatDockState {
   setFocusMode: (focusMode: boolean) => void;
   setSearchQuery: (query: string) => void;
   togglePinMessage: (messageId: string) => void;
+  markA2uiSubmitted: (messageId: string) => void;
   exportCurrentSession: () => boolean;
 }
 
@@ -1098,6 +1101,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
   focusMode: false,
   searchQuery: "",
   pinnedMessageIds: [],
+  submittedA2uiIds: [],
   thinkingLevel: null,
 
   sendMessage: async (text, attachments) => {
@@ -1130,6 +1134,12 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
     }
 
     const { currentSessionKey } = get();
+
+    // When the user's message references a workspace skill that has a
+    // ui.json, inject the form content as system context so the AI will
+    // present the A2UI form as a ```a2ui code block in its first response.
+    await injectSkillA2uiContext(currentSessionKey, trimmed);
+
     const userMsg: ChatDockMessage = {
       id: generateMessageId(),
       role: "user",
@@ -1696,6 +1706,13 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
         ? state.pinnedMessageIds.filter((id) => id !== messageId)
         : [...state.pinnedMessageIds, messageId],
     })),
+
+  markA2uiSubmitted: (messageId) =>
+    set((state) =>
+      state.submittedA2uiIds.includes(messageId)
+        ? state
+        : { submittedA2uiIds: [...state.submittedA2uiIds, messageId] },
+    ),
 
   exportCurrentSession: () => exportChatTranscriptMarkdown(get().messages, get().currentSessionKey),
   };

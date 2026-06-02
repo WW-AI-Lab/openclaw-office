@@ -6,15 +6,23 @@ import { workspaceSkillsGet, workspaceSkillsList } from "@/gateway/workspace-ski
 import { useSkillsStore } from "@/store/console-stores/skills-store";
 import {
   readMermaidFromContent,
+  buildInputUiTaskPrompt,
   useSkillWorkbenchStore,
 } from "@/store/console-stores/skill-workbench-store";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
+import type { ChatAttachment } from "@/gateway/adapter-types";
 import { WorkbenchChat } from "@/components/console/skills/WorkbenchChat";
 import { FlowchartPanel } from "@/components/console/skills/FlowchartPanel";
+import { A2uiDebugPanel } from "@/components/console/skills/A2uiDebugPanel";
 import { SkillFileViewer } from "@/components/console/skills/SkillFileViewer";
-import { DetailFileSidebar, FLOWCHART_ITEM } from "@/components/console/skills/DetailFileSidebar";
+import {
+  DetailFileSidebar,
+  FLOWCHART_ITEM,
+  A2UI_ITEM,
+} from "@/components/console/skills/DetailFileSidebar";
 
 const FLOWCHART_FILE_NAME = "FLOWCHART.md";
+const A2UI_FILE_NAME = "ui.json";
 
 export function SkillWorkbenchDetailPage() {
   const { t } = useTranslation("console");
@@ -39,6 +47,10 @@ export function SkillWorkbenchDetailPage() {
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [hasFlowchart, setHasFlowchart] = useState(false);
+  const [hasInputUi, setHasInputUi] = useState(false);
+  const [uiJsonContent, setUiJsonContent] = useState<string | null>(null);
+  const [isLoadingUiJson, setIsLoadingUiJson] = useState(false);
+  const [isGeneratingUi, setIsGeneratingUi] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editingSessionStarted, setEditingSessionStarted] = useState(false);
   const [isGeneratingFlowchart, setIsGeneratingFlowchart] = useState(false);
@@ -53,18 +65,34 @@ export function SkillWorkbenchDetailPage() {
     void fetchSkills();
   }, [slug, fetchSkills]);
 
-  // Default behavior: mark the current skill and reset mermaid, but DO NOT
-  // create a chat session or inject skill context. The chat/edit session only
-  // starts when the user clicks "modify this skill".
+  // Reset all local UI state only when the slug actually changes (i.e. the
+  // user navigates to a different skill). Using a ref to track the previous
+  // slug prevents the effect from re-firing when `skill?.name` resolves
+  // after fetchSkills() — which previously caused a race condition that
+  // wiped flowchartDocument and uiJsonContent that had just been loaded
+  // from disk.
+  const prevSlugRef = useRef("");
   useEffect(() => {
     if (!slug) return;
-    setCurrentSkill(slug, skill?.name ?? slug);
+    if (prevSlugRef.current === slug) return;
+    prevSlugRef.current = slug;
+
     setMode("browse");
     resetMermaid();
     setEditingSessionStarted(false);
     setSidebarOpen(false);
     setIsGeneratingFlowchart(false);
-  }, [slug, skill?.name, setCurrentSkill, setMode, resetMermaid]);
+    setIsGeneratingUi(false);
+    setUiJsonContent(null);
+    setHasInputUi(false);
+  }, [slug, setMode, resetMermaid]);
+
+  // Keep the store's currentSkill in sync whenever slug or skill name
+  // changes — without triggering the full state reset above.
+  useEffect(() => {
+    if (!slug) return;
+    setCurrentSkill(slug, skill?.name ?? slug);
+  }, [slug, skill?.name, setCurrentSkill]);
 
   // Load file tree + flowchart for this skill.
   const loadFlowchartFromDisk = useCallback(
@@ -86,6 +114,23 @@ export function SkillWorkbenchDetailPage() {
     [setFlowchartDocument, setMermaidSource],
   );
 
+  const loadUiJsonFromDisk = useCallback(async (targetSlug: string) => {
+    setIsLoadingUiJson(true);
+    try {
+      const file = await workspaceSkillsGet(targetSlug, A2UI_FILE_NAME);
+      setUiJsonContent(file.file.content);
+      setHasInputUi(true);
+      return true;
+    } catch {
+      // ui.json may not exist yet.
+      setUiJsonContent(null);
+      setHasInputUi(false);
+      return false;
+    } finally {
+      setIsLoadingUiJson(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
@@ -101,6 +146,9 @@ export function SkillWorkbenchDetailPage() {
           // Nothing on disk yet; keep state cleared.
         }
 
+        await loadUiJsonFromDisk(slug);
+        if (cancelled) return;
+
         try {
           const result = await workspaceSkillsList(slug);
           if (cancelled) return;
@@ -108,6 +156,9 @@ export function SkillWorkbenchDetailPage() {
           setFileList(names);
           if (names.some((n) => n.toUpperCase() === FLOWCHART_FILE_NAME.toUpperCase())) {
             setHasFlowchart(true);
+          }
+          if (names.some((n) => n.toLowerCase() === A2UI_FILE_NAME.toLowerCase())) {
+            setHasInputUi(true);
           }
         } catch {
           if (!cancelled) setFileList([]);
@@ -121,7 +172,7 @@ export function SkillWorkbenchDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, loadFlowchartFromDisk]);
+  }, [slug, loadFlowchartFromDisk, loadUiJsonFromDisk]);
 
   // Refresh FLOWCHART.md + file list from disk when a chat streaming turn
   // finishes while the user is actively editing/generating in this detail
@@ -138,6 +189,7 @@ export function SkillWorkbenchDetailPage() {
     let cancelled = false;
     const refresh = async () => {
       await loadFlowchartFromDisk(slug, { markLoaded: true });
+      await loadUiJsonFromDisk(slug);
       if (cancelled) return;
       try {
         const result = await workspaceSkillsList(slug);
@@ -147,6 +199,9 @@ export function SkillWorkbenchDetailPage() {
         if (names.some((n) => n.toUpperCase() === FLOWCHART_FILE_NAME.toUpperCase())) {
           setHasFlowchart(true);
         }
+        if (names.some((n) => n.toLowerCase() === A2UI_FILE_NAME.toLowerCase())) {
+          setHasInputUi(true);
+        }
       } catch {
         // Ignore list refresh errors.
       }
@@ -155,7 +210,7 @@ export function SkillWorkbenchDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [isChatStreaming, slug, editingSessionStarted, loadFlowchartFromDisk]);
+  }, [isChatStreaming, slug, editingSessionStarted, loadFlowchartFromDisk, loadUiJsonFromDisk]);
 
   // Load selected file content.
   useEffect(() => {
@@ -221,6 +276,60 @@ export function SkillWorkbenchDetailPage() {
     }
   }, [isGeneratingFlowchart, flowchartDocument]);
 
+  // Clear the A2UI generating flag once ui.json has been loaded from disk.
+  useEffect(() => {
+    if (!isGeneratingUi) return;
+    if (uiJsonContent && uiJsonContent.trim()) {
+      setIsGeneratingUi(false);
+    }
+  }, [isGeneratingUi, uiJsonContent]);
+
+  // Ensure an edit session is active so the embedded debug chat can talk to
+  // the Gateway. Returns once the session has been established.
+  const ensureEditingSession = useCallback(async () => {
+    if (editingSessionStarted) return;
+    setMode("edit");
+    await enterWorkbench();
+    setEditingSessionStarted(true);
+  }, [editingSessionStarted, setMode, enterWorkbench]);
+
+  // Start the editing session automatically when the user opens the A2UI tab,
+  // so the embedded debug chat is immediately usable.
+  useEffect(() => {
+    if (selectedItem !== A2UI_ITEM) return;
+    if (editingSessionStarted) return;
+    void ensureEditingSession();
+  }, [selectedItem, editingSessionStarted, ensureEditingSession]);
+
+  // The A2UI 调试 tab is the one place where the embedded chat is the
+  // primary interaction surface (it drives ui.json generation + form
+  // submission). Open the right sidebar automatically so the chat is
+  // visible immediately, instead of forcing the user to click "open chat"
+  // on top of opening the tab.
+  useEffect(() => {
+    if (selectedItem !== A2UI_ITEM) return;
+    if (!editingSessionStarted) return;
+    setSidebarOpen(true);
+  }, [selectedItem, editingSessionStarted]);
+
+  const handleGenerateInputUi = useCallback(async () => {
+    setIsGeneratingUi(true);
+    await ensureEditingSession();
+    void useChatDockStore.getState().sendMessage(buildInputUiTaskPrompt(slug));
+  }, [ensureEditingSession, slug]);
+
+  const handleReloadInputUi = useCallback(() => {
+    void loadUiJsonFromDisk(slug);
+  }, [loadUiJsonFromDisk, slug]);
+
+  const handleSubmitInputUi = useCallback(
+    async (message: string, attachments?: ChatAttachment[]) => {
+      await ensureEditingSession();
+      void useChatDockStore.getState().sendMessage(message, attachments);
+    },
+    [ensureEditingSession],
+  );
+
   return (
     <>
       <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
@@ -284,6 +393,7 @@ export function SkillWorkbenchDetailPage() {
             files={fileList}
             selected={selectedItem}
             hasFlowchart={hasFlowchart}
+            hasInputUi={hasInputUi}
             isLoading={isLoadingFiles}
             onSelect={setSelectedItem}
           />
@@ -295,6 +405,15 @@ export function SkillWorkbenchDetailPage() {
             <FlowchartPanel
               onGenerate={handleGenerateFlowchart}
               isGenerating={isGeneratingFlowchart}
+            />
+          ) : selectedItem === A2UI_ITEM ? (
+            <A2uiDebugPanel
+              uiJson={uiJsonContent}
+              isLoading={isLoadingUiJson}
+              isGenerating={isGeneratingUi}
+              onGenerate={handleGenerateInputUi}
+              onReload={handleReloadInputUi}
+              onSubmitForm={handleSubmitInputUi}
             />
           ) : (
             <SkillFileViewer
@@ -314,10 +433,12 @@ export function SkillWorkbenchDetailPage() {
           )}
         </div>
 
-        {/* Right: chat sidebar (collapsible) */}
+        {/* Right: chat sidebar (collapsible). In the A2UI 调试 tab we pass
+            `disableA2uiForm` so the chat transcript does not duplicate the
+            interactive A2uiForm that the middle panel is already showing. */}
         {sidebarOpen && (
           <div className="flex w-[380px] shrink-0 flex-col overflow-hidden border-l border-gray-200 dark:border-gray-700">
-            <WorkbenchChat mode="edit" />
+            <WorkbenchChat mode="edit" disableA2uiForm={selectedItem === A2UI_ITEM} />
           </div>
         )}
       </div>
