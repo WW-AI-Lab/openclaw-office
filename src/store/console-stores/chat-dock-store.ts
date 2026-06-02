@@ -15,6 +15,7 @@ import { buildSlashHelpText, parseSlashCommand } from "@/lib/chat-slash-commands
 import { localPersistence } from "@/lib/local-persistence";
 import { generateMessageId } from "@/lib/message-utils";
 import { serverPersistence } from "@/lib/server-persistence";
+import { extractAgentIdFromSessionKey } from "@/lib/session-key-utils";
 
 export type MessageRole = "user" | "assistant" | "system";
 export type ChatMessageKind = "message" | "tool" | "command";
@@ -430,14 +431,9 @@ function storeWorkspaceSessionKey(sessionKey: string): void {
   }
 }
 
-function inferAgentIdFromSessionKey(sessionKey: string): string | null {
-  const match = /^agent:([^:]+):/u.exec(sessionKey);
-  return match?.[1] ?? null;
-}
-
 function resolveSessionAgentId(sessionKey: string, sessions: SessionInfo[]): string | null {
   const session = sessions.find((item) => item.key === sessionKey);
-  return session?.agentId ?? inferAgentIdFromSessionKey(sessionKey);
+  return session?.agentId ?? extractAgentIdFromSessionKey(sessionKey);
 }
 
 function selectPreferredSessionKey(agentId: string, sessions: SessionInfo[]): string {
@@ -469,7 +465,7 @@ function mergeCurrentSession(
   return [
     normalizeSession({
       key: currentSessionKey,
-      agentId: targetAgentId ?? inferAgentIdFromSessionKey(currentSessionKey) ?? undefined,
+      agentId: targetAgentId ?? extractAgentIdFromSessionKey(currentSessionKey) ?? undefined,
       label: currentSessionKey,
       createdAt: now,
       lastActiveAt: now,
@@ -490,7 +486,7 @@ function touchSession(
   const nextSession = normalizeSession({
     ...existing,
     key: currentSessionKey,
-    agentId: targetAgentId ?? existing?.agentId ?? inferAgentIdFromSessionKey(currentSessionKey) ?? undefined,
+    agentId: targetAgentId ?? existing?.agentId ?? extractAgentIdFromSessionKey(currentSessionKey) ?? undefined,
     label: existing?.label ?? currentSessionKey,
     createdAt: existing?.createdAt ?? now,
     lastActiveAt: now,
@@ -983,7 +979,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
     const trimmed = text.trim();
     if (!trimmed && attachments.length === 0) return;
     const targetAgentIdForSession =
-      resolveSessionAgentId(sessionKey, get().sessions) ?? inferAgentIdFromSessionKey(sessionKey);
+      resolveSessionAgentId(sessionKey, get().sessions) ?? extractAgentIdFromSessionKey(sessionKey);
     const userMsg: ChatDockMessage = {
       id: generateMessageId(),
       role: "user",
@@ -1037,7 +1033,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
     try {
       const result = await withAdapter((adapter) => adapter.chatHistory(sessionKey));
       const authorAgentId =
-        resolveSessionAgentId(sessionKey, get().sessions) ?? inferAgentIdFromSessionKey(sessionKey);
+        resolveSessionAgentId(sessionKey, get().sessions) ?? extractAgentIdFromSessionKey(sessionKey);
       const messages = normalizeHistoryMessages(
         result.messages as unknown as Record<string, unknown>[],
         authorAgentId,
@@ -1501,7 +1497,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
     const isCurrent = eventSessionKey === currentKey;
     const authorAgentId =
       resolveSessionAgentId(eventSessionKey, get().sessions) ??
-      (isCurrent ? get().targetAgentId : inferAgentIdFromSessionKey(eventSessionKey));
+      (isCurrent ? get().targetAgentId : extractAgentIdFromSessionKey(eventSessionKey));
 
     const base: SessionRuntime = isCurrent
       ? runtimeFromState(get())
@@ -1539,7 +1535,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
         const map = new Map(state.sessionStates);
         map.set(eventSessionKey, outcome.runtime);
         const agentForTouch =
-          resolveSessionAgentId(eventSessionKey, state.sessions) ?? inferAgentIdFromSessionKey(eventSessionKey);
+          resolveSessionAgentId(eventSessionKey, state.sessions) ?? extractAgentIdFromSessionKey(eventSessionKey);
         const sessionsNext = outcome.persist
           ? touchSession(state.sessions, eventSessionKey, agentForTouch, outcome.runtime.messages.length)
           : state.sessions;
@@ -1550,7 +1546,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
         const rt = get().sessionStates.get(eventSessionKey);
         if (rt) {
           const agentForTouch =
-            resolveSessionAgentId(eventSessionKey, get().sessions) ?? inferAgentIdFromSessionKey(eventSessionKey);
+            resolveSessionAgentId(eventSessionKey, get().sessions) ?? extractAgentIdFromSessionKey(eventSessionKey);
           void localPersistence.saveMessages(eventSessionKey, rt.messages);
           serverPersistence.saveMessages(eventSessionKey, rt.messages, agentForTouch);
         }
@@ -1573,7 +1569,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
     const isCurrent = eventSessionKey === get().currentSessionKey;
     const authorAgentId =
       resolveSessionAgentId(eventSessionKey, get().sessions) ??
-      (isCurrent ? get().targetAgentId : inferAgentIdFromSessionKey(eventSessionKey));
+      (isCurrent ? get().targetAgentId : extractAgentIdFromSessionKey(eventSessionKey));
 
     if (event.stream === "thinking") {
       const delta =
@@ -1643,7 +1639,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => {
       const rt = get().sessionStates.get(eventSessionKey);
       if (rt) {
         const agentForTouch =
-          resolveSessionAgentId(eventSessionKey, get().sessions) ?? inferAgentIdFromSessionKey(eventSessionKey);
+          resolveSessionAgentId(eventSessionKey, get().sessions) ?? extractAgentIdFromSessionKey(eventSessionKey);
         void localPersistence.saveMessages(eventSessionKey, rt.messages);
         serverPersistence.saveMessages(eventSessionKey, rt.messages, agentForTouch);
       }

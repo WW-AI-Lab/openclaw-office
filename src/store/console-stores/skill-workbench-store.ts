@@ -40,12 +40,12 @@ async function loadInjectedSkillSections(adapter: ReturnType<typeof getAdapter>,
 
 function buildFlowchartTaskPrompt(skillSlug: string): string {
   const skillDir = `${WORKSPACE_SKILLS_DIR}/${skillSlug}`;
-  return `为 skill ${skillSlug} 生成或更新工作流程图，写入 ${skillDir}/FLOWCHART.md。直接执行，不要先解释。`;
+  return `使用Skill「skill-workbench-mermaid-guard」为 skill ${skillSlug} 生成或更新工作流程图，写入 ${skillDir}/FLOWCHART.md。直接执行，不要先解释。`;
 }
 
 export function buildInputUiTaskPrompt(skillSlug: string): string {
   const skillDir = `${WORKSPACE_SKILLS_DIR}/${skillSlug}`;
-  return `为 skill ${skillSlug} 生成或更新 A2UI 首次交互输入表单，写入 ${skillDir}/ui.json，并幂等注入 SKILL.md 使用提示。直接执行，不要先解释。`;
+  return `使用Skill「skill-workbench-mermaid-guard」为 skill ${skillSlug} 生成或更新 A2UI 首次交互输入表单，写入 ${skillDir}/ui.json，并幂等注入 SKILL.md 使用提示。直接执行，不要先解释。`;
 }
 
 function stripYamlFrontmatter(text: string): string {

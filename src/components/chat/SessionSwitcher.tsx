@@ -1,18 +1,9 @@
 import { ChevronDown, Plus, MessageSquare } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { formatSessionName } from "@/lib/session-key-utils";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import { useOfficeStore } from "@/store/office-store";
-
-function formatSessionName(key: string): string {
-  const parts = key.split(":");
-  if (parts.length >= 3 && parts[0] === "agent") {
-    const suffix = parts.slice(2).join(":");
-    if (suffix === "main") return parts[1];
-    return suffix.length > 20 ? suffix.slice(0, 20) + "…" : suffix;
-  }
-  return key.length > 15 ? key.slice(0, 15) + "…" : key;
-}
 
 function formatRelativeTime(ts: number, t: (key: string, options?: Record<string, unknown>) => string): string {
   const diff = Date.now() - ts;

@@ -15,10 +15,11 @@
 
 ## 更新摘要
 **变更内容**
-- 更新国际化支持系统，完善中英文本地化
-- 增强A2UI表单的多语言文本支持
-- 优化文件上传和表单提交的国际化提示
-- 完善多语言环境下的用户体验
+- 新增文件上传支持，包括单文件和多文件上传功能
+- 新增A2UI可视化调试面板，提供实时预览和调试功能
+- 完善声明式表单Schema，支持8种控件类型
+- 增强国际化支持系统，提供完整的中英文本地化
+- 与技能工作台深度集成，提供一键生成和调试能力
 
 ## 目录
 1. [简介](#简介)
@@ -35,9 +36,9 @@
 
 A2UI输入表单系统是OpenClaw-Office项目中的关键组件，用于在聊天界面中提供结构化的用户输入表单。该系统实现了Agent-to-UI（A2UI）的概念，将"首次触发Skill时缺失的关键信息"或"Skill执行过程中的HITL（Human-in-the-loop）确认/补充"以结构化表单形式呈现给用户，替代传统的纯自然语言追问方式。
 
-该系统支持多种表单控件类型，包括文本输入、下拉选择、单选按钮、复选框、多选框和文件上传等，并提供了完整的验证机制和国际化支持。系统采用声明式Schema设计，确保表单数据的一致性和可预测性。
+**更新** 系统现已支持8种不同的表单控件类型，包括文本输入、下拉选择、单选按钮、复选框、多选框、文件上传等，并提供了完整的验证机制、国际化支持和可视化调试功能。系统采用声明式Schema设计，确保表单数据的一致性和可预测性。
 
-**更新** 国际化支持得到显著增强，现在提供完整的中英文本地化体验，包括表单提示、错误消息、按钮文本等所有用户界面元素。
+该系统与技能工作台深度集成，提供了一键生成ui.json、实时预览表单、内嵌调试对话等强大功能，大大提升了Skill开发和调试的效率。
 
 ## 项目结构
 
@@ -49,36 +50,47 @@ subgraph "核心组件"
 A[A2uiForm 组件]
 B[a2ui-schema 解析器]
 C[A2ui调试面板]
+D[文件上传控件]
 end
 subgraph "国际化系统"
-D[i18n配置]
-E[中文翻译]
-F[英文翻译]
+E[i18n配置]
+F[中文翻译]
+G[英文翻译]
+end
+subgraph "工作台集成"
+H[技能工作台]
+I[ui.json生成]
+J[实时预览]
 end
 subgraph "辅助功能"
-G[测试用例]
-H[工作台集成]
-I[Mermaid规范]
+K[测试用例]
+L[规范文档]
+M[调试工具]
 end
 A --> B
 C --> A
 A --> D
-B --> D
-D --> E
-D --> F
+A --> E
+B --> E
 H --> C
 I --> H
+J --> C
+K --> A
+L --> B
+M --> C
 ```
 
 **图表来源**
 - [A2uiForm.tsx:1-393](file://src/components/chat/A2uiForm.tsx#L1-L393)
 - [a2ui-schema.ts:1-321](file://src/lib/a2ui-schema.ts#L1-L321)
 - [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
+- [A2uiDebugPanel.tsx:1-103](file://src/components/console/skills/A2uiDebugPanel.tsx#L1-L103)
 
 **章节来源**
 - [A2uiForm.tsx:1-393](file://src/components/chat/A2uiForm.tsx#L1-L393)
 - [a2ui-schema.ts:1-321](file://src/lib/a2ui-schema.ts#L1-L321)
 - [index.ts:1-59](file://src/i18n/index.ts#L1-L59)
+- [A2uiDebugPanel.tsx:1-103](file://src/components/console/skills/A2uiDebugPanel.tsx#L1-L103)
 
 ## 核心组件
 
@@ -89,11 +101,11 @@ A2uiForm是整个系统的核心React组件，负责渲染和管理表单状态�
 **主要特性：**
 - 支持8种不同的表单控件类型
 - 实时必填字段验证
-- 文件上传处理
+- **新增** 文件上传处理（单文件和多文件）
 - 国际化支持
 - 只读模式渲染
 
-**更新** 国际化支持得到全面增强，所有用户界面文本都支持中英文切换，包括表单标题、描述、占位符、按钮文本等。
+**更新** 文件上传功能得到全面增强，支持单文件和多文件上传，具有完整的文件处理和验证机制。
 
 **章节来源**
 - [A2uiForm.tsx:298-393](file://src/components/chat/A2uiForm.tsx#L298-L393)
@@ -106,12 +118,14 @@ a2ui-schema模块提供了完整的表单Schema定义和解析功能，确保表
 - 表单Schema定义和验证
 - JSON解析和规范化
 - 值验证和类型检查
-- 文件附件提取
-- 提交消息构建
+- **新增** 文件附件提取
+- **新增** 提交消息构建
+
+**更新** 新增了对文件类型字段的完整支持，包括文件值的解析、验证和附件提取功能。
 
 **章节来源**
 - [a2ui-schema.ts:16-78](file://src/lib/a2ui-schema.ts#L16-L78)
-- [a2ui-schema.ts:169-199](file://src/lib/a2ui-schema.ts#L169-L199)
+- [a2ui-schema.ts:291-320](file://src/lib/a2ui-schema.ts#L291-L320)
 
 ### A2ui调试面板
 
@@ -122,6 +136,9 @@ A2uiDebugPanel是技能工作台中的调试组件，提供A2UI表单的可视�
 - 一键生成表单
 - 表单提交调试
 - 重新生成和加载功能
+- **新增** 内嵌调试对话
+
+**更新** 调试面板功能得到大幅增强，现在提供完整的实时预览和调试能力。
 
 **章节来源**
 - [A2uiDebugPanel.tsx:47-102](file://src/components/console/skills/A2uiDebugPanel.tsx#L47-L102)
@@ -137,6 +154,7 @@ participant I18n as 国际化系统
 participant Chat as 聊天界面
 participant Form as A2uiForm组件
 participant Parser as a2ui-schema解析器
+participant Debug as 调试面板
 participant Gateway as 网关适配器
 participant Agent as 智能体
 User->>I18n : 切换语言
@@ -150,12 +168,17 @@ Parser-->>Form : 返回验证结果
 Form->>Gateway : 提交表单数据
 Gateway->>Agent : 发送结构化消息
 Agent-->>User : 继续执行技能任务
+User->>Debug : 预览和调试表单
+Debug->>Parser : 解析表单Schema
+Parser-->>Debug : 返回表单模型
+Debug->>Form : 实时渲染表单
 ```
 
 **图表来源**
 - [index.ts:22-56](file://src/i18n/index.ts#L22-L56)
 - [A2uiForm.tsx:319-328](file://src/components/chat/A2uiForm.tsx#L319-L328)
 - [a2ui-schema.ts:254-284](file://src/lib/a2ui-schema.ts#L254-L284)
+- [A2uiDebugPanel.tsx:42-45](file://src/components/console/skills/A2uiDebugPanel.tsx#L42-L45)
 
 ## 详细组件分析
 
@@ -209,7 +232,7 @@ FieldControl --> A2uiField : "渲染"
 
 #### 文件上传控件
 
-文件上传功能是A2UI系统的重要组成部分，支持单文件和多文件上传，具有完整的文件处理和验证机制：
+**更新** 文件上传功能是A2UI系统的重要组成部分，支持单文件和多文件上传，具有完整的文件处理和验证机制：
 
 ```mermaid
 flowchart TD
@@ -272,6 +295,7 @@ SendData --> Success([提交成功])
 - `a2ui.requiredHint`: 必填字段提示
 - `a2ui.useText`: 文本输入回退按钮
 - `a2ui.uploadFile`: 文件上传按钮
+- `a2ui.uploadFiles`: 多文件上传按钮
 - `a2ui.removeFile`: 移除文件按钮
 - `a2ui.submittedNotice`: 提交成功提示
 - `a2ui.selectPlaceholder`: 选择框占位符
@@ -298,27 +322,36 @@ subgraph "外部依赖"
 A[React]
 B[i18n]
 C[lucide-react图标库]
+D[WebSocket网关]
+E[文件API]
 end
 subgraph "内部模块"
-D[A2uiForm组件]
-E[a2ui-schema解析器]
-F[国际化配置]
-G[A2ui调试面板]
+F[A2uiForm组件]
+G[a2ui-schema解析器]
+H[国际化配置]
+I[A2ui调试面板]
+J[技能工作台]
+K[文件上传处理]
 end
 subgraph "测试和文档"
-H[A2uiForm测试]
-I[a2ui规范文档]
-J[技能工作台文档]
+L[A2uiForm测试]
+M[a2ui规范文档]
+N[技能工作台文档]
+O[文件上传测试]
 end
-A --> D
-B --> D
-C --> D
-D --> E
+A --> F
+B --> F
+C --> F
 D --> F
-G --> D
-H --> D
-I --> E
-J --> G
+E --> K
+F --> G
+F --> H
+I --> F
+J --> I
+L --> F
+M --> G
+N --> J
+O --> K
 ```
 
 **图表来源**
@@ -338,18 +371,21 @@ J --> G
 1. **React.memo优化**: A2uiForm组件使用memo包装，避免不必要的重新渲染
 2. **状态管理**: 使用useState和useMemo合理管理组件状态
 3. **条件渲染**: 根据表单状态动态渲染不同的UI元素
+4. **文件处理优化**: 文件上传采用DataURL格式，便于传输但需要注意内存使用
 
 ### 内存管理
 
 1. **文件处理**: 文件上传采用DataURL格式，便于传输但需要注意内存使用
 2. **状态清理**: 组件卸载时自动清理文件上传状态
 3. **验证缓存**: 缺失字段验证结果进行缓存，避免重复计算
+4. **文件上传缓存**: 已选择的文件状态进行缓存，避免重复读取
 
 ### 网络优化
 
 1. **懒加载**: 技能引用检测和ui.json加载采用异步方式
 2. **错误处理**: 网络请求失败时提供优雅降级
 3. **超时控制**: 设置合理的请求超时时间
+4. **文件上传优化**: 支持文件大小限制和类型验证
 
 ## 故障排除指南
 
@@ -364,16 +400,24 @@ J --> G
 - 检查文件类型是否在accept属性中允许
 - 确认文件大小是否超过限制
 - 验证浏览器是否支持FileReader API
+- **新增** 检查文件上传控件的multiple属性设置
 
 **问题3: 国际化文本显示异常**
 - 检查i18n配置是否正确
 - 确认翻译键值是否存在
 - 验证语言切换逻辑
 
-**更新** 国际化相关问题排查：
+**问题4: 调试面板无法加载**
+- 检查ui.json文件格式是否正确
+- 确认文件权限设置
+- 验证A2UI Schema解析器是否正常工作
+
+**更新** 新增的文件上传和调试面板相关问题排查：
 - 检查本地存储的语言设置
 - 验证翻译文件的完整性
 - 确认命名空间配置正确
+- 检查文件上传控件的accept属性设置
+- 验证调试面板的ui.json生成流程
 
 **章节来源**
 - [A2uiForm.test.tsx:24-44](file://src/components/chat/A2uiForm.test.tsx#L24-L44)
@@ -383,6 +427,8 @@ J --> G
 1. **开发者工具**: 使用React DevTools检查组件状态
 2. **日志记录**: 在关键函数中添加console.log输出
 3. **单元测试**: 运行现有的测试用例验证功能正常
+4. **文件上传测试**: 使用测试用例验证文件上传功能
+5. **调试面板测试**: 验证A2UI调试面板的完整功能
 
 **章节来源**
 - [A2uiForm.test.tsx:1-52](file://src/components/chat/A2uiForm.test.tsx#L1-L52)
@@ -391,15 +437,17 @@ J --> G
 
 A2UI输入表单系统是一个设计精良、功能完整的组件，它有效地解决了传统聊天界面中信息收集的痛点。通过结构化的表单设计、完善的验证机制和良好的用户体验，该系统为OpenClaw-Office项目提供了强大的交互能力。
 
-**更新** 最新版本在国际化支持方面有了重大改进，现在提供完整的中英文本地化体验，确保全球用户都能获得优质的使用体验。
+**更新** 最新版本在多个方面得到了重大增强，包括文件上传支持、实时预览和调试功能、声明式Schema设计、国际化支持等。系统现已与技能工作台深度集成，提供了一站式的表单开发和调试解决方案。
 
 系统的主要优势包括：
 - **标准化的Schema设计**: 确保表单数据的一致性和可预测性
-- **丰富的控件类型**: 满足各种复杂的输入需求
+- **丰富的控件类型**: 满足各种复杂的输入需求，包括文件上传
 - **完整的生命周期管理**: 从创建到提交的全流程支持
 - **优秀的用户体验**: 直观的界面设计和及时的反馈机制
 - **良好的可维护性**: 清晰的代码结构和完善的测试覆盖
 - **全面的国际化支持**: 完整的中英文本地化体验
+- **强大的调试能力**: 与技能工作台深度集成，提供实时预览和调试
+- **文件上传支持**: 完整的单文件和多文件上传功能
 
 未来可以考虑的改进方向：
 - 增加更多的表单控件类型
@@ -407,3 +455,5 @@ A2UI输入表单系统是一个设计精良、功能完整的组件，它有效�
 - 添加表单模板功能
 - 增强表单的动态性支持
 - 扩展更多语言支持
+- 增强文件上传的安全性
+- 添加表单版本管理和历史记录功能

@@ -20,23 +20,9 @@ import { AgentSelector } from "@/components/chat/AgentSelector";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { useChatStreamingText } from "@/hooks/useChatStreamingText";
 import { getSlashCommands } from "@/lib/chat-slash-commands";
+import { extractAgentIdFromSessionKey, formatSessionName } from "@/lib/session-key-utils";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import { useOfficeStore } from "@/store/office-store";
-
-function formatSessionName(key: string): string {
-  const parts = key.split(":");
-  if (parts.length >= 3 && parts[0] === "agent") {
-    const suffix = parts.slice(2).join(":");
-    if (suffix === "main") return parts[1];
-    return suffix.length > 22 ? suffix.slice(0, 22) + "…" : suffix;
-  }
-  return key.length > 22 ? key.slice(0, 22) + "…" : key;
-}
-
-function inferAgentIdFromSessionKey(sessionKey: string): string | null {
-  const match = /^agent:([^:]+):/u.exec(sessionKey);
-  return match?.[1] ?? null;
-}
 
 function resolveAgentDisplayName(
   agentId: string | null,
@@ -51,7 +37,7 @@ function formatSessionTitle(
   targetAgentId: string | null,
   agents: ReturnType<typeof useOfficeStore.getState>["agents"],
 ): string {
-  const agentId = targetAgentId ?? inferAgentIdFromSessionKey(sessionKey);
+  const agentId = targetAgentId ?? extractAgentIdFromSessionKey(sessionKey);
   const agentName = resolveAgentDisplayName(agentId, agents);
   if (sessionKey === `agent:${agentId}:main` && agentName) {
     return agentName;

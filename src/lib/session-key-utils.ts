@@ -51,3 +51,22 @@ export function extractAgentIdFromSessionKey(sessionKey: string): string | null 
   if (secondColon === -1) return rest || null;
   return rest.slice(0, secondColon) || null;
 }
+
+/**
+ * 将 sessionKey 格式化为人类可读的短名称。
+ * 例: "agent:main:main" → "main"
+ * 例: "agent:coder:session-abc123" → "session-abc123"（截断到 maxSuffixLen）
+ */
+export function formatSessionName(
+  key: string,
+  maxSuffixLen = 22,
+  maxKeyLen = 22,
+): string {
+  const parts = key.split(":");
+  if (parts.length >= 3 && parts[0] === "agent") {
+    const suffix = parts.slice(2).join(":");
+    if (suffix === "main") return parts[1] ?? key;
+    return suffix.length > maxSuffixLen ? suffix.slice(0, maxSuffixLen) + "…" : suffix;
+  }
+  return key.length > maxKeyLen ? key.slice(0, maxKeyLen) + "…" : key;
+}
