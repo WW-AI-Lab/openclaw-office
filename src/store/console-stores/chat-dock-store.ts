@@ -3,7 +3,6 @@ import type { GatewayAdapter } from "@/gateway/adapter";
 import { getAdapter } from "@/gateway/adapter-provider";
 import type {
   ChatAttachment,
-  ChatContentBlock,
   ChatHistoryResult,
   SessionInfo,
   ToolCallInfo,
@@ -16,31 +15,37 @@ import { localPersistence } from "@/lib/local-persistence";
 import { generateMessageId } from "@/lib/message-utils";
 import { serverPersistence } from "@/lib/server-persistence";
 import { extractAgentIdFromSessionKey } from "@/lib/session-key-utils";
+import {
+  type ChatDockMessage,
+  extractText,
+  normalizeAttachment,
+  normalizeHistoryMessages,
+  findLatestToolMessageIndex,
+  appendAssistantSegment,
+  buildSystemMessage,
+} from "./chat-message-normalizer";
+import {
+  buildSessionKey,
+  isWorkspaceChatSessionKey,
+  filterWorkspaceSessions,
+  getStoredWorkspaceSessionKey,
+  storeWorkspaceSessionKey,
+  resolveSessionAgentId,
+  selectPreferredSessionKey,
+  normalizeSession,
+  mergeCurrentSession,
+  touchSession,
+  persistSessions,
+  applyMessageCountHints,
+} from "./chat-session-helpers";
 
-export type MessageRole = "user" | "assistant" | "system";
-export type ChatMessageKind = "message" | "tool" | "command";
+export type { ChatDockMessage, ChatMessageKind, MessageRole } from "./chat-message-normalizer";
 
 export interface ChatQueueItem {
   id: string;
   text: string;
   attachments: ChatAttachment[];
   createdAt: number;
-}
-
-export interface ChatDockMessage {
-  id: string;
-  role: MessageRole;
-  content: string;
-  timestamp: number;
-  isStreaming?: boolean;
-  attachments?: ChatAttachment[];
-  toolCalls?: ToolCallInfo[];
-  kind?: ChatMessageKind;
-  runId?: string | null;
-  aborted?: boolean;
-  authorAgentId?: string | null;
-  collapsed?: boolean;
-  thinking?: string;
 }
 
 export interface SessionRuntime {
@@ -394,396 +399,6 @@ function applyToolAgentEventSlice(
       },
     ],
     streamingMessage: phase === "start" ? null : streamingMessage,
-  };
-}
-
-function buildSessionKey(agentId: string): string {
-  return `agent:${agentId}:main`;
-}
-
-const CHAT_PAGE_LAST_SESSION_KEY = "openclaw-office-chat-page:last-session";
-
-function isWorkspaceChatSessionKey(sessionKey: string): boolean {
-  return /^agent:[^:]+:(main|session-[^:]+)$/u.test(sessionKey);
-}
-
-function filterWorkspaceSessions(sessions: SessionInfo[]): SessionInfo[] {
-  return sessions.filter((session) => isWorkspaceChatSessionKey(session.key));
-}
-
-function getStoredWorkspaceSessionKey(): string | null {
-  try {
-    const value = localStorage.getItem(CHAT_PAGE_LAST_SESSION_KEY);
-    return value && value.length > 0 ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-function storeWorkspaceSessionKey(sessionKey: string): void {
-  if (!isWorkspaceChatSessionKey(sessionKey)) {
-    return;
-  }
-  try {
-    localStorage.setItem(CHAT_PAGE_LAST_SESSION_KEY, sessionKey);
-  } catch {
-    // Ignore localStorage failures.
-  }
-}
-
-function resolveSessionAgentId(sessionKey: string, sessions: SessionInfo[]): string | null {
-  const session = sessions.find((item) => item.key === sessionKey);
-  return session?.agentId ?? extractAgentIdFromSessionKey(sessionKey);
-}
-
-function selectPreferredSessionKey(agentId: string, sessions: SessionInfo[]): string {
-  const matched = filterWorkspaceSessions(sessions)
-    .filter((session) => resolveSessionAgentId(session.key, sessions) === agentId)
-    .filter((session) => session.key !== buildSessionKey(agentId))
-    .sort((a, b) => {
-      const aTime = a.lastActiveAt ?? a.updatedAt ?? a.createdAt ?? 0;
-      const bTime = b.lastActiveAt ?? b.updatedAt ?? b.createdAt ?? 0;
-      return bTime - aTime;
-    });
-  return matched[0]?.key ?? buildSessionKey(agentId);
-}
-
-function mergeCurrentSession(
-  sessions: SessionInfo[],
-  currentSessionKey: string,
-  targetAgentId: string | null,
-): SessionInfo[] {
-  const isBootstrapDefaultSession = currentSessionKey === "agent:main:main" && targetAgentId === null;
-  if (isBootstrapDefaultSession) {
-    return sessions;
-  }
-  if (sessions.some((session) => session.key === currentSessionKey)) {
-    return sessions;
-  }
-
-  const now = Date.now();
-  return [
-    normalizeSession({
-      key: currentSessionKey,
-      agentId: targetAgentId ?? extractAgentIdFromSessionKey(currentSessionKey) ?? undefined,
-      label: currentSessionKey,
-      createdAt: now,
-      lastActiveAt: now,
-      messageCount: 0,
-    }),
-    ...sessions,
-  ];
-}
-
-function touchSession(
-  sessions: SessionInfo[],
-  currentSessionKey: string,
-  targetAgentId: string | null,
-  messageCount: number,
-): SessionInfo[] {
-  const now = Date.now();
-  const existing = sessions.find((session) => session.key === currentSessionKey);
-  const nextSession = normalizeSession({
-    ...existing,
-    key: currentSessionKey,
-    agentId: targetAgentId ?? existing?.agentId ?? extractAgentIdFromSessionKey(currentSessionKey) ?? undefined,
-    label: existing?.label ?? currentSessionKey,
-    createdAt: existing?.createdAt ?? now,
-    lastActiveAt: now,
-    updatedAt: now,
-    messageCount,
-  });
-  return [
-    nextSession,
-    ...sessions.filter((session) => session.key !== currentSessionKey),
-  ];
-}
-
-function persistSessions(sessions: SessionInfo[]): void {
-  void localPersistence.saveSessions(sessions);
-  serverPersistence.saveSessions(sessions);
-}
-
-function extractText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    return content
-      .filter(
-        (block): block is Extract<ChatContentBlock, { type: "text" }> =>
-          typeof block === "object" &&
-          block !== null &&
-          "type" in block &&
-          block.type === "text" &&
-          typeof block.text === "string",
-      )
-      .map((block) => block.text)
-      .join("\n");
-  }
-  return "";
-}
-
-function extractThinkingFromHistoryMessage(message: Record<string, unknown>): string | undefined {
-  if (typeof message.thinking === "string" && message.thinking.trim()) {
-    return message.thinking.trim();
-  }
-  const content = message.content;
-  if (Array.isArray(content)) {
-    const blocks = content as Array<{ type?: string; text?: string; thinking?: string }>;
-    const parts = blocks
-      .filter((b) => b.type === "thinking" && (b.text || b.thinking))
-      .map((b) => b.text || b.thinking || "");
-    if (parts.length > 0) return parts.join("\n");
-  }
-  return undefined;
-}
-
-function normalizeRole(role: unknown): MessageRole {
-  return role === "user" || role === "assistant" || role === "system" ? role : "assistant";
-}
-
-function isAttachmentLike(value: unknown): value is ChatAttachment {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      typeof (value as ChatAttachment).mimeType === "string",
-  );
-}
-
-function normalizeAttachment(attachment: ChatAttachment): ChatAttachment {
-  return {
-    id: attachment.id ?? generateMessageId(),
-    name: attachment.name,
-    mimeType: attachment.mimeType,
-    dataUrl: attachment.dataUrl,
-    content: attachment.content,
-  };
-}
-
-function extractAttachments(message: Record<string, unknown>): ChatAttachment[] {
-  if (Array.isArray(message.attachments)) {
-    return message.attachments.filter(isAttachmentLike).map(normalizeAttachment);
-  }
-  if (Array.isArray(message.content)) {
-    return message.content
-      .flatMap((block) => {
-        if (!block || typeof block !== "object") return [];
-        const record = block as Record<string, unknown>;
-        if (record.type !== "image") return [];
-        return [
-          normalizeAttachment({
-            id: String(record.id ?? generateMessageId()),
-            mimeType:
-              typeof record.mimeType === "string"
-                ? record.mimeType
-                : typeof record.media_type === "string"
-                  ? record.media_type
-                  : "image/png",
-            dataUrl:
-              typeof record.dataUrl === "string"
-                ? record.dataUrl
-                : typeof record.url === "string"
-                  ? record.url
-                  : undefined,
-          }),
-        ];
-      })
-      .filter(Boolean);
-  }
-  return [];
-}
-
-function normalizeHistoryMessage(message: Record<string, unknown>): ChatDockMessage {
-  const toolCalls = Array.isArray(message.toolCalls) ? (message.toolCalls as ToolCallInfo[]) : undefined;
-  // Preserve the kind field; infer "tool" when not stored but toolCalls exist on a system message
-  const storedKind = typeof message.kind === "string" ? (message.kind as ChatMessageKind) : undefined;
-  const inferredKind: ChatMessageKind | undefined =
-    storedKind ?? (toolCalls && toolCalls.length > 0 && message.role === "system" ? "tool" : undefined);
-
-  return {
-    id: String(message.id ?? generateMessageId()),
-    role: normalizeRole(message.role),
-    content: extractText(message.content ?? message.text ?? ""),
-    timestamp: typeof message.timestamp === "number" ? message.timestamp : Date.now(),
-    attachments: extractAttachments(message),
-    toolCalls,
-    kind: inferredKind,
-    thinking: extractThinkingFromHistoryMessage(message),
-    // Completed tool messages in history should be collapsed by default
-    collapsed: typeof message.collapsed === "boolean" ? message.collapsed : inferredKind === "tool" ? true : undefined,
-    authorAgentId: typeof message.authorAgentId === "string" ? message.authorAgentId : null,
-    runId: typeof message.runId === "string" ? message.runId : null,
-    aborted: Boolean(message.aborted),
-  };
-}
-
-/**
- * Expand assistant messages that have embedded toolCalls (Gateway native format) into separate
- * "tool" kind messages followed by the assistant message. This makes Gateway-fetched history
- * display identically to live session tool activity bubbles.
- *
- * For cached messages (live-session format), assistant messages do NOT have embedded toolCalls
- * (they come via separate agent events), so this is a no-op for those messages.
- */
-function reconstructToolMessages(
-  messages: ChatDockMessage[],
-  authorAgentId: string | null,
-): ChatDockMessage[] {
-  const result: ChatDockMessage[] = [];
-  for (const message of messages) {
-    if (message.role === "assistant" && Array.isArray(message.toolCalls) && message.toolCalls.length > 0) {
-      // Insert individual tool kind messages before the assistant message
-      for (const toolCall of message.toolCalls) {
-        result.push({
-          id: `${message.id}:tool:${toolCall.id}`,
-          role: "system",
-          content: i18n.t("chat:toolActivity.finished", { name: toolCall.name }),
-          timestamp: message.timestamp,
-          kind: "tool",
-          collapsed: true,
-          toolCalls: [toolCall],
-          runId: message.runId ?? null,
-          authorAgentId: message.authorAgentId ?? authorAgentId,
-        });
-      }
-      // Push the assistant message without embedded toolCalls to avoid double-reconstruction on cache reload
-      result.push({ ...message, toolCalls: undefined });
-    } else {
-      result.push(message);
-    }
-  }
-  return result;
-}
-
-function normalizeHistoryMessages(
-  messages: Record<string, unknown>[],
-  authorAgentId: string | null,
-): ChatDockMessage[] {
-  const normalized = messages.map((message) => {
-    const msg = normalizeHistoryMessage(message);
-    // Apply session authorAgentId as fallback for assistant and tool messages
-    if ((msg.role === "assistant" || msg.kind === "tool") && !msg.authorAgentId) {
-      return { ...msg, authorAgentId };
-    }
-    return msg;
-  });
-  // Reconstruct separate tool kind messages from any assistant messages that have embedded toolCalls
-  // (Gateway native format). For cached live-session messages this is a no-op.
-  return reconstructToolMessages(normalized, authorAgentId);
-}
-
-function findLatestToolMessageIndex(messages: ChatDockMessage[], runId: string, toolName: string): number {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (
-      message?.kind === "tool" &&
-      message.runId === runId &&
-      message.toolCalls?.some((toolCall) => toolCall.name === toolName)
-    ) {
-      return index;
-    }
-  }
-  return -1;
-}
-
-function buildAssistantMessage(
-  content: string,
-  runId: string | null,
-  authorAgentId: string | null,
-  source?: Record<string, unknown>,
-): ChatDockMessage {
-  const thinking = source ? extractThinkingFromHistoryMessage(source) : undefined;
-  return {
-    id: String(source?.id ?? generateMessageId()),
-    role: "assistant",
-    content,
-    timestamp: Date.now(),
-    attachments: source ? extractAttachments(source) : undefined,
-    toolCalls: Array.isArray(source?.toolCalls) ? (source.toolCalls as ToolCallInfo[]) : undefined,
-    runId,
-    aborted: Boolean(source?.aborted),
-    authorAgentId,
-    thinking,
-  };
-}
-
-function getAssistantRunContent(messages: ChatDockMessage[], runId: string): string {
-  return messages
-    .filter((message) => message.role === "assistant" && message.runId === runId)
-    .map((message) => message.content)
-    .join("\n");
-}
-
-function appendAssistantSegment(
-  messages: ChatDockMessage[],
-  content: string,
-  runId: string | null,
-  authorAgentId: string | null,
-  source?: Record<string, unknown>,
-): ChatDockMessage[] {
-  if (!content.trim()) {
-    return messages;
-  }
-
-  if (runId) {
-    const existingContent = getAssistantRunContent(messages, runId);
-    const normalizedContent =
-      existingContent && content.startsWith(existingContent)
-        ? content.slice(existingContent.length).replace(/^\n+/u, "")
-        : content;
-    if (!normalizedContent.trim()) {
-      return messages;
-    }
-    return [...messages, buildAssistantMessage(normalizedContent, runId, authorAgentId, source)];
-  }
-
-  return [...messages, buildAssistantMessage(content, runId, authorAgentId, source)];
-}
-
-function normalizeSession(session: SessionInfo): SessionInfo {
-  return {
-    ...session,
-    label: session.label ?? session.key,
-    lastActiveAt: session.lastActiveAt ?? session.updatedAt ?? Date.now(),
-    messageCount: session.messageCount ?? 0,
-  };
-}
-
-function applyMessageCountHints(
-  sessions: SessionInfo[],
-  messageCountHints: Map<string, number>,
-): SessionInfo[] {
-  if (messageCountHints.size === 0) {
-    return sessions;
-  }
-
-  return sessions.map((session) => {
-    const hinted = messageCountHints.get(session.key);
-    if (typeof hinted !== "number" || !Number.isFinite(hinted) || hinted < 0) {
-      return session;
-    }
-
-    const current =
-      typeof session.messageCount === "number" && Number.isFinite(session.messageCount) && session.messageCount >= 0
-        ? session.messageCount
-        : 0;
-    if (hinted <= current) {
-      return session;
-    }
-
-    return {
-      ...session,
-      messageCount: hinted,
-    };
-  });
-}
-
-function buildSystemMessage(content: string, kind: ChatMessageKind = "command"): ChatDockMessage {
-  return {
-    id: generateMessageId(),
-    role: "system",
-    content,
-    timestamp: Date.now(),
-    kind,
   };
 }
 

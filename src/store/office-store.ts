@@ -9,9 +9,7 @@ import type {
   AgentEventPayload,
   AgentSummary,
   AgentToAgentConfig,
-  AgentVisualStatus,
   AgentZone,
-  CollaborationLink,
   ConnectionStatus,
   EventHistoryItem,
   OfficeStore,
@@ -23,8 +21,8 @@ import type {
   VisualAgent,
 } from "@/gateway/types";
 import { detectPeerAgentHintsFromAssistantText } from "@/lib/assistant-collaboration-hints";
-import { ZONES, CORRIDOR_ENTRANCE, A2A_TOOL_NAMES } from "@/lib/constants";
-import { extractSessionNamespace, extractAgentIdFromSessionKey } from "@/lib/session-key-utils";
+import { ZONES, A2A_TOOL_NAMES } from "@/lib/constants";
+import { extractAgentIdFromSessionKey } from "@/lib/session-key-utils";
 import { allocatePosition, allocateMeetingPositions, calculateLoungePositions } from "@/lib/position-allocator";
 import { fuzzyMatchAgentIds } from "@/lib/fuzzy-match";
 import {
@@ -33,34 +31,44 @@ import {
   interpolatePathPosition,
 } from "@/lib/movement-animator";
 import { applyEventToAgent, setDeferredIdleCallback } from "./agent-reducer";
-import { applyMeetingGathering, detectMeetingGroups } from "./meeting-manager";
 import { computeMetrics } from "./metrics-reducer";
+import {
+  createVisualAgent,
+  positionKey,
+  nextPlaceholderIndex,
+  allocateNextPosition,
+  activateFromLoungePlaceholder,
+  isRegisteredMainAgentId,
+  extractParentFromSessionKey,
+} from "./office-agent-helpers";
+import {
+  isActiveStatus,
+  cancelRetireTimer,
+  cancelMigrationTimer,
+  cancelMeetingReturnTimer,
+  scheduleRetireAfterMinStay,
+  scheduleZoneMigration,
+  scheduleMeetingReturn,
+  setMovementStoreGetter,
+} from "./office-movement";
+import {
+  updateCollaborationLinks,
+  createPeerCollaborationLink,
+  createPeerCollaborationLinksForAgents,
+  scheduleMeetingGathering,
+  setStoreStateGetter,
+  setScheduleMeetingReturnFn,
+} from "./office-collaboration";
 
 const EVENT_HISTORY_LIMIT = 200;
-const LINK_TIMEOUT_MS = 60_000;
 const THEME_STORAGE_KEY = "openclaw-theme";
 const CHAT_DOCK_HEIGHT_KEY = "openclaw-chat-dock-height";
 const DEFAULT_CHAT_DOCK_HEIGHT = 300;
-const LOUNGE_TO_HOTDESK_DEBOUNCE_MS = 300;
-const HOTDESK_TO_LOUNGE_DELAY_MS = 30_000;
-const MIN_HOTDESK_STAY_MS = 10_000;
 
-const subAgentRetireTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const meetingRetireTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const MIN_MEETING_STAY_MS = 10_000;
-
-const zoneMigrationTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const confirmationTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const removedAgentIds = new Set<string>();
 const REMOVED_IDS_TTL_MS = 30_000;
 const UNCONFIRMED_TIMEOUT_MS = 5_000;
-let meetingGatheringTimer: ReturnType<typeof setTimeout> | null = null;
-let lastMeetingGroupsHash = "";
-const MEETING_GATHERING_THROTTLE_MS = 500;
-
-function isActiveStatus(status: AgentVisualStatus): boolean {
-  return status === "thinking" || status === "tool_calling" || status === "speaking" || status === "spawning";
-}
 
 function getInitialChatDockHeight(): number {
   if (typeof window === "undefined") return DEFAULT_CHAT_DOCK_HEIGHT;
@@ -81,137 +89,6 @@ function getInitialTheme(): ThemeMode {
     return stored;
   }
   return "dark";
-}
-
-function createVisualAgent(
-  id: string,
-  name: string,
-  isSubAgent: boolean,
-  occupied: Set<string>,
-  confirmed = true,
-): VisualAgent {
-  if (!confirmed) {
-    return {
-      id,
-      name,
-      status: "idle" as AgentVisualStatus,
-      position: { ...CORRIDOR_ENTRANCE },
-      currentTool: null,
-      speechBubble: null,
-      lastActiveAt: Date.now(),
-      toolCallCount: 0,
-      toolCallHistory: [],
-      runId: null,
-      isSubAgent: false,
-      isPlaceholder: false,
-      parentAgentId: null,
-      childAgentIds: [],
-      zone: "corridor" as const,
-      originalPosition: null,
-      movement: null,
-      confirmed: false,
-      arrivedAtHotDeskAt: null,
-      pendingRetire: false,
-      arrivedAtMeetingAt: null,
-      manualMeeting: false,
-    };
-  }
-  const position = allocatePosition(id, isSubAgent, occupied);
-  return {
-    id,
-    name,
-    status: "idle" as AgentVisualStatus,
-    position,
-    currentTool: null,
-    speechBubble: null,
-    lastActiveAt: Date.now(),
-    toolCallCount: 0,
-    toolCallHistory: [],
-    runId: null,
-    isSubAgent,
-    isPlaceholder: false,
-    parentAgentId: null,
-    childAgentIds: [],
-    zone: isSubAgent ? ("hotDesk" as const) : ("desk" as const),
-    originalPosition: null,
-    movement: null,
-    confirmed: true,
-    arrivedAtHotDeskAt: isSubAgent ? Date.now() : null,
-    pendingRetire: false,
-    arrivedAtMeetingAt: null,
-    manualMeeting: false,
-  };
-}
-
-function positionKey(pos: { x: number; y: number }): string {
-  return `${pos.x},${pos.y}`;
-}
-
-function nextPlaceholderIndex(agents: Map<string, VisualAgent>): number {
-  let maxIdx = -1;
-  for (const a of agents.values()) {
-    if (a.id.startsWith("placeholder-")) {
-      const idx = parseInt(a.id.slice("placeholder-".length), 10);
-      if (!Number.isNaN(idx) && idx > maxIdx) maxIdx = idx;
-    }
-  }
-  return maxIdx + 1;
-}
-
-function allocateNextPosition(
-  agents: Map<string, VisualAgent>,
-  toZone: AgentZone,
-  maxSubAgents: number,
-): { x: number; y: number } {
-  if (toZone === "lounge") {
-    const loungePositions = calculateLoungePositions(maxSubAgents);
-    const occupied = new Set<string>();
-    for (const a of agents.values()) {
-      if (a.zone === "lounge") occupied.add(positionKey(a.position));
-    }
-    const free = loungePositions.find((p) => !occupied.has(positionKey(p)));
-    if (free) return free;
-    return loungePositions[0] ?? { x: ZONES.lounge.x + 60, y: ZONES.lounge.y + 40 };
-  }
-
-  // hotDesk or desk — use allocatePosition
-  const occupied = new Set<string>();
-  for (const a of agents.values()) {
-    if (a.zone === toZone) occupied.add(positionKey(a.position));
-  }
-  return allocatePosition("temp-" + Date.now(), toZone === "hotDesk", occupied);
-}
-
-/**
- * Move an unconfirmed agent to a lounge placeholder position.
- * Removes one placeholder to make room; if none available, uses first lounge position.
- */
-function activateFromLoungePlaceholder(
-  state: { agents: Map<string, VisualAgent>; maxSubAgents: number },
-  agent: VisualAgent,
-): void {
-  // Find a placeholder to consume
-  let placeholder: VisualAgent | undefined;
-  for (const a of state.agents.values()) {
-    if (a.isPlaceholder && a.zone === "lounge") {
-      placeholder = a;
-      break;
-    }
-  }
-  if (placeholder) {
-    agent.position = { ...placeholder.position };
-    agent.zone = "lounge";
-    state.agents.delete(placeholder.id);
-  } else {
-    const loungePositions = calculateLoungePositions(state.maxSubAgents);
-    const loungeOccupied = new Set<string>();
-    for (const a of state.agents.values()) {
-      if (a.zone === "lounge") loungeOccupied.add(positionKey(a.position));
-    }
-    const freePos = loungePositions.find((p) => !loungeOccupied.has(positionKey(p)));
-    agent.position = freePos ?? loungePositions[0] ?? { x: ZONES.lounge.x + 60, y: ZONES.lounge.y + 40 };
-    agent.zone = "lounge";
-  }
 }
 
 export const useOfficeStore = create<OfficeStore>()(
@@ -371,11 +248,7 @@ export const useOfficeStore = create<OfficeStore>()(
 
     removeSubAgent: (subAgentId: string) => {
       cancelRetireTimer(subAgentId);
-      const existingMigration = zoneMigrationTimers.get(subAgentId);
-      if (existingMigration) {
-        clearTimeout(existingMigration);
-        zoneMigrationTimers.delete(subAgentId);
-      }
+      cancelMigrationTimer(subAgentId);
 
       set((state) => {
         const sub = state.agents.get(subAgentId);
@@ -481,11 +354,7 @@ export const useOfficeStore = create<OfficeStore>()(
 
     returnFromMeeting: (agentId: string) => {
       // Cancel any pending meeting return timer
-      const pendingTimer = meetingRetireTimers.get(agentId);
-      if (pendingTimer) {
-        clearTimeout(pendingTimer);
-        meetingRetireTimers.delete(agentId);
-      }
+      cancelMeetingReturnTimer(agentId);
       const agent = useOfficeStore.getState().agents.get(agentId);
       if (!agent?.originalPosition) return;
       const returnZone = agent.isSubAgent ? "hotDesk" : "desk";
@@ -1371,410 +1240,26 @@ setDeferredIdleCallback((agentId: string) => {
   useOfficeStore.getState().deferredSetIdle(agentId);
 });
 
-/**
- * Check if the given agentId is likely a registered main agent.
- * A main agent's sessionKey typically appears in the sessionKeyMap pointing
- * to an existing confirmed agent, or the agentId itself matches a known agent.
- * This prevents main agents with new runIds from becoming unconfirmed.
- */
-function isRegisteredMainAgentId(
-  state: { agents: Map<string, VisualAgent>; sessionKeyMap: Map<string, string[]> },
-  agentId: string,
-  sessionKey?: string,
-): boolean {
-  // If the sessionKey already maps to a confirmed main agent, this is likely the same agent
-  // with a new runId. But the agentId is different from what we know → it's a new agent.
-  // However, if the agentId looks like one of our known agent IDs, trust it.
-  for (const a of state.agents.values()) {
-    if (!a.isSubAgent && !a.isPlaceholder && a.confirmed && a.id === agentId) {
-      return true;
-    }
-  }
-  // If sessionKey maps to a known main agent, this could be a sub-agent sharing the same session
-  if (sessionKey) {
-    const mapped = state.sessionKeyMap.get(sessionKey);
-    if (mapped) {
-      for (const mid of mapped) {
-        const ma = state.agents.get(mid);
-        if (ma && !ma.isSubAgent && ma.confirmed) {
-          // Session belongs to a known main agent but agentId differs → likely sub-agent
-          return false;
-        }
-      }
-    }
-  }
-  return false;
-}
+// Wire up extracted modules with store state getters (avoids circular imports)
+setMovementStoreGetter(() => {
+  const s = useOfficeStore.getState();
+  return {
+    agents: s.agents,
+    startMovement: s.startMovement,
+    removeSubAgent: s.removeSubAgent,
+    returnFromMeeting: s.returnFromMeeting,
+  };
+});
 
-/**
- * Extract parent agent ID from a sub-agent sessionKey.
- * Gateway sessionKey format: "agent:<parentName>:subagent:<uuid>"
- * Parent sessionKey format: "agent:<parentName>:main"
- * Look up parent via sessionKeyMap or by matching agent name.
- */
-function extractParentFromSessionKey(
-  state: { agents: Map<string, VisualAgent>; sessionKeyMap: Map<string, string[]> },
-  sessionKey: string,
-): string | null {
-  // Parse "agent:<name>:subagent:..." → find parent agent "<name>"
-  const parts = sessionKey.split(":");
-  const subIdx = parts.indexOf("subagent");
-  if (subIdx >= 2) {
-    const parentName = parts.slice(1, subIdx).join(":");
+setStoreStateGetter(() => {
+  const s = useOfficeStore.getState();
+  return {
+    links: s.links,
+    agents: s.agents,
+    agentToAgentConfig: s.agentToAgentConfig,
+    moveToMeeting: s.moveToMeeting,
+    returnFromMeeting: s.returnFromMeeting,
+  };
+});
 
-    // Try known sessionKey patterns for the parent
-    for (const [sk, mapped] of state.sessionKeyMap) {
-      if (sk.startsWith(`agent:${parentName}:`) && !sk.includes(":subagent:") && mapped.length > 0) {
-        return mapped[0];
-      }
-    }
-
-    // Fallback: find agent whose id or name matches parentName
-    for (const [id, a] of state.agents) {
-      if (!a.isSubAgent && !a.isPlaceholder && (a.id === parentName || a.name === parentName)) {
-        return id;
-      }
-    }
-  }
-  // Last resort: return first non-sub-agent
-  for (const [id, a] of state.agents) {
-    if (!a.isSubAgent && !a.isPlaceholder && a.confirmed) {
-      return id;
-    }
-  }
-  return null;
-}
-
-function updateCollaborationLinks(
-  state: { links: CollaborationLink[]; sessionKeyMap: Map<string, string[]> },
-  sessionKey: string,
-  agentId: string,
-): void {
-  const agents = state.sessionKeyMap.get(sessionKey);
-  if (!agents || agents.length < 2) {
-    // Try namespace-based matching for parent↔sub-agent and same-namespace scenarios
-    const ns = extractSessionNamespace(sessionKey);
-    if (ns) {
-      const nsAgents = new Set<string>();
-      // Include the current agent being processed (e.g. a sub-agent)
-      nsAgents.add(agentId);
-      for (const [sk, ids] of state.sessionKeyMap) {
-        if (extractSessionNamespace(sk) === ns && !sk.includes(":subagent:")) {
-          for (const id of ids) nsAgents.add(id);
-        }
-      }
-      if (nsAgents.size >= 2) {
-        // Build links between all agents in the same namespace
-        const nsAgentList = Array.from(nsAgents);
-        const now = Date.now();
-        for (let i = 0; i < nsAgentList.length; i++) {
-          for (let j = i + 1; j < nsAgentList.length; j++) {
-            const a = nsAgentList[i];
-            const b = nsAgentList[j];
-            const existingIdx = state.links.findIndex(
-              (l) =>
-                l.sessionKey === sessionKey &&
-                ((l.sourceId === a && l.targetId === b) || (l.sourceId === b && l.targetId === a)),
-            );
-            if (existingIdx >= 0) {
-              state.links[existingIdx].lastActivityAt = now;
-              state.links[existingIdx].strength = Math.min(
-                state.links[existingIdx].strength + 0.1,
-                1,
-              );
-            } else {
-              state.links.push({
-                sourceId: a,
-                targetId: b,
-                sessionKey,
-                strength: 0.3,
-                lastActivityAt: now,
-              });
-            }
-          }
-        }
-        state.links = state.links.filter((l) => now - l.lastActivityAt < LINK_TIMEOUT_MS);
-      }
-    }
-    return;
-  }
-
-  const now = Date.now();
-  for (const otherId of agents) {
-    if (otherId === agentId) {
-      continue;
-    }
-
-    const existingIdx = state.links.findIndex(
-      (l) =>
-        l.sessionKey === sessionKey &&
-        ((l.sourceId === agentId && l.targetId === otherId) ||
-          (l.sourceId === otherId && l.targetId === agentId)),
-    );
-
-    if (existingIdx >= 0) {
-      const link = state.links[existingIdx];
-      link.lastActivityAt = now;
-      link.strength = Math.min(link.strength + 0.1, 1);
-    } else {
-      state.links.push({
-        sourceId: agentId,
-        targetId: otherId,
-        sessionKey,
-        strength: 0.3,
-        lastActivityAt: now,
-      });
-    }
-  }
-
-  // Decay stale links
-  state.links = state.links.filter((l) => now - l.lastActivityAt < LINK_TIMEOUT_MS);
-}
-
-/**
- * Create a direct peer collaboration link between two main agents.
- * Used when an A2A tool event (sessions_send, sessions_spawn, etc.) is detected.
- * These links bypass sessionKey matching since peer agents use different session keys.
- */
-function createPeerCollaborationLink(
-  state: { links: CollaborationLink[]; agents: Map<string, VisualAgent> },
-  sourceId: string,
-  targetId: string,
-): void {
-  if (sourceId === targetId) return;
-  const source = state.agents.get(sourceId);
-  const target = state.agents.get(targetId);
-  if (!source || !target) return;
-  // Only link main agents (not sub-agents) for meeting zone
-  if (source.isSubAgent || target.isSubAgent) return;
-
-  const peerSessionKey = `peer:${[sourceId, targetId].sort().join(":")}`;
-  const now = Date.now();
-
-  const existingIdx = state.links.findIndex(
-    (l) =>
-      (l.sourceId === sourceId && l.targetId === targetId) ||
-      (l.sourceId === targetId && l.targetId === sourceId),
-  );
-
-  if (existingIdx >= 0) {
-    state.links[existingIdx].lastActivityAt = now;
-    state.links[existingIdx].strength = Math.min(state.links[existingIdx].strength + 0.15, 1);
-    state.links[existingIdx].isPeer = true;
-  } else {
-    state.links.push({
-      sourceId,
-      targetId,
-      sessionKey: peerSessionKey,
-      strength: 0.5, // Start above threshold immediately
-      lastActivityAt: now,
-      isPeer: true,
-    });
-  }
-
-  // Decay stale links
-  state.links = state.links.filter((l) => now - l.lastActivityAt < LINK_TIMEOUT_MS);
-}
-
-function createPeerCollaborationLinksForAgents(
-  state: { links: CollaborationLink[]; agents: Map<string, VisualAgent> },
-  agentIds: string[],
-): void {
-  for (let i = 0; i < agentIds.length; i += 1) {
-    for (let j = i + 1; j < agentIds.length; j += 1) {
-      createPeerCollaborationLink(state, agentIds[i]!, agentIds[j]!);
-    }
-  }
-}
-
-function scheduleMeetingGathering(): void {
-  if (meetingGatheringTimer) return;
-  meetingGatheringTimer = setTimeout(() => {
-    meetingGatheringTimer = null;
-    const state = useOfficeStore.getState();
-
-    const allowList = state.agentToAgentConfig.enabled
-      ? state.agentToAgentConfig.allow
-      : undefined;
-    const groups = detectMeetingGroups(
-      state.links,
-      state.agents,
-      allowList,
-    );
-    const hash = JSON.stringify(groups.map((g) => g.agentIds.sort()));
-    if (hash === lastMeetingGroupsHash) return;
-    lastMeetingGroupsHash = hash;
-
-    applyMeetingGathering(
-      state.agents,
-      groups,
-      (id, pos) => useOfficeStore.getState().moveToMeeting(id, pos),
-      (id) => useOfficeStore.getState().returnFromMeeting(id),
-      (id) => scheduleMeetingReturn(id),
-    );
-  }, MEETING_GATHERING_THROTTLE_MS);
-}
-
-function scheduleZoneMigration(
-  agentId: string,
-  prevStatus: AgentVisualStatus,
-  newStatus: AgentVisualStatus,
-): void {
-  const existingTimer = zoneMigrationTimers.get(agentId);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-    zoneMigrationTimers.delete(agentId);
-  }
-
-  const wasActive = isActiveStatus(prevStatus);
-  const nowActive = isActiveStatus(newStatus);
-
-  if (!wasActive && nowActive) {
-    // lounge → hotDesk with debounce
-    const timer = setTimeout(() => {
-      zoneMigrationTimers.delete(agentId);
-      migrateAgentToHotDesk(agentId);
-    }, LOUNGE_TO_HOTDESK_DEBOUNCE_MS);
-    zoneMigrationTimers.set(agentId, timer);
-  } else if (wasActive && !nowActive && newStatus === "idle") {
-    // hotDesk → lounge after sustained idle
-    const timer = setTimeout(() => {
-      zoneMigrationTimers.delete(agentId);
-      migrateAgentToLounge(agentId);
-    }, HOTDESK_TO_LOUNGE_DELAY_MS);
-    zoneMigrationTimers.set(agentId, timer);
-  }
-}
-
-function migrateAgentToHotDesk(agentId: string): void {
-  const state = useOfficeStore.getState();
-  const agent = state.agents.get(agentId);
-  if (!agent || !agent.isSubAgent || agent.zone !== "lounge") return;
-  if (agent.movement?.toZone === "hotDesk") return;
-
-  useOfficeStore.getState().startMovement(agentId, "hotDesk");
-}
-
-function migrateAgentToLounge(agentId: string): void {
-  const state = useOfficeStore.getState();
-  const agent = state.agents.get(agentId);
-  if (!agent || !agent.isSubAgent || agent.zone !== "hotDesk") return;
-  if (isActiveStatus(agent.status)) return;
-  if (agent.movement?.toZone === "lounge") return;
-  if (agent.pendingRetire) return;
-
-  useOfficeStore.getState().startMovement(agentId, "lounge");
-}
-
-function cancelRetireTimer(agentId: string): void {
-  const timer = subAgentRetireTimers.get(agentId);
-  if (timer) {
-    clearTimeout(timer);
-    subAgentRetireTimers.delete(agentId);
-  }
-}
-
-/**
- * Central retire scheduling for sub-agents.
- * Enforces: must stay at hotDesk >= MIN_HOTDESK_STAY_MS before walking back.
- *
- * Possible states when called:
- * - Still walking TO hotDesk → will be re-invoked by tickMovement on arrival
- * - At hotDesk, arrived recently → schedule timer for remaining wait
- * - At hotDesk, stayed long enough → start walk back immediately
- * - At lounge (never made it) → remove immediately
- */
-function scheduleRetireAfterMinStay(agentId: string): void {
-  cancelRetireTimer(agentId);
-
-  const agent = useOfficeStore.getState().agents.get(agentId);
-  if (!agent?.isSubAgent || agent.isPlaceholder || !agent.pendingRetire) return;
-
-  // Still walking to hotDesk — tickMovement will re-invoke on arrival
-  if (agent.movement?.toZone === "hotDesk") return;
-
-  // Sitting at hotDesk — check minimum stay
-  if (agent.zone === "hotDesk") {
-    const arrived = agent.arrivedAtHotDeskAt ?? Date.now();
-    const elapsed = Date.now() - arrived;
-    const remaining = MIN_HOTDESK_STAY_MS - elapsed;
-
-    if (remaining > 0) {
-      const timer = setTimeout(() => {
-        subAgentRetireTimers.delete(agentId);
-        scheduleRetireAfterMinStay(agentId);
-      }, remaining);
-      subAgentRetireTimers.set(agentId, timer);
-      return;
-    }
-
-    // Min stay satisfied → walk back to lounge (removal happens on arrival)
-    useOfficeStore.getState().startMovement(agentId, "lounge");
-    return;
-  }
-
-  // Agent is in lounge (hasn't walked to hotDesk yet, or walk hasn't started).
-  // Instead of removing immediately, send it to hotDesk first so the user
-  // sees the full walk-in → stay → walk-out animation cycle.
-  if (agent.zone === "lounge" && !agent.movement) {
-    useOfficeStore.getState().startMovement(agentId, "hotDesk");
-    return;
-  }
-
-  // Walking to lounge already — tickMovement will handle removal on arrival
-}
-
-/**
- * Schedule a meeting return for a main agent, enforcing the minimum 10s stay.
- * Called instead of returnFromMeeting when applyMeetingGathering detects an agent should leave.
- *
- * Possible states:
- * - Still walking TO meeting → record intent, re-invoke once arrived (tickMovement sets arrivedAtMeetingAt)
- * - At meeting, arrived recently → schedule timer for remaining wait
- * - At meeting, stayed long enough → return immediately
- */
-function scheduleMeetingReturn(agentId: string): void {
-  // Cancel any existing timer
-  const existingTimer = meetingRetireTimers.get(agentId);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-    meetingRetireTimers.delete(agentId);
-  }
-
-  const agent = useOfficeStore.getState().agents.get(agentId);
-  if (!agent) return;
-  // Don't return agents that are already leaving or gone
-  if (agent.zone !== "meeting" && agent.movement?.toZone !== "meeting") return;
-  // Skip manual meeting agents
-  if (agent.manualMeeting) return;
-
-  // Still walking to meeting — schedule a follow-up check after expected arrival
-  if (agent.movement?.toZone === "meeting") {
-    const remaining = agent.movement.duration * (1 - agent.movement.progress) + MIN_MEETING_STAY_MS;
-    const timer = setTimeout(() => {
-      meetingRetireTimers.delete(agentId);
-      scheduleMeetingReturn(agentId);
-    }, remaining);
-    meetingRetireTimers.set(agentId, timer);
-    return;
-  }
-
-  // At meeting — check minimum stay
-  if (agent.zone === "meeting") {
-    const arrived = agent.arrivedAtMeetingAt ?? Date.now();
-    const elapsed = Date.now() - arrived;
-    const remaining = MIN_MEETING_STAY_MS - elapsed;
-
-    if (remaining > 0) {
-      const timer = setTimeout(() => {
-        meetingRetireTimers.delete(agentId);
-        scheduleMeetingReturn(agentId);
-      }, remaining);
-      meetingRetireTimers.set(agentId, timer);
-      return;
-    }
-
-    // Min stay satisfied → return to original zone
-    useOfficeStore.getState().returnFromMeeting(agentId);
-  }
-}
+setScheduleMeetingReturnFn(scheduleMeetingReturn);

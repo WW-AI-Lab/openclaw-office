@@ -1,4 +1,4 @@
-import type { AgentVisualStatus, VisualAgent } from "@/gateway/types";
+import type { AgentVisualStatus, AgentZone, VisualAgent } from "@/gateway/types";
 
 const LOUNGE_TO_HOTDESK_DEBOUNCE_MS = 300;
 const HOTDESK_TO_LOUNGE_DELAY_MS = 30_000;
@@ -16,7 +16,7 @@ export function isActiveStatus(status: AgentVisualStatus): boolean {
 /** Store getter set by office-store.ts to avoid circular imports. */
 type StoreState = {
   agents: Map<string, VisualAgent>;
-  startMovement: (agentId: string, toZone: string, pos?: { x: number; y: number }) => void;
+  startMovement: (agentId: string, toZone: AgentZone, pos?: { x: number; y: number }) => void;
   removeSubAgent: (agentId: string) => void;
   returnFromMeeting: (agentId: string) => void;
 };
@@ -85,6 +85,22 @@ export function cancelRetireTimer(agentId: string): void {
   if (timer) {
     clearTimeout(timer);
     subAgentRetireTimers.delete(agentId);
+  }
+}
+
+export function cancelMigrationTimer(agentId: string): void {
+  const existingTimer = zoneMigrationTimers.get(agentId);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+    zoneMigrationTimers.delete(agentId);
+  }
+}
+
+export function cancelMeetingReturnTimer(agentId: string): void {
+  const existingTimer = meetingRetireTimers.get(agentId);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+    meetingRetireTimers.delete(agentId);
   }
 }
 
