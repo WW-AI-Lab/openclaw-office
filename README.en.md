@@ -10,7 +10,24 @@
 
 ---
 
-## Features
+## Feature Highlights
+
+### ✨ Skill Workbench — Skills Development Platform
+
+Skill Workbench is the core differentiator of OpenClaw Office — a full **AI-assisted development environment** that unifies skill creation, editing, flowchart generation, and A2UI input forms:
+
+- **Nested three-page routing**: `/skill-workbench` (list) → `/skill-workbench/create` (wizard) → `/skill-workbench/:slug` (detail)
+- **Chat-side-panel driven development**: create and modify Skills through a conversation; file changes are flushed to disk in real time
+- **Automated FLOWCHART.md generation**: a built-in guard skill (`skill-workbench-mermaid-guard`) produces compliant, colored Mermaid flowcharts (single- or multi-chart mode) on demand
+- **Pure-Markdown multi-chart preview**: the flowchart panel renders multiple Mermaid fenced blocks directly through the Markdown pipeline
+- **A2UI visual input forms**: declarative form schema — ` ```a2ui ` fenced blocks inside chat messages are automatically rendered as interactive forms; a dedicated "A2UI Debug" tab on the detail page enables one-click generation, preview, and debugging
+- **Zero-setup default skill install**: on first entry, the embedded server copies bundled default skills from the npm package into `~/.openclaw/workspace/skills/` — no manual install required
+
+See the full guide in [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md).
+
+![Workflow](./assets/Workflow.png)
+
+![A2UI](./assets/A2UI.png)
 
 ### Virtual Office
 
@@ -27,25 +44,28 @@
 - Dedicated Chat workspace accessible via top navigation (`/#/chat`), with the dock bar retained as a quick-entry surface
 - Session management — create new sessions, switch history, route by Agent, support multi-Agent parallel conversations
 - Real-time streaming — stream AI responses with abort/resend support
-- Persistent chat history — server-side per-day sharded cache (`~/.openclaw/office-cache/chat/`), stable across browsers, devices, and refreshes
-- Tool call visualization — inline Agent tool call status (calling/completed), collapsible for detail viewing
+- Persistent chat history — server-side per-day sharded cache, stable across browsers, devices, and refreshes
+- Tool call visualization — inline Agent tool call status, collapsible for detail viewing
 - Slash commands — `/help`, `/new`, `/reset`, `/model`, `/think`, `/export` and more
 - Attachments — support for images and arbitrary file attachments
 - Utilities — search, Markdown export, focus mode, pinned-reference workflows
+- Dynamic form interaction (A2UI) — ` ```a2ui ` fenced blocks in AI responses are automatically rendered as structured forms supporting text, select, file upload and more; submissions are sent back to the Agent as structured messages
+
+![chat-a2ui](./assets/chat-a2ui.png)
 
 ### Console
 
 Full system management interface with dedicated pages:
 
-| Page          | Features                                                                                                       |
-| ------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Dashboard** | Overview stats, alert banners, Channel/Skill overview, quick navigation                                        |
-| **Agents**    | Agent list/create/delete, detail tabs (Overview, Channels, Cron, Skills, Tools, Files)                         |
-| **Channels**  | Channel cards, configuration dialogs, stats, WhatsApp QR binding                                               |
-| **Skills**    | Skill marketplace, install options, skill detail dialogs                                                       |
-| **Skill Workbench** ✨ | **Skills development platform** — nested routes (list / create / detail), AI-assisted creation and editing via side chat, automated FLOWCHART.md generation with pure-Markdown multi-chart preview |
-| **Cron**      | Scheduled task management and statistics                                                                       |
-| **Settings**  | Provider management (add/edit/model editor), appearance, Gateway, developer, advanced, about, update            |
+| Page                  | Features                                                                                                       |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**         | Overview stats, alert banners, Channel/Skill overview, quick navigation                                        |
+| **Agents**            | Agent list/create/delete, detail tabs (Overview, Channels, Cron, Skills, Tools, Files)                         |
+| **Channels**          | Channel cards, configuration dialogs, stats, WhatsApp QR binding                                               |
+| **Skills**            | Skill marketplace, install options, skill detail dialogs                                                       |
+| **Skill Workbench** ✨ | Skills development platform (see detailed introduction above)                                                  |
+| **Cron**              | Scheduled task management and statistics                                                                       |
+| **Settings**          | Provider management (add/edit/model editor), appearance, Gateway, developer, advanced, about, update           |
 
 ![console-dashboard](./assets/console-dashboard.png)
 
@@ -58,21 +78,6 @@ Full system management interface with dedicated pages:
 - **i18n** — Full Chinese/English bilingual support with runtime language switching
 - **Mock Mode** — Develop without a live Gateway connection
 - **Responsive** — Mobile-optimized with automatic 2D fallback
-
----
-
-## New: Skill Workbench (Skills Development Platform)
-
-Starting with `2026.5.20`, the console formally ships **Skill Workbench** — a full AI-assisted development environment for Skills:
-
-- **Nested three-page routing**: `/skill-workbench` (list), `/skill-workbench/create` (wizard), `/skill-workbench/:slug` (detail)
-- **Chat-side-panel driven development**: create and modify Skills through a conversation; file changes are flushed to disk in real time
-- **Automated FLOWCHART.md generation**: a built-in guard skill (`skill-workbench-mermaid-guard`) produces compliant, colored Mermaid flowcharts (single- or multi-chart mode) on demand
-- **Pure-Markdown multi-chart preview**: the flowchart panel renders multiple Mermaid fenced blocks directly through the Markdown pipeline
-- **A2UI visual input forms** ✨: declarative form schema — `\`\`\`a2ui` fenced blocks inside chat messages are automatically rendered as interactive forms supporting text, select, file upload and more; a dedicated "A2UI Debug" tab on the detail page enables one-click generation, preview, and debugging of `ui.json` forms
-- **Zero-setup default skill install**: on first entry, the embedded server copies bundled default skills from the npm package into `~/.openclaw/workspace/skills/` — no manual install required
-
-See the full guide in [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md).
 
 ---
 
@@ -95,8 +100,7 @@ See the full guide in [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md).
 ## Prerequisites
 
 - **Node.js 22+**
-- **pnpm** (package manager)
-- **[OpenClaw](https://github.com/openclaw/openclaw)** installed and configured
+- **[OpenClaw](https://github.com/openclaw/openclaw)** installed and running
 
 OpenClaw Office is a companion frontend that connects to a running OpenClaw Gateway. It does **not** start or manage the Gateway itself.
 
@@ -115,17 +119,17 @@ npm install -g @ww-ai-lab/openclaw-office
 openclaw-office
 ```
 
-### Gateway Token Auto-Detection
+### Gateway Authentication
 
-If [OpenClaw](https://github.com/openclaw/openclaw) is installed locally, the Gateway auth token is **automatically detected** from `~/.openclaw/openclaw.json` — no manual configuration needed.
+After launching, the browser displays the OpenClaw Office **login screen**, where you need to enter your Gateway credentials to authenticate:
 
-You can also provide the token explicitly:
+1. **Gateway URL** — the Gateway WebSocket address, defaults to `ws://localhost:18789` (pre-filled from the server-injected configuration)
+2. **Access Token** — the Gateway authentication token (found in the OpenClaw config file `~/.openclaw/openclaw.json` under `gateway.auth.token`)
+3. **Password** (optional) — Gateway password if password-based authentication is enabled
 
-```bash
-openclaw-office --token <your-gateway-token>
-# or via environment variable
-OPENCLAW_GATEWAY_TOKEN=<token> openclaw-office
-```
+Fill in the fields and click **Connect** to enter the system.
+
+> **Note:** For a local deployment without authentication enabled, leave the Gateway URL at its default and the Token field empty, then click **Connect** directly.
 
 ### CLI Options
 
@@ -205,8 +209,6 @@ You can also invoke the PowerShell script directly with custom options:
 | `-OfficePort`      | Office Server port                               | `5180`        |
 | `-GatewayPort`     | Gateway port                                     | `18789`       |
 
-> **Note:** Runtime logs and PID files are stored in the `.runtime/` directory at the repository root, which is already listed in `.gitignore`.
-
 ---
 
 ## Quick Start (from source)
@@ -217,47 +219,40 @@ You can also invoke the PowerShell script directly with custom options:
 pnpm install
 ```
 
-### 2. Configure Gateway Connection
+### 2. Start the Gateway
 
-Create a `.env.local` file (gitignored) with your Gateway connection details:
-
-```bash
-cat > .env.local << 'EOF'
-VITE_GATEWAY_URL=ws://localhost:18789
-VITE_GATEWAY_TOKEN=<your-gateway-token>
-EOF
-```
-
-Get your Gateway token:
-
-```bash
-openclaw config get gateway.auth.token
-```
-
-### 3. Start the Gateway
-
-Ensure the OpenClaw Gateway is running on the configured address (default `localhost:18789`). You can start it via:
+Ensure the OpenClaw Gateway is running on the default address (`localhost:18789`). You can start it via:
 
 - The OpenClaw macOS app
 - `openclaw gateway run` CLI command
 - Other deployment methods (see [OpenClaw documentation](https://github.com/openclaw/openclaw))
 
-### 4. Start the Dev Server
+> **Tip:** No need to pre-configure an auth token — you will enter it on the login screen in your browser after launching.
+
+### 3. Start the Dev Server
 
 ```bash
 pnpm dev
 ```
 
-Open `http://localhost:5180` in your browser.
+Open `http://localhost:5180` in your browser and enter the Gateway Token on the login screen to connect.
+
+If you need to connect to a non-default Gateway (e.g., a remote server), create a `.env.local` file (gitignored):
+
+```bash
+cat > .env.local << 'EOF'
+VITE_GATEWAY_URL=ws://192.168.1.100:18789
+EOF
+```
 
 ### Environment Variables
 
-| Variable                | Required                              | Default                | Description                          |
-| ----------------------- | ------------------------------------- | ---------------------- | ------------------------------------ |
-| `VITE_GATEWAY_URL`      | No                                    | `ws://localhost:18789` | Gateway WebSocket address            |
-| `VITE_GATEWAY_WS_PATH`  | No                                    | `/gateway-ws`          | Browser-side reverse proxy WS path   |
-| `VITE_GATEWAY_TOKEN`    | Yes (when connecting to real Gateway) | —                      | Gateway auth token                   |
-| `VITE_MOCK`             | No                                    | `false`                | Enable mock mode (no Gateway needed) |
+| Variable                | Required | Default                | Description                                          |
+| ----------------------- | -------- | ---------------------- | ---------------------------------------------------- |
+| `VITE_GATEWAY_URL`      | No       | `ws://localhost:18789` | Gateway WebSocket address                            |
+| `VITE_GATEWAY_WS_PATH`  | No       | `/gateway-ws`          | Browser-side reverse proxy WS path                   |
+| `VITE_GATEWAY_TOKEN`    | No       | —                      | Pre-fill the login form Token (optional; auth happens at login) |
+| `VITE_MOCK`             | No       | `false`                | Enable mock mode (no Gateway needed)                  |
 
 ### Mock Mode (No Gateway)
 
@@ -302,7 +297,7 @@ The Gateway broadcasts real-time events (`agent`, `presence`, `health`, `heartbe
 ### Session Synchronization Strategy
 
 - Real-time Agent and SubAgent state, 2D office walking animation, and meeting-zone movement are driven directly by WebSocket `agent` events
-- `sessions.list` is no longer used as a high-frequency real-time driver; it is used for immediate sync after connection and a **60-second** low-frequency reconciliation pass to recover from missed events and reconnect drift, while reusing the same response for token aggregation
+- `sessions.list` is no longer used as a high-frequency real-time driver; it is used for immediate sync after connection and a **60-second** low-frequency reconciliation pass to recover from missed events and reconnect drift
 - This strategy reduces Gateway CPU pressure and avoids letting high-frequency full-session scans interfere with other RPC probes
 
 ---

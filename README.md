@@ -4,13 +4,30 @@
 
 > 将 AI 智能体的协作逻辑具象化为实时的数字孪生办公室。
 
-**OpenClaw Office** 是 [OpenClaw](https://github.com/openclaw/openclaw) Multi-Agent 系统的可视化监控与管理前端。它通过等距投影（Isometric）风格的虚拟办公室场景，实时展示 Agent 的工作状态、协作链路、工具调用和资源消耗，同时提供完整的控制台管理界面和 Chat 对话工作区。
+**OpenClaw Office** 是 [OpenClaw](https://github.com/openclaw/openclaw) Multi-Agent 系统的可视化监控与管理前端。它通过等距投影风格的虚拟办公室场景，实时展示 Agent 的工作状态、协作链路、工具调用和资源消耗，同时提供完整的控制台管理界面和 Chat 对话工作区。
 
 **核心隐喻：** Agent = 数字员工 | 办公室 = Agent 运行时 | 工位 = Session | 会议室 = 协作上下文
 
 ---
 
-## 功能概览
+## 功能亮点
+
+### ✨ Skill Workbench — Skills 开发平台
+
+Skill Workbench 是 OpenClaw Office 的核心差异化功能——把「创建 Skill / 修改 Skill / 生成流程图 / A2UI 输入表单」整合成一个完整的 **AI 协作开发环境**：
+
+- **三页面嵌套路由**：`/skill-workbench`（列表）→ `/skill-workbench/create`（创建向导）→ `/skill-workbench/:slug`（详情）
+- **聊天侧边栏驱动开发**：在侧边栏与 AI 对话即可创建、修改 Skill，文件变动实时同步磁盘
+- **FLOWCHART.md 自动生成**：内置 `skill-workbench-mermaid-guard` 守卫技能，一键生成符合规范的彩色 Mermaid 流程图，支持单图与多图模式
+- **纯 Markdown 多图预览**：流程图预览完全走 Markdown 渲染链路，一次渲染多个 Mermaid 代码块
+- **A2UI 可视化输入表单**：声明式表单 Schema，Chat 中的 ` ```a2ui ` 代码块自动渲染为交互式表单，详情页提供「A2UI 调试」选项卡一键生成和预览
+- **默认技能自动安装**：首次进入工作台时，嵌入式服务端自动把 npm 包内置的默认 Skill 拷贝到 `~/.openclaw/workspace/skills/`，无需手工安装
+
+详细使用指南见 [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md)。
+
+![Workflow](./assets/Workflow.png)
+
+![A2UI](./assets/A2UI.png)
 
 ### 虚拟办公室
 
@@ -27,25 +44,28 @@
 - 顶部导航可直达的独立 Chat 工作区（`/#/chat`），底部停靠栏保留为快捷入口
 - 会话管理 — 创建新会话、切换历史会话、按 Agent 路由，支持多 Agent 并行对话
 - 实时流式转录 — 流式展示 AI 回复，支持中止/重发
-- 聊天历史持久化 — 服务端按天分片缓存聊天记录（`~/.openclaw/office-cache/chat/`），跨浏览器/设备/刷新稳定可见
-- 工具调用可视化 — 在对话流中嵌入 Agent 工具调用状态（调用中/已完成），可折叠查看
+- 聊天历史持久化 — 服务端按天分片缓存聊天记录，跨浏览器/设备/刷新稳定可见
+- 工具调用可视化 — 在对话流中嵌入 Agent 工具调用状态，可折叠查看
 - 斜杠命令 — `/help`、`/new`、`/reset`、`/model`、`/think`、`/export` 等快捷指令
 - 附件支持 — 支持图片及任意文件附件
 - 辅助功能 — 搜索、导出 Markdown、专注模式、消息置顶引用
+- 动态表单交互（A2UI）— AI 回复中的 ` ```a2ui ` 代码块自动渲染为结构化表单，支持文本、选择、文件上传等多种字段类型，提交后以结构化消息回发 Agent
+
+![chat-a2ui](./assets/chat-a2ui.png)
 
 ### 控制台
 
 完整的系统管理界面：
 
-| 页面          | 功能                                                                                                                 |
-| ------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Dashboard** | 概览统计卡片、告警横幅、Channel/Skill 概览、快捷导航                                                                 |
-| **Agents**    | Agent 列表/创建/删除，详情多 Tab（Overview/Channels/Cron/Skills/Tools/Files）                                        |
-| **Channels**  | 渠道卡片、配置对话框、统计、WhatsApp QR 绑定流程                                                                     |
-| **Skills**    | 技能市场、安装选项、技能详情                                                                                         |
-| **Skill Workbench** ✨ | **Skills 开发平台** — 三页面（列表 / 创建 / 详情）嵌套路由，聊天侧边栏驱动 AI 协作创建和修改 Skill，FLOWCHART.md 自动生成并提供纯 Markdown 多图预览 |
-| **Cron**      | 定时任务管理和统计                                                                                                   |
-| **Settings**  | Provider 管理（添加/编辑/模型编辑器）、外观/Gateway/开发者/高级/关于/更新                                            |
+| 页面                | 功能                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**       | 概览统计卡片、告警横幅、Channel/Skill 概览、快捷导航                                                                 |
+| **Agents**          | Agent 列表/创建/删除，详情多 Tab（Overview/Channels/Cron/Skills/Tools/Files）                                        |
+| **Channels**        | 渠道卡片、配置对话框、统计、WhatsApp QR 绑定流程                                                                     |
+| **Skills**          | 技能市场、安装选项、技能详情                                                                                         |
+| **Skill Workbench** ✨ | Skills 开发平台（详见上方介绍）                                                                                      |
+| **Cron**            | 定时任务管理和统计                                                                                                   |
+| **Settings**        | Provider 管理（添加/编辑/模型编辑器）、外观/Gateway/开发者/高级/关于/更新                                            |
 
 ![console-dashboard](./assets/console-dashboard.png)
 
@@ -58,23 +78,6 @@
 - **国际化** — 完整的中英文双语支持，运行时语言切换
 - **Mock 模式** — 无需连接 Gateway 即可开发
 - **响应式** — 移动端优化，自动切换 2D 模式
-
----
-
-## 新特性：Skill Workbench（Skills 开发平台）
-
-从 `2026.5.20` 起，控制台正式提供 **Skill Workbench**（Skills 开发平台），把「创建 Skill / 修改 Skill / 生成流程图 / A2UI 输入表单」整合成一个完整的 AI 协作开发环境：
-
-- **三页面嵌套路由**：`/skill-workbench` 列表页、`/skill-workbench/create` 创建向导、`/skill-workbench/:slug` 详情页
-- **聊天侧边栏驱动开发**：在侧边栏和 AI 对话即可创建、修改 Skill，文件变动实时同步磁盘
-- **FLOWCHART.md 自动生成**：内置 [`skill-workbench-mermaid-guard`](./SKILL-WORKBENCH.md) 守卫技能，一键生成符合规范的彩色 Mermaid 流程图，支持单图与多图模式
-- **纯 Markdown 多图预览**：流程图预览完全走 Markdown 渲染链路，一次渲染多个 Mermaid 代码块
-- **A2UI 可视化输入表单** ✨：声明式表单 Schema，Chat 中的 `\`\`\`a2ui` 代码块自动渲染为交互式表单，支持文本、选择、文件上传等多种字段类型；详情页新增「A2UI 调试」选项卡，可一键生成、预览和调试 `ui.json` 表单
-- **默认技能自动安装**：首次进入工作台时，嵌入式服务端会自动把 npm 包内置的默认 Skill 拷贝到 `~/.openclaw/workspace/skills/`，无需手工安装
-
-详细使用指南见 [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md)。
-![Workflow](./assets/Workflow.png)
-![A2UI](./assets/A2UI.png)
 
 ---
 
@@ -97,10 +100,9 @@
 ## 前提条件
 
 - **Node.js 22+**
-- **pnpm**（包管理器）
-- **[OpenClaw](https://github.com/openclaw/openclaw)** 已安装并配置
+- **[OpenClaw](https://github.com/openclaw/openclaw)** 已安装并运行
 
-OpenClaw Office 是一个配套前端，连接到正在运行的 OpenClaw Gateway。它**不会**启动或管理 Gateway。
+OpenClaw Office 是 OpenClaw 的配套前端，连接到正在运行的 OpenClaw Gateway。它**不会**启动或管理 Gateway 本身。
 
 ---
 
@@ -117,17 +119,17 @@ npm install -g @ww-ai-lab/openclaw-office
 openclaw-office
 ```
 
-### Gateway Token 自动检测
+### Gateway 认证
 
-如果本地已安装 [OpenClaw](https://github.com/openclaw/openclaw)，Gateway 认证 token 会从 `~/.openclaw/openclaw.json` **自动读取**，无需手动配置。
+启动后，浏览器会显示 OpenClaw Office 的**登录界面**，需要你输入 Gateway 连接信息进行认证：
 
-也可以手动指定 token：
+1. **Gateway URL** — Gateway WebSocket 地址，默认 `ws://localhost:18789`（预填自后端注入配置）
+2. **Access Token** — Gateway 认证令牌（从 OpenClaw 配置文件 `~/.openclaw/openclaw.json` 中的 `gateway.auth.token` 字段获取）
+3. **Password**（可选）— Gateway 密码（如果启用了密码认证）
 
-```bash
-openclaw-office --token <你的-gateway-token>
-# 或通过环境变量
-OPENCLAW_GATEWAY_TOKEN=<token> openclaw-office
-```
+填写后点击「连接」即可进入系统。
+
+> **说明：** 本地部署若未启用认证，Gateway URL 保持默认、Token 留空，直接点击「连接」即可。
 
 ### CLI 参数
 
@@ -145,7 +147,7 @@ OPENCLAW_GATEWAY_TOKEN=<token> openclaw-office
 
 ## 安装为系统服务（后台运行）
 
-将 OpenClaw Office 注册为系统服务后，它会在开机 / 登录时自动启动，无需手动运行命令。支持 macOS（launchd）和 Linux（systemd --user）。
+将 OpenClaw Office 注册为系统服务后，它会在开机/登录时自动启动，无需手动运行命令。支持 macOS（launchd）和 Linux（systemd --user）。
 
 ### 安装服务
 
@@ -207,8 +209,6 @@ openclaw-office service uninstall           # 卸载系统服务
 | `-OfficePort`         | Office Server 端口                | `5180`        |
 | `-GatewayPort`        | Gateway 端口                      | `18789`       |
 
-> **提示：** 运行时日志和 PID 文件保存在仓库根目录的 `.runtime/` 目录下，已加入 `.gitignore`。
-
 ---
 
 ## 快速开始（从源码）
@@ -219,47 +219,40 @@ openclaw-office service uninstall           # 卸载系统服务
 pnpm install
 ```
 
-### 2. 配置 Gateway 连接
+### 2. 启动 Gateway
 
-创建 `.env.local` 文件（已在 `.gitignore` 中，不会被提交），填入 Gateway 连接信息：
-
-```bash
-cat > .env.local << 'EOF'
-VITE_GATEWAY_URL=ws://localhost:18789
-VITE_GATEWAY_TOKEN=<你的 gateway token>
-EOF
-```
-
-获取 Gateway token：
-
-```bash
-openclaw config get gateway.auth.token
-```
-
-### 3. 启动 Gateway
-
-确保 OpenClaw Gateway 在配置的地址上运行（默认 `localhost:18789`）。可通过以下方式启动：
+确保 OpenClaw Gateway 在默认地址上运行（`localhost:18789`）。可通过以下方式启动：
 
 - OpenClaw macOS 应用
 - `openclaw gateway run` CLI 命令
 - 其他部署方式（参见 [OpenClaw 文档](https://github.com/openclaw/openclaw)）
 
-### 4. 启动开发服务器
+> **提示：** 认证 Token 无需提前配置——启动后在浏览器登录界面输入即可。
+
+### 3. 启动开发服务器
 
 ```bash
 pnpm dev
 ```
 
-在浏览器中打开 `http://localhost:5180`。
+在浏览器中打开 `http://localhost:5180`，在登录界面输入 Gateway Token 后连接即可进入。
+
+如需连接非默认地址的 Gateway（例如远程服务器），创建 `.env.local` 文件（已在 `.gitignore` 中，不会被提交）：
+
+```bash
+cat > .env.local << 'EOF'
+VITE_GATEWAY_URL=ws://192.168.1.100:18789
+EOF
+```
 
 ### 环境变量
 
-| 变量                    | 必须                      | 默认值                 | 说明                             |
-| ----------------------- | ------------------------- | ---------------------- | -------------------------------- |
-| `VITE_GATEWAY_URL`      | 否                        | `ws://localhost:18789` | Gateway WebSocket 地址           |
-| `VITE_GATEWAY_WS_PATH`  | 否                        | `/gateway-ws`          | 浏览器侧反向代理 WS 路径        |
-| `VITE_GATEWAY_TOKEN`    | 是（连接真实 Gateway 时） | —                      | Gateway 认证 token               |
-| `VITE_MOCK`             | 否                        | `false`                | 启用 Mock 模式（不需要 Gateway） |
+| 变量                    | 必须 | 默认值                 | 说明                                       |
+| ----------------------- | ---- | ---------------------- | ------------------------------------------ |
+| `VITE_GATEWAY_URL`      | 否   | `ws://localhost:18789` | Gateway WebSocket 地址                     |
+| `VITE_GATEWAY_WS_PATH`  | 否   | `/gateway-ws`          | 浏览器侧反向代理 WS 路径                   |
+| `VITE_GATEWAY_TOKEN`    | 否   | —                      | 预填登录表单的 Token（可选，认证在登录时完成）|
+| `VITE_MOCK`             | 否   | `false`                | 启用 Mock 模式（不需要 Gateway）            |
 
 ### Mock 模式（无需 Gateway）
 
@@ -304,7 +297,7 @@ Gateway 广播实时事件（`agent`、`presence`、`health`、`heartbeat`）并
 ### Session 同步策略
 
 - Agent 与子 Agent 的实时状态、2D 办公室小人走动和会议区移动效果，默认由 WebSocket `agent` 事件直接驱动
-- `sessions.list` 不再用于高频实时驱动，而是作为连接建立后的立即同步和 **60 秒一次** 的低频 reconciliation，用于修复漏事件、断线恢复后的 session 漂移，并复用同一响应构建 token 统计
+- `sessions.list` 不再用于高频实时驱动，而是作为连接建立后的立即同步和 **60 秒一次** 的低频 reconciliation，用于修复漏事件、断线恢复后的 session 漂移
 - 该策略用于降低 Gateway CPU 压力，避免高频全量扫描影响其他 RPC probe
 
 ---
@@ -312,6 +305,7 @@ Gateway 广播实时事件（`agent`、`presence`、`health`、`heartbeat`）并
 ## 联系交流
 
 可以通过邮箱联系我：toxingwang@gmail.com
+
 也欢迎关注公众号：旺哥聊AI
 
 ---
