@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { initAdapter, isMockMode } from "@/gateway/adapter-provider";
-import { classifyConnectError } from "@/gateway/auth-credentials";
 import { applySecurityConfigOnce } from "@/store/console-stores/config-store";
 import { GatewayRpcClient } from "@/gateway/rpc-client";
 import type {
@@ -54,6 +53,14 @@ export function useGatewayConnection({ url: fallbackUrl }: UseGatewayConnectionO
   // Both "authenticating" and "authenticated" should keep the socket open, so
   // the authenticating -> authenticated transition must NOT tear it down.
   const shouldConnect = authStatus !== "unauthenticated";
+  // Mirror authStatus into a ref so the long-lived ws.onStatusChange
+  // callback (registered inside the connect effect) can read the *current*
+  // status without re-subscribing on every auth-state change. We only want
+  // to bounce the user back to the login form on errors that happen while
+  // we are still in the "authenticating" phase, not on transient errors
+  // after they are already in.
+  const authStatusRef = useRef(authStatus);
+  authStatusRef.current = authStatus;
 
   const setConnectionStatus = useOfficeStore((s) => s.setConnectionStatus);
   const initAgents = useOfficeStore((s) => s.initAgents);
@@ -103,9 +110,6 @@ export function useGatewayConnection({ url: fallbackUrl }: UseGatewayConnectionO
       };
     }
 
-    // Only connect once the user has submitted credentials (or we are restoring
-    // a stored session). While unauthenticated we stay disconnected and the
-    // AuthGate shows the login screen.
     if (!shouldConnect) {
       setConnectionStatus("disconnected");
       return;
@@ -147,8 +151,17 @@ export function useGatewayConnection({ url: fallbackUrl }: UseGatewayConnectionO
         void fetchGatewayConfig(rpc, setMaxSubAgents, setAgentToAgentConfig);
         void fetchAgentNamesAndUpdate(rpc, syncMainAgents);
         void applySecurityConfigOnce();
-      } else if (status === "error" && classifyConnectError(error) === "auth") {
-        // Authentication failures send the user back to the login gate.
+      } else if (status === "error" && authStatusRef.current === "authenticating") {
+        // The first connect attempt was rejected (bad URL, wrong token,
+        // protocol mismatch, network refused, …). Send the user back to
+        // the login form so it becomes interactive again. Without this
+        // path, any non-auth error would leave the UI stuck on
+        // "连接中..." with the submit button disabled.
+        markAuthFailed(error ?? null);
+      } else if (status === "disconnected" && authStatusRef.current === "authenticating") {
+        // ws-client gave up after MAX_RECONNECT_ATTEMPTS without ever
+        // reaching "connected". Same as above: return control to the
+        // login form so the user can correct their input and retry.
         markAuthFailed(error ?? null);
       }
     });
@@ -214,7 +227,7 @@ function resolveAgentName(agentId: string): string {
 }
 
 function healthAgentsToSummaries(health: HealthSnapshot): AgentSummary[] {
-  if (!health.agents) {
+  if (!health?.agents) {
     return [];
   }
   return health.agents.map((a) => ({

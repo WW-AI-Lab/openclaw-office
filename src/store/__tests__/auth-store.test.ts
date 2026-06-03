@@ -28,16 +28,22 @@ describe("auth-store", () => {
     expect(s.token).toBe("deftok");
   });
 
-  it("hydrates into authenticating when stored credentials exist", () => {
+  it("ignores stored credentials and hydrates with defaults", () => {
+    // Stale credentials from a previous deployment must NOT be auto-restored,
+    // otherwise the UI would silently start a connect attempt and get stuck
+    // on "连接中..." even though the URL/token no longer match. The form is
+    // pre-filled from the injected defaults instead and the user is asked to
+    // submit explicitly.
     localStorage.setItem(
       "openclaw-office.auth.v1",
       JSON.stringify({ gatewayUrl: "ws://stored", token: "t", password: "p" }),
     );
     useAuthStore.getState().hydrate({ gatewayUrl: "ws://default", token: "" });
     const s = useAuthStore.getState();
-    expect(s.authStatus).toBe("authenticating");
-    expect(s.gatewayUrl).toBe("ws://stored");
-    expect(s.password).toBe("p");
+    expect(s.authStatus).toBe("unauthenticated");
+    expect(s.gatewayUrl).toBe("ws://default");
+    expect(s.token).toBe("");
+    expect(s.password).toBe("");
   });
 
   it("submitLogin persists credentials and moves to authenticating", () => {

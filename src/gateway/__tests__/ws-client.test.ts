@@ -56,6 +56,10 @@ class MockWebSocket {
     this.emit("close");
   }
 
+  simulateError() {
+    this.emit("error");
+  }
+
   static reset() {
     MockWebSocket.instances = [];
   }
@@ -237,5 +241,28 @@ describe("GatewayWsClient", () => {
     });
 
     expect(client.getStatus()).toBe("disconnected");
+  });
+
+  it("surfaces immediate error on first connect failure", async () => {
+    // When the very first WebSocket connect attempt fails (wrong URL,
+    // server unreachable, …) the client must set status to "error" so
+    // the UI can bounce the user back to the login form. Without this,
+    // scheduleReconnect would keep trying in the background and the
+    // user would be stuck on "连接中...".
+    const statusHandler = vi.fn();
+    client.onStatusChange(statusHandler);
+    client.connect("ws://unreachable:1", "token");
+
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = MockWebSocket.instances[0];
+    ws.simulateError();
+
+    const lastErrorCall = statusHandler.mock.calls
+      .map((args) => args)
+      .filter(([status]) => status === "error")
+      .at(-1);
+    expect(lastErrorCall).toBeDefined();
+    expect(client.getStatus()).toBe("error");
   });
 });

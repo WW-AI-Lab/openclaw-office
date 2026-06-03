@@ -2,7 +2,6 @@ import { create } from "zustand";
 import {
   type AuthCredentials,
   clearStoredCredentials,
-  loadStoredCredentials,
   redactAuthError,
   saveStoredCredentials,
 } from "@/gateway/auth-credentials";
@@ -40,19 +39,12 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     if (get().authStatus !== "unauthenticated") {
       return;
     }
-    const stored = loadStoredCredentials();
-    if (stored) {
-      set({
-        defaults,
-        gatewayUrl: stored.gatewayUrl,
-        token: stored.token,
-        password: stored.password,
-        rememberCredentials: true,
-        authStatus: "authenticating",
-        authError: null,
-      });
-      return;
-    }
+    // Pre-fill the login form with the deployed defaults (env / injected
+    // config). We intentionally do NOT auto-restore credentials from
+    // localStorage: a stale token or URL from a previous deployment would
+    // silently start a connect attempt, leave the UI stuck on "连接中..."
+    // and block the user from submitting a corrected value. The user must
+    // always re-submit the form explicitly after a restart.
     set({
       defaults,
       gatewayUrl: defaults.gatewayUrl,

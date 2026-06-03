@@ -120,8 +120,11 @@ export class GatewayWsClient {
 
     try {
       this.ws = new WebSocket(this.url);
-    } catch {
-      this.scheduleReconnect();
+    } catch (err) {
+      // Construction failed synchronously (e.g. invalid URL). Surface as an
+      // immediate error so the caller can mark the login form interactive
+      // again — otherwise the user is stuck in "连接中..." with no feedback.
+      this.setStatus("error", err instanceof Error ? err.message : "Invalid WebSocket URL");
       return;
     }
 
@@ -139,7 +142,13 @@ export class GatewayWsClient {
     });
     this.ws.addEventListener("close", this.handleClose);
     this.ws.addEventListener("error", () => {
-      // onclose will fire after onerror
+      // First connect failure: surface immediately so the UI can recover.
+      // Without this, the reconnect scheduler would keep retrying in the
+      // background and the user would be stuck on "连接中..." with no
+      // feedback that the URL/token is wrong.
+      if (this.reconnectAttempt === 0 && !this.shutdownReceived) {
+        this.setStatus("error", "Failed to connect to Gateway");
+      }
     });
   }
 
