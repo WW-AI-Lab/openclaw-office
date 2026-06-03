@@ -8,10 +8,19 @@
 - [ws-adapter.ts](file://src/gateway/ws-adapter.ts)
 - [types.ts](file://src/gateway/types.ts)
 - [office-store.ts](file://src/store/office-store.ts)
+- [auth-store.ts](file://src/store/auth-store.ts)
+- [auth-credentials.ts](file://src/gateway/auth-credentials.ts)
 - [App.tsx](file://src/App.tsx)
 - [ws-client.test.ts](file://src/gateway/__tests__/ws-client.test.ts)
 - [rpc-client.test.ts](file://src/gateway/__tests__/rpc-client.test.ts)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 增强了认证阶段的错误处理逻辑
+- 新增了引用机制来跟踪当前认证状态
+- 确保在认证阶段的连接错误能正确标记认证失败并返回登录表单
+- 改进了用户体验，防止UI卡在"连接中..."状态
 
 ## 目录
 1. [简介](#简介)
@@ -31,6 +40,8 @@ useGatewayConnection是一个专门设计的React Hook，用于管理OpenClaw网
 
 该Hook的核心目标是为前端应用提供一个可靠的网关连接抽象层，确保与OpenClaw Gateway的稳定通信，同时为上层组件提供简洁的使用接口。
 
+**更新** 本次更新增强了认证阶段的错误处理机制，通过引入引用机制确保在认证过程中出现的连接错误能够正确识别并标记为认证失败，从而引导用户回到登录表单进行重新认证。
+
 ## 项目结构
 
 OpenClaw-Office项目采用模块化的架构设计，主要分为以下几个层次：
@@ -45,32 +56,38 @@ end
 subgraph "Hook层"
 Hook[useGatewayConnection]
 Pollers[轮询Hook]
+AuthStore[认证状态管理]
 end
 subgraph "网关层"
 WSClient[WebSocket客户端]
 RPCClient[RPC客户端]
 Adapter[适配器]
+AuthCredentials[认证凭证]
 end
 subgraph "存储层"
 Store[Office Store]
 ConfigStore[配置存储]
+AuthStore[认证存储]
 end
 UI --> Hook
 Pages --> Hook
 Hook --> WSClient
 Hook --> RPCClient
 Hook --> Adapter
-Hook --> Store
+Hook --> AuthStore
+AuthStore --> AuthStore
 Store --> UI
+AuthCredentials --> WSClient
 ```
 
 **图表来源**
-- [useGatewayConnection.ts:1-238](file://src/hooks/useGatewayConnection.ts#L1-L238)
-- [ws-client.ts:1-304](file://src/gateway/ws-client.ts#L1-L304)
+- [useGatewayConnection.ts:1-299](file://src/hooks/useGatewayConnection.ts#L1-L299)
+- [ws-client.ts:1-333](file://src/gateway/ws-client.ts#L1-L333)
 - [rpc-client.ts:1-63](file://src/gateway/rpc-client.ts#L1-L63)
+- [auth-store.ts:1-100](file://src/store/auth-store.ts#L1-L100)
 
 **章节来源**
-- [useGatewayConnection.ts:1-238](file://src/hooks/useGatewayConnection.ts#L1-L238)
+- [useGatewayConnection.ts:1-299](file://src/hooks/useGatewayConnection.ts#L1-L299)
 - [App.tsx:76-124](file://src/App.tsx#L76-L124)
 
 ## 核心组件
@@ -95,6 +112,14 @@ useGatewayConnection提供了完整的连接状态管理机制，支持以下状
 - 随机抖动：±1秒
 - 断线检测：基于WebSocket关闭事件
 
+### 引用机制增强的认证状态跟踪
+
+**新增** 为了准确区分认证阶段和已认证后的连接错误，Hook引入了引用机制来跟踪当前认证状态：
+
+- `authStatusRef`: 使用`useRef`创建的引用，保持对当前认证状态的实时访问
+- **认证阶段保护**: 只有在"authenticating"阶段发生的错误才会被标记为认证失败
+- **状态同步**: 每个渲染周期都会更新引用中的认证状态，确保回调函数能获取到最新的状态
+
 ### 事件处理系统
 
 Hook集成了事件节流机制，有效处理高频率事件：
@@ -104,7 +129,8 @@ Hook集成了事件节流机制，有效处理高频率事件：
 - 事件缓存：维护代理名称映射
 
 **章节来源**
-- [useGatewayConnection.ts:252-258](file://src/gateway/types.ts#L252-L258)
+- [useGatewayConnection.ts:56-63](file://src/hooks/useGatewayConnection.ts#L56-L63)
+- [useGatewayConnection.ts:154-166](file://src/hooks/useGatewayConnection.ts#L154-L166)
 - [ws-client.ts:13-16](file://src/gateway/ws-client.ts#L13-L16)
 - [ws-client.ts:270-288](file://src/gateway/ws-client.ts#L270-L288)
 
@@ -114,15 +140,19 @@ Hook集成了事件节流机制，有效处理高频率事件：
 sequenceDiagram
 participant App as 应用组件
 participant Hook as useGatewayConnection
+participant AuthRef as 认证状态引用
 participant WS as WebSocket客户端
 participant RPC as RPC客户端
 participant Store as Office Store
+participant AuthStore as 认证存储
 participant Adapter as 适配器
 App->>Hook : 初始化Hook(url, token)
+Hook->>AuthRef : 创建认证状态引用
 Hook->>WS : 创建WebSocket实例
 Hook->>RPC : 创建RPC客户端
 Hook->>WS : 连接网关
 WS-->>Hook : 状态变更通知
+Hook->>AuthRef : 更新引用状态
 Hook->>Store : 更新连接状态
 WS-->>Hook : 事件数据
 Hook->>Store : 处理代理事件
@@ -131,10 +161,11 @@ Hook->>RPC : 获取配置信息
 RPC-->>Hook : 配置数据
 Hook->>Store : 设置配置参数
 Hook-->>App : 返回客户端引用
+Note over Hook,AuthRef : 认证阶段错误处理<br/>仅在authenticating阶段标记失败
 ```
 
 **图表来源**
-- [useGatewayConnection.ts:36-151](file://src/hooks/useGatewayConnection.ts#L36-L151)
+- [useGatewayConnection.ts:42-212](file://src/hooks/useGatewayConnection.ts#L42-L212)
 - [ws-client.ts:60-130](file://src/gateway/ws-client.ts#L60-L130)
 - [rpc-client.ts:20-62](file://src/gateway/rpc-client.ts#L20-L62)
 
@@ -152,6 +183,7 @@ class UseGatewayConnection {
 +wsRef : RefObject~GatewayWsClient~
 +rpcRef : RefObject~GatewayRpcClient~
 +throttleRef : RefObject~EventThrottle~
++authStatusRef : RefObject~AuthStatus~
 +useEffect() : void
 +initAgentsFromSnapshot() : void
 +fetchGatewayConfig() : Promise~void~
@@ -160,7 +192,7 @@ class UseGatewayConnection {
 class GatewayWsClient {
 +status : ConnectionStatus
 +reconnectAttempt : number
-+connect(url, token) : void
++connect(url, token, password) : void
 +disconnect() : void
 +onEvent(eventName, handler) : Function
 +onStatusChange(handler) : Function
@@ -174,28 +206,33 @@ class EventThrottle {
 +onBatch(handler) : void
 +onImmediate(handler) : void
 }
+class AuthStatusRef {
++current : AuthStatus
++update() : void
+}
 UseGatewayConnection --> GatewayWsClient : 使用
 UseGatewayConnection --> GatewayRpcClient : 使用
 UseGatewayConnection --> EventThrottle : 使用
+UseGatewayConnection --> AuthStatusRef : 使用
 GatewayWsClient --> GatewayRpcClient : 通信
 ```
 
 **图表来源**
-- [useGatewayConnection.ts:23-151](file://src/hooks/useGatewayConnection.ts#L23-L151)
-- [ws-client.ts:22-304](file://src/gateway/ws-client.ts#L22-L304)
+- [useGatewayConnection.ts:42-212](file://src/hooks/useGatewayConnection.ts#L42-L212)
+- [ws-client.ts:22-333](file://src/gateway/ws-client.ts#L22-L333)
 - [rpc-client.ts:17-63](file://src/gateway/rpc-client.ts#L17-L63)
 
 #### 连接生命周期管理
 
 Hook的连接生命周期包含以下关键阶段：
 
-1. **初始化阶段**：创建WebSocket和RPC客户端实例
-2. **认证阶段**：处理连接挑战和设备身份验证
+1. **初始化阶段**：创建WebSocket和RPC客户端实例，初始化认证状态引用
+2. **认证阶段**：处理连接挑战和设备身份验证，使用引用机制跟踪认证状态
 3. **配置同步**：获取并应用网关配置
-4. **事件监听**：注册事件处理器和状态监听器
+4. **事件监听**：注册事件处理器和状态监听器，实现精确的错误处理
 5. **清理阶段**：组件卸载时的资源释放
 
-#### 事件处理流程
+#### 增强的事件处理流程
 
 ```mermaid
 flowchart TD
@@ -213,14 +250,18 @@ Throttle --> ProcessEvent[处理事件]
 SyncAgents --> UpdateStore[更新存储]
 ProcessEvent --> UpdateStore
 UpdateStore --> Ready
-Disconnected[连接断开] --> Reconnect{是否重连?}
+Disconnected[连接断开] --> CheckAuthPhase{检查认证阶段}
+CheckAuthPhase --> |authenticating| MarkAuthFailed[标记认证失败]
+CheckAuthPhase --> |authenticated| Reconnect{是否重连?}
+MarkAuthFailed --> ReturnLoginForm[返回登录表单]
 Reconnect --> |是| ScheduleReconnect[调度重连]
 Reconnect --> |否| Cleanup[清理资源]
 ScheduleReconnect --> Challenge
+ReturnLoginForm --> LoginForm[登录表单]
 ```
 
 **图表来源**
-- [useGatewayConnection.ts:88-126](file://src/hooks/useGatewayConnection.ts#L88-L126)
+- [useGatewayConnection.ts:141-166](file://src/hooks/useGatewayConnection.ts#L141-L166)
 - [ws-client.ts:149-181](file://src/gateway/ws-client.ts#L149-L181)
 
 **章节来源**
@@ -339,6 +380,44 @@ WsAdapter --> GatewayRpcClient : 使用
 - [ws-adapter.ts:49-68](file://src/gateway/ws-adapter.ts#L49-L68)
 - [ws-adapter.ts:39-38](file://src/gateway/ws-adapter.ts#L39-L38)
 
+### 增强的认证状态管理
+
+**新增** 认证状态引用机制确保了精确的错误分类处理：
+
+#### 认证状态引用实现
+
+```mermaid
+flowchart TD
+AuthInit[认证开始] --> CreateRef[创建authStatusRef]
+CreateRef --> SetAuthenticating[设置authStatus=authenticating]
+SetAuthenticating --> Connect[建立连接]
+Connect --> OnStatusChange[状态变更回调]
+OnStatusChange --> UpdateRef[更新引用状态]
+UpdateRef --> CheckPhase{检查认证阶段}
+CheckPhase --> |authenticating| HandleAuthError[处理认证错误]
+CheckPhase --> |authenticated| HandleTransientError[处理瞬态错误]
+HandleAuthError --> MarkAuthFailed[标记认证失败]
+HandleTransientError --> ContinueReconnect[继续重连逻辑]
+MarkAuthFailed --> ReturnLoginForm[返回登录表单]
+```
+
+**图表来源**
+- [useGatewayConnection.ts:56-63](file://src/hooks/useGatewayConnection.ts#L56-L63)
+- [useGatewayConnection.ts:154-166](file://src/hooks/useGatewayConnection.ts#L154-L166)
+
+#### 认证错误分类处理
+
+系统实现了精确的认证错误分类：
+
+1. **认证错误**：只有在"authenticating"阶段发生的错误才会被标记为认证失败
+2. **瞬态网络错误**：已认证后的连接错误会被视为瞬态错误，继续重连逻辑
+3. **错误信息脱敏**：敏感信息会被脱敏处理，保护用户隐私
+
+**章节来源**
+- [useGatewayConnection.ts:56-63](file://src/hooks/useGatewayConnection.ts#L56-L63)
+- [useGatewayConnection.ts:154-166](file://src/hooks/useGatewayConnection.ts#L154-L166)
+- [auth-store.ts:81-86](file://src/store/auth-store.ts#L81-L86)
+
 ## 依赖关系分析
 
 ### 组件耦合度分析
@@ -349,6 +428,7 @@ subgraph "外部依赖"
 React[React Hooks]
 Zustand[Zustand Store]
 Immer[Immer中间件]
+AuthStore[认证状态管理]
 end
 subgraph "内部模块"
 Hook[useGatewayConnection]
@@ -356,6 +436,8 @@ WS[WebSocket客户端]
 RPC[RPC客户端]
 Store[Office Store]
 Types[类型定义]
+AuthRef[认证状态引用]
+AuthCredentials[认证凭证]
 end
 subgraph "工具类"
 Throttle[事件节流]
@@ -368,22 +450,28 @@ Hook --> WS
 Hook --> RPC
 Hook --> Store
 Hook --> Throttle
+Hook --> AuthRef
 WS --> Types
 RPC --> Types
 Store --> Types
+AuthRef --> AuthStore
+AuthCredentials --> WS
 Throttle --> Utils
 ```
 
 **图表来源**
 - [useGatewayConnection.ts:1-16](file://src/hooks/useGatewayConnection.ts#L1-L16)
 - [office-store.ts:1-8](file://src/store/office-store.ts#L1-L8)
+- [auth-store.ts:1-100](file://src/store/auth-store.ts#L1-L100)
 
 ### 关键依赖关系
 
 1. **Hook到客户端**：useGatewayConnection直接依赖WebSocket和RPC客户端
-2. **客户端到类型系统**：所有客户端都严格遵循类型定义
-3. **Hook到存储**：通过Zustand状态管理连接状态和代理数据
-4. **适配器到客户端**：适配器包装底层客户端以提供统一接口
+2. **Hook到认证状态引用**：新增的认证状态引用机制提供实时状态访问
+3. **客户端到类型系统**：所有客户端都严格遵循类型定义
+4. **Hook到存储**：通过Zustand状态管理连接状态和代理数据
+5. **适配器到客户端**：适配器包装底层客户端以提供统一接口
+6. **认证凭证到客户端**：认证凭证系统为客户端提供错误分类支持
 
 **章节来源**
 - [useGatewayConnection.ts:1-16](file://src/hooks/useGatewayConnection.ts#L1-L16)
@@ -399,6 +487,7 @@ Throttle --> Utils
 2. **内存管理**：及时清理事件处理器和定时器
 3. **连接池**：复用WebSocket连接，避免频繁重建
 4. **懒加载**：按需加载适配器和配置信息
+5. **引用优化**：使用useRef避免不必要的重渲染
 
 ### 内存泄漏防护
 
@@ -408,6 +497,7 @@ Hook实现了完整的清理机制：
 - 移除所有事件监听器
 - 清空定时器引用
 - 释放适配器资源
+- 清理认证状态引用
 
 **章节来源**
 - [useGatewayConnection.ts:128-134](file://src/hooks/useGatewayConnection.ts#L128-L134)
@@ -445,29 +535,36 @@ Retry --> Success[连接成功]
 3. **网络状态**：检查网络连接稳定性
 4. **服务器状态**：确认网关服务正常运行
 
-### 错误处理最佳实践
+### 增强的错误处理最佳实践
 
 #### 错误分类处理
 
 系统将错误分为以下几类：
 
 1. **网络错误**：连接中断、DNS解析失败
-2. **认证错误**：令牌过期、权限不足
+2. **认证错误**：令牌过期、权限不足、URL错误
 3. **协议错误**：版本不兼容、消息格式错误
 4. **业务错误**：网关返回的具体业务异常
+
+**更新** 新增了认证阶段的精确错误分类：
+
+- **认证阶段错误**：在"authenticating"状态下发生的任何错误都会被标记为认证失败
+- **已认证后错误**：在"authenticated"状态下发生的错误被视为瞬态网络错误
+- **错误信息脱敏**：敏感信息会被自动脱敏处理
 
 #### 用户友好提示策略
 
 针对不同类型的错误，提供相应的用户提示：
 
-- **临时性错误**：显示"正在重试..."等提示
+- **认证错误**：显示"认证失败"等明确提示，引导用户检查凭据
+- **网络错误**：显示"网络连接异常"等提示，建议检查网络设置
 - **配置错误**：引导用户检查配置设置
 - **权限错误**：提供权限申请或联系管理员的指引
-- **网络错误**：建议检查网络连接或稍后重试
 
 **章节来源**
 - [ws-client.ts:194-196](file://src/gateway/ws-client.ts#L194-L196)
 - [rpc-client.ts:41-48](file://src/gateway/rpc-client.ts#L41-L48)
+- [auth-credentials.ts:90-101](file://src/gateway/auth-credentials.ts#L90-L101)
 
 ### 性能优化建议
 
@@ -489,12 +586,20 @@ Retry --> Success[连接成功]
 
 useGatewayConnection Hook为OpenClaw-Office提供了强大而可靠的网关连接管理能力。通过实现完整的连接生命周期管理、智能的自动重连机制和高效的事件处理系统，该Hook确保了前端应用与网关服务的稳定通信。
 
+**更新** 本次更新的关键改进包括：
+
+1. **增强的认证错误处理**：通过引用机制确保认证阶段的错误能正确识别和处理
+2. **改进的用户体验**：防止UI卡在"连接中..."状态，及时引导用户回到登录表单
+3. **精确的错误分类**：区分认证错误和瞬态网络错误，提供更准确的错误处理
+4. **更好的安全性**：敏感信息自动脱敏，保护用户隐私
+
 该实现的关键优势包括：
 
 1. **可靠性**：完善的错误处理和重连机制
 2. **性能**：事件节流和内存优化策略
 3. **可维护性**：清晰的架构设计和模块化实现
 4. **扩展性**：适配器模式支持灵活的功能扩展
+5. **用户体验**：精确的错误处理和友好的用户提示
 
 通过遵循本文档的使用指南和最佳实践，开发者可以充分利用该Hook的强大功能，构建高性能的网关连接应用。
 
@@ -558,3 +663,29 @@ return (
 | 基础延迟 | 1000ms | 指数退避的基础延迟 |
 | 最大延迟 | 30000ms | 重连延迟的最大值 |
 | 随机抖动 | ±1000ms | 防止同步重连的随机延迟 |
+
+### 认证状态管理
+
+#### 认证状态类型
+
+| 状态 | 描述 | 行为 |
+|------|------|------|
+| unauthenticated | 未认证 | 允许连接尝试，显示登录表单 |
+| authenticating | 认证中 | 阻止连接尝试，显示加载状态 |
+| authenticated | 已认证 | 允许连接，显示主界面 |
+
+#### 错误处理流程
+
+```mermaid
+flowchart TD
+AuthError[认证错误] --> CheckPhase{检查认证阶段}
+CheckPhase --> |authenticating| MarkFailed[标记认证失败]
+CheckPhase --> |authenticated| MarkTransient[标记瞬态错误]
+MarkFailed --> ShowLoginForm[显示登录表单]
+MarkTransient --> ContinueReconnect[继续重连]
+ShowLoginForm --> UserFix[用户修正凭据]
+UserFix --> RetryConnect[重试连接]
+ContinueReconnect --> MaxAttempts{达到最大重试次数?}
+MaxAttempts --> |是| ShowLoginForm
+MaxAttempts --> |否| ContinueReconnect
+```

@@ -73,6 +73,8 @@
 - **默认技能自动安装**：首次进入工作台时，嵌入式服务端会自动把 npm 包内置的默认 Skill 拷贝到 `~/.openclaw/workspace/skills/`，无需手工安装
 
 详细使用指南见 [SKILL-WORKBENCH.md](./SKILL-WORKBENCH.md)。
+![Workflow](./assets/Workflow.png)
+![A2UI](./assets/A2UI.png)
 
 ---
 
@@ -307,11 +309,10 @@ Gateway 广播实时事件（`agent`、`presence`、`health`、`heartbeat`）并
 
 ---
 
-## 微信交流群
+## 联系交流
 
-**微信养虾技术交流群**：欢迎扫码加群，与大家一起交流养虾实践、技术心得与实际真实的业务应用等。
-
-<img src="./assets/weixin.png" alt="微信养虾技术交流群二维码" width="300" />
+可以通过邮箱联系我：toxingwang@gmail.com
+也欢迎关注公众号：旺哥聊AI
 
 ---
 

@@ -11,14 +11,16 @@
 - [adapter-provider.ts](file://src/gateway/adapter-provider.ts)
 - [useGatewayConnection.ts](file://src/hooks/useGatewayConnection.ts)
 - [ws-adapter-config.test.ts](file://src/gateway/__tests__/ws-adapter-config.test.ts)
+- [ws-client.test.ts](file://src/gateway/__tests__/ws-client.test.ts)
 - [a2ui-schema.ts](file://src/lib/a2ui-schema.ts)
 - [A2uiForm.tsx](file://src/components/chat/A2uiForm.tsx)
 </cite>
 
 ## 更新摘要
 **变更内容**
-- 新增A2UI表单交互连接管理功能
-- 增强实时通信支持的消息路由机制
+- WebSocket客户端增强了错误处理能力，在WebSocket构造时立即表面连接错误，提供即时反馈而非静默重试
+- 改进了A2UI表单交互连接管理和消息路由机制
+- 增强了实时通信支持的消息路由机制
 - 改进的附件处理和文件上传支持
 - 优化的连接管理和重连策略
 
@@ -38,7 +40,7 @@
 
 WebSocket适配器（WsAdapter）是OpenClaw Office项目中的核心通信组件，负责封装WebSocket客户端和RPC客户端，为上层应用提供统一的事件处理接口。该适配器实现了GatewayAdapter接口，支持多种事件类型的监听和处理，包括agent、chat、presence、health、heartbeat、cron、shutdown等关键事件。
 
-**更新** 本次更新增强了A2UI表单交互连接管理和消息路由功能，支持更好的实时通信体验和更强大的附件处理能力。
+**更新** 本次更新显著增强了WebSocket客户端的错误处理能力，特别是在WebSocket构造时立即表面连接错误，提供即时反馈而非静默重试。这一改进确保了用户界面能够及时响应连接问题，避免用户被卡在"连接中..."状态而无法操作。
 
 WsAdapter的主要职责包括：
 - 封装WebSocket连接和RPC调用
@@ -260,11 +262,15 @@ WsAdapter采用多层次的错误处理策略：
 2. **RPC调用错误**：通过RpcError异常类型处理
 3. **超时处理**：默认10秒超时，可自定义超时时间
 4. **事件处理错误**：通过unsubscribers数组管理清理
-5. ****新增** A2UI表单验证错误**：表单必填字段验证和错误提示
+5. ****新增** 即时错误反馈**：WebSocket构造时立即表面连接错误，避免静默重试
+6. ****新增** A2UI表单验证错误**：表单必填字段验证和错误提示
+
+**更新** 重要改进：WebSocket客户端现在在构造时立即表面连接错误，提供即时反馈而非静默重试。这确保了用户界面能够及时响应连接问题，避免用户被卡在"连接中..."状态而无法操作。
 
 **章节来源**
 - [rpc-client.ts:7-15](file://src/gateway/rpc-client.ts#L7-L15)
 - [rpc-client.ts:25-61](file://src/gateway/rpc-client.ts#L25-L61)
+- [ws-client.ts:121-152](file://src/gateway/ws-client.ts#L121-L152)
 - [A2uiForm.tsx:319-328](file://src/components/chat/A2uiForm.tsx#L319-L328)
 
 ### 适配器封装机制
@@ -520,6 +526,7 @@ A2UISchema[a2ui-schema.ts]
 end
 subgraph "测试模块"
 Tests[ws-adapter-config.test.ts]
+WsClientTests[ws-client.test.ts]
 end
 React --> WsAdapter
 WebSocketAPI --> WsClient
@@ -533,6 +540,7 @@ AdapterTypes --> Adapter
 Types --> Adapter
 A2UISchema --> WsAdapter
 Tests --> WsAdapter
+WsClientTests --> WsClient
 ```
 
 **图表来源**
@@ -553,7 +561,8 @@ Tests --> WsAdapter
 1. **指数退避重连**：最大重连尝试20次，延迟上限30秒
 2. **抖动随机性**：每次重连增加1秒随机抖动，避免雪崩效应
 3. **连接状态缓存**：通过快照和服务器信息缓存减少重复查询
-4. ****新增** A2UI表单缓存**：表单状态和验证结果缓存
+4. ****新增** 即时错误反馈优化**：构造时立即错误处理，避免无效重试
+5. ****新增** A2UI表单缓存**：表单状态和验证结果缓存
 
 ### 事件处理优化
 
@@ -611,6 +620,13 @@ Tests --> WsAdapter
 - 检查服务器响应时间
 - 验证网络延迟
 
+#### **新增** 即时错误反馈问题
+
+**问题**：连接错误无反馈
+- 确认WebSocket构造错误处理逻辑
+- 检查onStatusChange回调是否正确设置
+- 验证UI层错误状态处理
+
 #### **新增** A2UI表单问题
 
 **问题**：表单提交失败
@@ -639,7 +655,8 @@ WsAdapter作为OpenClaw Office的核心通信组件，通过适配器模式成�
 5. **良好的性能表现**：优化的连接策略和事件处理机制
 6. ****新增** 强大的A2UI表单支持**：声明式表单交互和智能消息路由
 7. ****新增** 增强的附件处理**：大文件上传和智能超时管理
+8. ****新增** 即时错误反馈**：WebSocket构造时立即表面连接错误，提供用户体验保障
 
-**更新** 本次更新显著增强了A2UI表单交互连接管理和消息路由功能，为用户提供了更好的实时通信体验。新的附件处理机制支持大文件上传，智能超时策略确保了可靠的消息传递。A2UI表单系统通过声明式模式简化了复杂交互场景的实现，为开发者提供了更直观的表单构建方式。
+**更新** 本次更新显著增强了WebSocket客户端的错误处理能力，特别是在WebSocket构造时立即表面连接错误，提供即时反馈而非静默重试。这一改进确保了用户界面能够及时响应连接问题，避免用户被卡在"连接中..."状态而无法操作。配合A2UI表单交互连接管理和消息路由功能，为用户提供了更好的实时通信体验。
 
 该适配器为上层应用提供了稳定可靠的通信基础，支持实时事件处理、RPC调用和A2UI表单交互，是整个OpenClaw Office系统的重要基础设施。
