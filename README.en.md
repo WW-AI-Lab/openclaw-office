@@ -8,13 +8,16 @@
 
 **Core Metaphor:** Agent = Digital Employee | Office = Agent Runtime | Desk = Session | Meeting Pod = Collaboration Context
 
+> **OpenClaw Office turns OpenClaw from a chatbot into a full Skills system.**
+> Not just conversations — create, develop, debug, and deploy reusable skills so every Agent can master professional capabilities and collaborate on complex tasks.
+
 ---
 
 ## Feature Highlights
 
 ### ✨ Skill Workbench — Skills Development Platform
 
-Skill Workbench is the core differentiator of OpenClaw Office — a full **AI-assisted development environment** that unifies skill creation, editing, flowchart generation, and A2UI input forms:
+Skill Workbench is the core differentiator of OpenClaw Office — a full **AI-assisted development environment** that unifies skill creation, editing, flowchart generation, and A2UI input forms, making OpenClaw a truly programmable Skills system:
 
 - **Nested three-page routing**: `/skill-workbench` (list) → `/skill-workbench/create` (wizard) → `/skill-workbench/:slug` (detail)
 - **Chat-side-panel driven development**: create and modify Skills through a conversation; file changes are flushed to disk in real time

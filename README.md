@@ -8,13 +8,16 @@
 
 **核心隐喻：** Agent = 数字员工 | 办公室 = Agent 运行时 | 工位 = Session | 会议室 = 协作上下文
 
+> **OpenClaw Office 让 OpenClaw 从一个聊天机器人进化为一套 Skills 系统。**
+> 不只是对话——而是创建、开发、调试和部署可复用的技能，让每个 Agent 都能掌握专业能力并协同完成复杂任务。
+
 ---
 
 ## 功能亮点
 
 ### ✨ Skill Workbench — Skills 开发平台
 
-Skill Workbench 是 OpenClaw Office 的核心差异化功能——把「创建 Skill / 修改 Skill / 生成流程图 / A2UI 输入表单」整合成一个完整的 **AI 协作开发环境**：
+Skill Workbench 是 OpenClaw Office 的核心差异化功能——把「创建 Skill / 修改 Skill / 生成流程图 / A2UI 输入表单」整合成一个完整的 **AI 协作开发环境**，让 OpenClaw 真正成为一个可编程的 Skills 系统：
 
 - **三页面嵌套路由**：`/skill-workbench`（列表）→ `/skill-workbench/create`（创建向导）→ `/skill-workbench/:slug`（详情）
 - **聊天侧边栏驱动开发**：在侧边栏与 AI 对话即可创建、修改 Skill，文件变动实时同步磁盘
