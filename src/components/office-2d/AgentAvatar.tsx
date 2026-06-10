@@ -1,12 +1,23 @@
 import { useState, memo, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import type { VisualAgent, AgentVisualStatus } from "@/gateway/types";
-import { generateSvgAvatar, type SvgAvatarData } from "@/lib/avatar-generator";
+import type { VisualAgent } from "@/gateway/types";
+import { generatePawnAppearance } from "@/lib/avatar-generator";
 import { STATUS_COLORS, AVATAR } from "@/lib/constants";
 import { useOfficeStore } from "@/store/office-store";
+import { Pawn, type PawnPose, type PawnMotion } from "./Pawn";
+import {
+  ThoughtEmote,
+  SpeechEmote,
+  ToolEmote,
+  ErrorEmote,
+  ZzzEmote,
+  SparkleEmote,
+} from "./Emotes";
 
-const WALK_BOB_AMPLITUDE = 2;
-const WALK_BOB_FREQ = 8;
+const WALK_BOB_AMPLITUDE = 1.2;
+const WALK_BOB_FREQ = 7;
+/** Head-top anchor for emote bubbles in pawn space */
+const EMOTE_Y = -32;
 
 interface AgentAvatarProps {
   agent: VisualAgent;
@@ -20,24 +31,40 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const theme = useOfficeStore((s) => s.theme);
   const [hovered, setHovered] = useState(false);
   const gRef = useRef<SVGGElement>(null);
+  const pawnRef = useRef<SVGGElement>(null);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
+  const lastXRef = useRef<number>(agent.position.x);
 
   const isSelected = selectedAgentId === agent.id;
-  const r = isSelected ? AVATAR.selectedRadius : AVATAR.radius;
   const isPlaceholder = agent.isPlaceholder;
   const isUnconfirmed = !agent.confirmed;
   const isWalking = agent.movement !== null;
-  const color = isPlaceholder || isUnconfirmed ? "#6b7280" : STATUS_COLORS[agent.status];
+  const isGhost = isPlaceholder || isUnconfirmed;
   const isDark = theme === "dark";
-  const avatarData = generateSvgAvatar(agent.id);
-  const clipId = `avatar-clip-${agent.id}`;
-  const groupOpacity = isPlaceholder ? 0.3 : isUnconfirmed ? 0.5 : 1;
+  const statusColor = isGhost ? "#6b7280" : STATUS_COLORS[agent.status];
+  const appearance = generatePawnAppearance(agent.id);
+  const groupOpacity = isPlaceholder ? 0.35 : isUnconfirmed ? 0.6 : 1;
 
   const displayName =
     agent.name.length > AVATAR.nameLabelMaxChars
       ? `${agent.name.slice(0, AVATAR.nameLabelMaxChars)}…`
       : agent.name;
+
+  // Pose: walking > seated (desk/meeting) > standing (lounge/corridor)
+  const pose: PawnPose = isWalking
+    ? "walk"
+    : agent.zone === "desk" || agent.zone === "hotDesk" || agent.zone === "meeting"
+      ? "sit"
+      : "stand";
+
+  // Motion driven by OpenClaw event status
+  let motion: PawnMotion = "none";
+  if (!isGhost && !isWalking) {
+    if (agent.status === "error") motion = "shaking";
+    else if (agent.status === "speaking") motion = "talking";
+    else if (agent.status === "tool_calling" || agent.status === "thinking") motion = "typing";
+  }
 
   // Walk animation loop via requestAnimationFrame
   const agentIdRef = useRef(agent.id);
@@ -57,25 +84,22 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
 
       // Walk bob effect
       let bobY = 0;
-      let walkScale = 1;
       if (a.movement) {
-        const p = a.movement.progress;
         const elapsed = (Date.now() - a.movement.startTime) / 1000;
         bobY = Math.sin(elapsed * WALK_BOB_FREQ * Math.PI * 2) * WALK_BOB_AMPLITUDE;
-
-        // Stand-up effect at start
-        if (p < 0.1) walkScale = 0.9 + p;
-        // Sit-down effect at end
-        else if (p > 0.9) {
-          const t = (p - 0.9) / 0.1;
-          walkScale = 1 - 0.05 * Math.sin(t * Math.PI);
-        }
       }
 
       gRef.current.setAttribute(
         "transform",
-        `translate(${a.position.x}, ${a.position.y + bobY}) scale(${walkScale})`,
+        `translate(${a.position.x}, ${a.position.y + bobY})`,
       );
+
+      // Face the walking direction (mirror pawn when heading left)
+      const dx = a.position.x - lastXRef.current;
+      lastXRef.current = a.position.x;
+      if (pawnRef.current && Math.abs(dx) > 0.05) {
+        pawnRef.current.setAttribute("transform", dx < 0 ? "scale(-1, 1)" : "scale(1, 1)");
+      }
 
       if (a.movement) {
         rafRef.current = requestAnimationFrame(animate);
@@ -88,6 +112,9 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
     if (isWalking) {
       lastTimeRef.current = 0;
       rafRef.current = requestAnimationFrame(animate);
+    } else if (pawnRef.current) {
+      // Reset mirroring once the walk completes
+      pawnRef.current.setAttribute("transform", "scale(1, 1)");
     }
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -97,6 +124,8 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   return (
     <g
       ref={gRef}
+      data-agent-id={agent.id}
+      data-status={agent.status}
       transform={`translate(${agent.position.x}, ${agent.position.y})`}
       style={{ cursor: isPlaceholder ? "default" : "pointer" }}
       opacity={groupOpacity}
@@ -104,139 +133,116 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
       onMouseEnter={() => !isPlaceholder && setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Selected glow */}
+      {/* Selection ring under the feet (game-style) */}
       {isSelected && (
-        <circle
-          r={r + 8}
-          fill={color}
-          opacity={0.18}
-          style={{ filter: `drop-shadow(0 0 10px ${color})` }}
-        />
+        <g
+          style={{
+            animation: "selection-ring 1.4s ease-in-out infinite",
+            transformBox: "fill-box",
+            transformOrigin: "center",
+          }}
+        >
+          <ellipse
+            cy={17.5}
+            rx={16}
+            ry={5}
+            fill={statusColor}
+            opacity={0.22}
+            style={{ filter: `drop-shadow(0 0 6px ${statusColor})` }}
+          />
+          <ellipse cy={17.5} rx={16} ry={5} fill="none" stroke={statusColor} strokeWidth={1.6} />
+        </g>
       )}
 
-      {/* Status ring with animation */}
-      <StatusRing status={agent.status} r={r} color={color} isWalking={isWalking} isPlaceholder={isPlaceholder} />
+      {/* Hover highlight */}
+      {hovered && !isSelected && (
+        <ellipse cy={17.5} rx={14.5} ry={4.5} fill="none" stroke={statusColor} strokeWidth={1} opacity={0.5} />
+      )}
 
-      {/* Avatar face */}
-      <defs>
-        <clipPath id={clipId}>
-          <circle r={r - 2} />
-        </clipPath>
-      </defs>
-      <circle r={r - 2} fill={isDark ? "#1e293b" : "#f8fafc"} />
-      <g clipPath={`url(#${clipId})`}>
-        <AvatarFace data={avatarData} size={r * 2 - 4} />
+      {/* The digital person */}
+      <g style={agent.status === "spawning" ? spawnStyle : undefined}>
+        <g ref={pawnRef}>
+          <Pawn appearance={appearance} pose={pose} motion={motion} ghost={isGhost} />
+        </g>
       </g>
 
-      {/* Sub-agent badge */}
-      {agent.isSubAgent && (
-        <g transform={`translate(${r * 0.6}, ${r * 0.5})`}>
-          <circle r={7} fill={isDark ? "#1e293b" : "#fff"} stroke={color} strokeWidth={1.2} />
-          <text textAnchor="middle" dy="3.5" fontSize="9" fill={color} fontWeight="bold">
-            S
-          </text>
+      {/* Emote bubble above the head — mapped from OpenClaw event status */}
+      {!isGhost && !isWalking && (
+        <g transform={`translate(0, ${EMOTE_Y})`}>
+          {agent.status === "thinking" && <ThoughtEmote isDark={isDark} />}
+          {agent.status === "speaking" && (
+            <SpeechEmote text={agent.speechBubble?.text ?? ""} isDark={isDark} />
+          )}
+          {agent.status === "tool_calling" && agent.currentTool && (
+            <ToolEmote toolName={agent.currentTool.name} isDark={isDark} />
+          )}
+          {agent.status === "error" && <ErrorEmote />}
+          {agent.status === "offline" && <ZzzEmote isDark={isDark} />}
+          {agent.status === "spawning" && <SparkleEmote />}
         </g>
       )}
 
-      {/* Thinking indicator (three dots) */}
-      {agent.status === "thinking" && <ThinkingDots r={r} />}
-
-      {/* Error badge */}
-      {agent.status === "error" && (
-        <g transform={`translate(${r * 0.65}, ${-r * 0.65})`}>
-          <circle r={7} fill="#ef4444" />
-          <text textAnchor="middle" dy="4" fontSize="10" fill="#fff" fontWeight="bold">
-            !
-          </text>
-        </g>
-      )}
-
-      {/* Speaking indicator — chat bubble icon with pulse (mirrors ThinkingDots placement) */}
-      {agent.status === "speaking" && <SpeakingIndicator r={r} />}
-
-      {/* Tool name label */}
-      {agent.status === "tool_calling" && agent.currentTool && (
-        <foreignObject x={-50} y={r + 2} width={100} height={20} style={{ pointerEvents: "none" }}>
-          <div
+      {/* Name tag with status dot */}
+      <foreignObject x={-60} y={21} width={120} height={22} style={{ pointerEvents: "none" }}>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <span
+            title={agent.name}
             style={{
-              display: "flex",
-              justifyContent: "center",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "10px",
+              fontWeight: 600,
+              color: isDark ? "#e2e8f0" : "#44403c",
+              backgroundColor: isDark ? "rgba(28,25,23,0.78)" : "rgba(255,251,243,0.85)",
+              backdropFilter: "blur(6px)",
+              borderRadius: "7px",
+              padding: "1px 7px",
+              whiteSpace: "nowrap",
+              border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(120,90,60,0.18)"}`,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
             <span
               style={{
-                fontSize: "9px",
-                fontWeight: 600,
-                color: "#fff",
-                backgroundColor: "#f97316",
-                borderRadius: "4px",
-                padding: "1px 6px",
-                whiteSpace: "nowrap",
-                maxWidth: "90px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                width: "5px",
+                height: "5px",
+                borderRadius: "50%",
+                backgroundColor: statusColor,
+                flexShrink: 0,
+                boxShadow: `0 0 3px ${statusColor}`,
               }}
-            >
-              {agent.currentTool.name}
-            </span>
-          </div>
-        </foreignObject>
-      )}
-
-      {/* Name label */}
-      <foreignObject
-        x={-60}
-        y={r + (agent.status === "tool_calling" && agent.currentTool ? 18 : 4)}
-        width={120}
-        height={22}
-        style={{ pointerEvents: "none" }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <span
-            title={agent.name}
-            style={{
-              fontSize: "11px",
-              fontWeight: 500,
-              color: isDark ? "#cbd5e1" : "#475569",
-              backgroundColor: isDark ? "rgba(30,41,59,0.7)" : "rgba(255,255,255,0.75)",
-              backdropFilter: "blur(6px)",
-              borderRadius: "6px",
-              padding: "1px 8px",
-              whiteSpace: "nowrap",
-              border: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-            }}
-          >
+            />
             {displayName}
+            {agent.isSubAgent && (
+              <span
+                style={{
+                  fontSize: "8px",
+                  fontWeight: 700,
+                  color: "#fff",
+                  backgroundColor: statusColor,
+                  borderRadius: "4px",
+                  padding: "0 3px",
+                  lineHeight: "10px",
+                }}
+              >
+                S
+              </span>
+            )}
           </span>
         </div>
       </foreignObject>
 
       {/* Hover tooltip */}
       {hovered && (
-        <foreignObject
-          x={-80}
-          y={-r - 38}
-          width={160}
-          height={32}
-          style={{ pointerEvents: "none" }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
+        <foreignObject x={-80} y={-66} width={160} height={30} style={{ pointerEvents: "none" }}>
+          <div style={{ display: "flex", justifyContent: "center" }}>
             <span
               style={{
                 fontSize: "11px",
                 fontWeight: 500,
                 color: isDark ? "#e2e8f0" : "#374151",
-                backgroundColor: isDark ? "rgba(30,41,59,0.85)" : "rgba(255,255,255,0.9)",
+                backgroundColor: isDark ? "rgba(28,25,23,0.9)" : "rgba(255,255,255,0.92)",
                 backdropFilter: "blur(8px)",
                 borderRadius: "8px",
                 padding: "4px 10px",
@@ -254,239 +260,8 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   );
 });
 
-/* --- Status ring with per-state animation --- */
-
-function StatusRing({
-  status,
-  r,
-  color,
-  isWalking,
-  isPlaceholder,
-}: {
-  status: AgentVisualStatus;
-  r: number;
-  color: string;
-  isWalking: boolean;
-  isPlaceholder: boolean;
-}) {
-  const animStyle = isWalking || isPlaceholder ? {} : getStatusRingAnimation(status);
-  const dashArray = isWalking ? "4 3" : isPlaceholder ? "6 3" : undefined;
-  const strokeColor = isWalking ? "#3b82f6" : color;
-  return (
-    <circle
-      r={r}
-      fill="none"
-      stroke={strokeColor}
-      strokeWidth={AVATAR.strokeWidth}
-      strokeDasharray={dashArray}
-      style={{
-        transition: "stroke 300ms ease",
-        ...animStyle,
-      }}
-    />
-  );
-}
-
-function getStatusRingAnimation(status: AgentVisualStatus): React.CSSProperties {
-  switch (status) {
-    case "thinking":
-      return { animation: "agent-pulse 1.5s ease-in-out infinite" };
-    case "tool_calling":
-      return { animation: "agent-pulse 2s ease-in-out infinite", strokeDasharray: "6 3" };
-    case "speaking":
-      return { animation: "agent-pulse 1s ease-in-out infinite" };
-    case "error":
-      return { animation: "agent-blink 0.8s ease-in-out infinite" };
-    case "spawning":
-      return { animation: "agent-spawn 0.5s ease-out forwards" };
-    default:
-      return {};
-  }
-}
-
-/* --- Thinking dots indicator --- */
-
-function ThinkingDots({ r }: { r: number }) {
-  return (
-    <g transform={`translate(${r * 0.55}, ${-r * 0.7})`}>
-      {[0, 1, 2].map((i) => (
-        <circle
-          key={i}
-          cx={i * 5}
-          cy={0}
-          r={2}
-          fill="#3b82f6"
-          style={{
-            animation: `thinking-dots 1.2s ease-in-out ${i * 0.15}s infinite`,
-          }}
-        />
-      ))}
-    </g>
-  );
-}
-
-/* --- Speaking indicator (chat bubble icon at avatar top, same position as ThinkingDots) --- */
-
-function SpeakingIndicator({ r }: { r: number }) {
-  return (
-    <g transform={`translate(${r * 0.55}, ${-r * 0.75})`}>
-      <circle r={7} fill="#a855f7" opacity={0.9}>
-        <animate attributeName="r" values="6;8;6" dur="1.5s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.9;0.5;0.9" dur="1.5s" repeatCount="indefinite" />
-      </circle>
-      {/* Tiny chat-bubble path scaled to fit */}
-      <g transform="translate(-4.5,-4.5) scale(0.45)">
-        <path
-          fill="#fff"
-          fillRule="evenodd"
-          d="M3.43 2.524A41.29 41.29 0 0110 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.102 41.102 0 01-3.55.414c-.28.02-.521.18-.643.413l-1.712 3.293a.75.75 0 01-1.33 0l-1.713-3.293a.783.783 0 00-.642-.413 41.108 41.108 0 01-3.55-.414C1.993 13.245 1 11.986 1 10.574V5.426c0-1.413.993-2.67 2.43-2.902z"
-          clipRule="evenodd"
-        />
-      </g>
-    </g>
-  );
-}
-
-/* --- Avatar face SVG based on SvgAvatarData --- */
-
-function AvatarFace({ data, size }: { data: SvgAvatarData; size: number }) {
-  const s = size / 2;
-  const faceRx =
-    data.faceShape === "round" ? s * 0.8 : data.faceShape === "oval" ? s * 0.7 : s * 0.75;
-  const faceRy = data.faceShape === "oval" ? s * 0.9 : faceRx;
-
-  return (
-    <g>
-      {/* Shirt/body (lower half) */}
-      <rect x={-s} y={s * 0.4} width={size} height={s * 1.2} fill={data.shirtColor} />
-
-      {/* Face */}
-      <ellipse cx={0} cy={-s * 0.05} rx={faceRx} ry={faceRy} fill={data.skinColor} />
-
-      {/* Hair */}
-      <HairSvg style={data.hairStyle} color={data.hairColor} s={s} faceRx={faceRx} />
-
-      {/* Eyes */}
-      <EyesSvg style={data.eyeStyle} s={s} />
-    </g>
-  );
-}
-
-function HairSvg({
-  style,
-  color,
-  s,
-  faceRx,
-}: {
-  style: SvgAvatarData["hairStyle"];
-  color: string;
-  s: number;
-  faceRx: number;
-}) {
-  switch (style) {
-    case "short":
-      return <ellipse cx={0} cy={-s * 0.55} rx={faceRx * 0.95} ry={s * 0.45} fill={color} />;
-    case "spiky":
-      return (
-        <g>
-          <ellipse cx={0} cy={-s * 0.55} rx={faceRx * 0.9} ry={s * 0.4} fill={color} />
-          {[-0.4, -0.15, 0.1, 0.35].map((off) => (
-            <polygon
-              key={off}
-              points={`${off * s * 2},-${s * 0.85} ${off * s * 2 - 3},-${s * 0.5} ${off * s * 2 + 3},-${s * 0.5}`}
-              fill={color}
-            />
-          ))}
-        </g>
-      );
-    case "side-part":
-      return (
-        <g>
-          <ellipse cx={-s * 0.1} cy={-s * 0.55} rx={faceRx} ry={s * 0.45} fill={color} />
-          <rect
-            x={faceRx * 0.3}
-            y={-s * 0.9}
-            width={faceRx * 0.5}
-            height={s * 0.3}
-            rx={3}
-            fill={color}
-          />
-        </g>
-      );
-    case "curly":
-      return (
-        <g>
-          {[
-            [-0.35, -0.7],
-            [0, -0.78],
-            [0.35, -0.7],
-            [-0.5, -0.45],
-            [0.5, -0.45],
-          ].map(([ox, oy], i) => (
-            <circle key={i} cx={ox * s} cy={oy * s} r={s * 0.22} fill={color} />
-          ))}
-        </g>
-      );
-    case "buzz":
-      return (
-        <ellipse
-          cx={0}
-          cy={-s * 0.45}
-          rx={faceRx * 0.85}
-          ry={s * 0.35}
-          fill={color}
-          opacity={0.7}
-        />
-      );
-    default:
-      return null;
-  }
-}
-
-function EyesSvg({ style, s }: { style: SvgAvatarData["eyeStyle"]; s: number }) {
-  const ey = -s * 0.08;
-  const gap = s * 0.28;
-  switch (style) {
-    case "dot":
-      return (
-        <g>
-          <circle cx={-gap} cy={ey} r={2} fill="#333" />
-          <circle cx={gap} cy={ey} r={2} fill="#333" />
-        </g>
-      );
-    case "line":
-      return (
-        <g>
-          <line
-            x1={-gap - 3}
-            y1={ey}
-            x2={-gap + 3}
-            y2={ey}
-            stroke="#333"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-          />
-          <line
-            x1={gap - 3}
-            y1={ey}
-            x2={gap + 3}
-            y2={ey}
-            stroke="#333"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-          />
-        </g>
-      );
-    case "wide":
-      return (
-        <g>
-          <ellipse cx={-gap} cy={ey} rx={3} ry={2.5} fill="#fff" stroke="#333" strokeWidth={0.8} />
-          <circle cx={-gap} cy={ey} r={1.2} fill="#333" />
-          <ellipse cx={gap} cy={ey} rx={3} ry={2.5} fill="#fff" stroke="#333" strokeWidth={0.8} />
-          <circle cx={gap} cy={ey} r={1.2} fill="#333" />
-        </g>
-      );
-    default:
-      return null;
-  }
-}
+const spawnStyle: React.CSSProperties = {
+  animation: "agent-spawn 0.5s ease-out forwards",
+  transformBox: "fill-box",
+  transformOrigin: "center bottom",
+};

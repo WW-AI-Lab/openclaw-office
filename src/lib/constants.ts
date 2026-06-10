@@ -39,22 +39,23 @@ export const CORRIDOR_CENTER = {
   y: OFFICE.y + OFFICE.height / 2,
 } as const;
 
+// Warm, game-like palette (cozy wooden office)
 export const ZONE_COLORS = {
-  desk: "#f4f6f9",
-  meeting: "#eef3fa",
-  hotDesk: "#f1f3f7",
-  lounge: "#f3f1f7",
-  corridor: "#e8ecf1",
-  wall: "#8b9bb0",
+  desk: "#f5e9cf",
+  meeting: "#f1e4cf",
+  hotDesk: "#f2e5c9",
+  lounge: "#f0e2d2",
+  corridor: "#e7ddc9",
+  wall: "#8a6f4e",
 } as const;
 
 export const ZONE_COLORS_DARK = {
-  desk: "#1e293b",
-  meeting: "#1a2744",
-  hotDesk: "#1e2433",
-  lounge: "#231e33",
-  corridor: "#0f172a",
-  wall: "#475569",
+  desk: "#2b251a",
+  meeting: "#272218",
+  hotDesk: "#29231a",
+  lounge: "#2b2420",
+  corridor: "#1d1812",
+  wall: "#5a4730",
 } as const;
 
 /** A2A 工具名称集合：主 Agent 通过这些工具指派/联络其他主 Agent（非 sub-agent）进行协作 */

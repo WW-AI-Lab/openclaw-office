@@ -10,7 +10,11 @@ import {
 } from "@/lib/constants";
 import { calculateDeskSlots } from "@/lib/position-allocator";
 import { useOfficeStore } from "@/store/office-store";
-import { detectMeetingGroups, calculateMeetingSeats } from "@/store/meeting-manager";
+import {
+  detectMeetingGroups,
+  calculateMeetingSeats,
+  MEETING_TABLE_CENTERS,
+} from "@/store/meeting-manager";
 import { AgentAvatar } from "./AgentAvatar";
 import { ConnectionLine } from "./ConnectionLine";
 import { DeskUnit } from "./DeskUnit";
@@ -77,20 +81,8 @@ export function FloorPlan() {
   // 每组的座位分配（基于 agent.position，已由 store 的 moveToMeeting + allocateMeetingPositions 分配好）
   // 这里只需要知道每组有哪些 agent + 对应的 tableCenter 用于渲染桌子和椅子
   const meetingGroupTableData = useMemo(() => {
-    const MEETING_ZONE = ZONES.meeting;
-    const tableCenters = [
-      { x: MEETING_ZONE.x + MEETING_ZONE.width / 2, y: MEETING_ZONE.y + MEETING_ZONE.height / 2 },
-      {
-        x: MEETING_ZONE.x + MEETING_ZONE.width * 0.3,
-        y: MEETING_ZONE.y + MEETING_ZONE.height * 0.3,
-      },
-      {
-        x: MEETING_ZONE.x + MEETING_ZONE.width * 0.7,
-        y: MEETING_ZONE.y + MEETING_ZONE.height * 0.7,
-      },
-    ];
     return meetingGroups.map((group, i) => {
-      const center = tableCenters[i % tableCenters.length];
+      const center = MEETING_TABLE_CENTERS[i % MEETING_TABLE_CENTERS.length];
       const seatsMap = calculateMeetingSeats(group, i);
       const agentsInGroup = group.agentIds
         .map((id) => agents.get(id))
@@ -106,7 +98,7 @@ export function FloorPlan() {
   };
 
   return (
-    <div className="relative h-full w-full bg-gray-100 dark:bg-gray-950">
+    <div className="relative h-full w-full bg-[#ece3d0] dark:bg-[#15110c]">
       <svg
         viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         className="h-full w-full"
@@ -114,9 +106,9 @@ export function FloorPlan() {
       >
         <defs>
           <filter id="building-shadow" x="-3%" y="-3%" width="106%" height="106%">
-            <feDropShadow dx="0" dy="3" stdDeviation="6" floodOpacity={isDark ? 0.5 : 0.12} />
+            <feDropShadow dx="0" dy="3" stdDeviation="6" floodOpacity={isDark ? 0.5 : 0.15} />
           </filter>
-          {/* Subtle grid pattern for corridor floor */}
+          {/* Stone tile pattern for corridor floor */}
           <pattern id="corridor-tiles" width="28" height="28" patternUnits="userSpaceOnUse">
             <rect width="28" height="28" fill={colors.corridor} />
             <rect
@@ -125,15 +117,28 @@ export function FloorPlan() {
               width="27"
               height="27"
               fill="none"
-              stroke={isDark ? "#1f2937" : "#d5dbe3"}
-              strokeWidth="0.3"
-              rx="1"
+              stroke={isDark ? "#2a2218" : "#d8cdb4"}
+              strokeWidth="0.6"
+              rx="2"
             />
           </pattern>
-          {/* Subtle carpet texture for lounge */}
-          <pattern id="lounge-carpet" width="6" height="6" patternUnits="userSpaceOnUse">
-            <rect width="6" height="6" fill={colors.lounge} />
-            <circle cx="3" cy="3" r="0.5" fill={isDark ? "#2d2540" : "#e5e0ed"} opacity="0.4" />
+          {/* Long thin wood planks (subtle, low-contrast) */}
+          <pattern id="wood-floor" width="160" height="26" patternUnits="userSpaceOnUse">
+            <rect width="160" height="26" fill={colors.desk} />
+            <g stroke={isDark ? "#332a1c" : "#e8d8b4"} strokeWidth="0.8">
+              <line x1="0" y1="0.4" x2="160" y2="0.4" />
+              <line x1="0" y1="13.4" x2="160" y2="13.4" />
+            </g>
+            <g stroke={isDark ? "#332a1c" : "#e8d8b4"} strokeWidth="0.6" opacity="0.7">
+              <line x1="56" y1="0" x2="56" y2="13" />
+              <line x1="128" y1="13" x2="128" y2="26" />
+            </g>
+          </pattern>
+          {/* Soft carpet texture for lounge */}
+          <pattern id="lounge-carpet" width="10" height="10" patternUnits="userSpaceOnUse">
+            <rect width="10" height="10" fill={colors.lounge} />
+            <circle cx="2.5" cy="2.5" r="0.7" fill={isDark ? "#3a2f28" : "#e2d0bc"} opacity="0.6" />
+            <circle cx="7.5" cy="7.5" r="0.7" fill={isDark ? "#3a2f28" : "#e2d0bc"} opacity="0.6" />
           </pattern>
         </defs>
 
@@ -153,7 +158,7 @@ export function FloorPlan() {
         {/* ── Layer 1: Corridor floor tiles ── */}
         <CorridorFloor isDark={isDark} />
 
-        {/* ── Layer 2: Zone floor fills ── */}
+        {/* ── Layer 2: Zone floor fills — wood planks for work zones, carpet for lounge ── */}
         {Object.entries(ZONES).map(([key, zone]) => (
           <rect
             key={`floor-${key}`}
@@ -161,9 +166,7 @@ export function FloorPlan() {
             y={zone.y}
             width={zone.width}
             height={zone.height}
-            fill={
-              key === "lounge" ? "url(#lounge-carpet)" : colors[key as keyof typeof ZONE_COLORS]
-            }
+            fill={key === "lounge" ? "url(#lounge-carpet)" : "url(#wood-floor)"}
           />
         ))}
 
@@ -185,6 +188,7 @@ export function FloorPlan() {
         {meetingGroupTableData.length === 0 ? (
           // 无会议时：渲染默认单桌 + 6 空椅装饰
           <>
+            <RoundRug x={defaultMeetingCenter.x} y={defaultMeetingCenter.y} radius={130} isDark={isDark} />
             <MeetingTable
               x={defaultMeetingCenter.x}
               y={defaultMeetingCenter.y}
@@ -199,30 +203,45 @@ export function FloorPlan() {
             />
           </>
         ) : (
-          // 有会议时：按分组渲染每桌
-          meetingGroupTableData.map((tableData, i) => {
-            const radius = Math.min(
-              55 + tableData.agentsInGroup.length * 8,
-              Math.min(ZONES.meeting.width, ZONES.meeting.height) / (meetingGroupTableData.length > 1 ? 3.5 : 2.3) - 20,
-            );
-            const seatPositions = tableData.agentsInGroup.map((a) => a.position);
+          // 有会议时：先铺所有地毯，再画所有桌椅（避免地毯盖住相邻桌面）
+          (() => {
+            const tableRadius = (agentCount: number) =>
+              Math.min(
+                55 + agentCount * 8,
+                Math.min(ZONES.meeting.width, ZONES.meeting.height) /
+                    (meetingGroupTableData.length > 1 ? 3.5 : 2.3) -
+                  20,
+              );
             return (
-              <g key={`meeting-table-group-${i}`}>
-                <MeetingTable
-                  x={tableData.center.x}
-                  y={tableData.center.y}
-                  radius={radius}
-                  isDark={isDark}
-                />
-                <MeetingChairs
-                  seats={seatPositions}
-                  meetingAgentCount={tableData.agentsInGroup.length}
-                  tableCenter={tableData.center}
-                  isDark={isDark}
-                />
-              </g>
+              <>
+                {meetingGroupTableData.map((tableData, i) => (
+                  <RoundRug
+                    key={`meeting-rug-${i}`}
+                    x={tableData.center.x}
+                    y={tableData.center.y}
+                    radius={tableRadius(tableData.agentsInGroup.length) + 22}
+                    isDark={isDark}
+                  />
+                ))}
+                {meetingGroupTableData.map((tableData, i) => (
+                  <g key={`meeting-table-group-${i}`}>
+                    <MeetingTable
+                      x={tableData.center.x}
+                      y={tableData.center.y}
+                      radius={tableRadius(tableData.agentsInGroup.length)}
+                      isDark={isDark}
+                    />
+                    <MeetingChairs
+                      seats={tableData.agentsInGroup.map((a) => a.position)}
+                      meetingAgentCount={tableData.agentsInGroup.length}
+                      tableCenter={tableData.center}
+                      isDark={isDark}
+                    />
+                  </g>
+                ))}
+              </>
             );
-          })
+          })()
         )}
 
         {/* ── Layer 5: Furniture – Hot desk zone ── */}
@@ -279,6 +298,28 @@ export function FloorPlan() {
 
 /* ═══ Sub-components ═══ */
 
+/** Soft round rug under meeting tables */
+function RoundRug({
+  x,
+  y,
+  radius,
+  isDark,
+}: {
+  x: number;
+  y: number;
+  radius: number;
+  isDark: boolean;
+}) {
+  const fill = isDark ? "#33405c" : "#b7c8de";
+  const border = isDark ? "#42536f" : "#9db2cd";
+  return (
+    <g transform={`translate(${x}, ${y})`} opacity={0.85}>
+      <circle r={radius} fill={fill} />
+      <circle r={radius - 5} fill="none" stroke={border} strokeWidth={2} strokeDasharray="10 6" />
+    </g>
+  );
+}
+
 /** Central cross-shaped corridor with tile pattern */
 function CorridorFloor({ isDark }: { isDark: boolean }) {
   const cw = OFFICE.corridorWidth;
@@ -299,7 +340,7 @@ function CorridorFloor({ isDark }: { isDark: boolean }) {
         y1={hCorrY + cw / 2}
         x2={hCorrX + OFFICE.width}
         y2={hCorrY + cw / 2}
-        stroke={isDark ? "#334155" : "#c8d0dc"}
+        stroke={isDark ? "#3a3122" : "#cdbf9f"}
         strokeWidth={0.5}
         strokeDasharray="8 6"
         opacity={0.6}
@@ -309,7 +350,7 @@ function CorridorFloor({ isDark }: { isDark: boolean }) {
         y1={vCorrY}
         x2={vCorrX + cw / 2}
         y2={vCorrY + OFFICE.height}
-        stroke={isDark ? "#334155" : "#c8d0dc"}
+        stroke={isDark ? "#3a3122" : "#cdbf9f"}
         strokeWidth={0.5}
         strokeDasharray="8 6"
         opacity={0.6}
@@ -320,8 +361,8 @@ function CorridorFloor({ isDark }: { isDark: boolean }) {
 
 /** Internal partition walls between zones — double-line architectural style */
 function PartitionWalls({ isDark }: { isDark: boolean }) {
-  const wallColor = isDark ? "#475569" : "#8b9bb0";
-  const fillColor = isDark ? "#334155" : "#c8d0dc";
+  const wallColor = isDark ? "#5a4730" : "#8a6f4e";
+  const fillColor = isDark ? "#473823" : "#b59a72";
   const wallW = 4;
   const cw = OFFICE.corridorWidth;
   const midX = OFFICE.x + (OFFICE.width - cw) / 2;
@@ -368,7 +409,7 @@ function DoorOpenings({ isDark }: { isDark: boolean }) {
   const midY = OFFICE.y + (OFFICE.height - cw) / 2;
   const doorWidth = 40;
   const doorColor = isDark ? ZONE_COLORS_DARK.corridor : ZONE_COLORS.corridor;
-  const arcColor = isDark ? "#64748b" : "#94a3b8";
+  const arcColor = isDark ? "#7a6448" : "#a98f68";
 
   // Door positions: where walls meet corridor, centered on each wall segment
   const doors = [
@@ -523,11 +564,11 @@ function LoungeDecor({ isDark }: { isDark: boolean }) {
   const lz = ZONES.lounge;
   const cx = lz.x + lz.width / 2;
 
-  const wallColor = isDark ? "#334155" : "#5a6878";
-  const deskColor = isDark ? "#475569" : "#8494a7";
-  const deskTop = isDark ? "#64748b" : "#a5b4c8";
-  const logoTextColor = isDark ? "#94a3b8" : "#ffffff";
-  const logoBg = isDark ? "#1e293b" : "#3b4f6b";
+  const wallColor = isDark ? "#42351f" : "#8a6f4e";
+  const deskColor = isDark ? "#5d4a35" : "#c79f6a";
+  const deskTop = isDark ? "#6e5a42" : "#e2b97f";
+  const logoTextColor = isDark ? "#d8c39a" : "#fff7e6";
+  const logoBg = isDark ? "#42351f" : "#7a5f3e";
 
   // Logo backdrop wall — centered horizontally, at ~55% from top
   const bgWallW = 200;
@@ -565,7 +606,7 @@ function LoungeDecor({ isDark }: { isDark: boolean }) {
         width={bgWallW}
         height={3}
         rx={1.5}
-        fill={isDark ? "#64748b" : "#7a9bc0"}
+        fill={isDark ? "#8a6f4e" : "#caa873"}
       />
       {/* "OpenClaw" logo text */}
       <text
@@ -623,9 +664,9 @@ function EntranceDoor({ isDark }: { isDark: boolean }) {
   const half = doorW / 2;
 
   const bgColor = isDark ? ZONE_COLORS_DARK.lounge : ZONE_COLORS.lounge;
-  const arcColor = isDark ? "#64748b" : "#8b9bb0";
-  const matColor = isDark ? "#374151" : "#b0a090";
-  const textColor = isDark ? "#64748b" : "#94a3b8";
+  const arcColor = isDark ? "#7a6448" : "#a98f68";
+  const matColor = isDark ? "#52453a" : "#c0714c";
+  const textColor = isDark ? "#7a6448" : "#a98f68";
 
   return (
     <g>

@@ -10,16 +10,16 @@ interface MeetingGroup {
   agentIds: string[];
 }
 
-/** Multiple meeting table center positions (up to 3 groups) */
-const MEETING_TABLE_CENTERS = [
+/** Multiple meeting table center positions (up to 3 groups) — shared with FloorPlan rendering */
+export const MEETING_TABLE_CENTERS = [
   { x: ZONES.meeting.x + ZONES.meeting.width / 2, y: ZONES.meeting.y + ZONES.meeting.height / 2 },
   {
-    x: ZONES.meeting.x + ZONES.meeting.width * 0.25,
-    y: ZONES.meeting.y + ZONES.meeting.height * 0.3,
+    x: ZONES.meeting.x + ZONES.meeting.width * 0.2,
+    y: ZONES.meeting.y + ZONES.meeting.height * 0.28,
   },
   {
-    x: ZONES.meeting.x + ZONES.meeting.width * 0.75,
-    y: ZONES.meeting.y + ZONES.meeting.height * 0.7,
+    x: ZONES.meeting.x + ZONES.meeting.width * 0.8,
+    y: ZONES.meeting.y + ZONES.meeting.height * 0.72,
   },
 ];
 

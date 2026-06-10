@@ -8,21 +8,25 @@ interface SofaProps {
 }
 
 export const Sofa = memo(function Sofa({ x, y, rotation = 0, isDark = false }: SofaProps) {
-  const cushion = isDark ? "#475569" : "#a5b4c8";
-  const frame = isDark ? "#334155" : "#8494a7";
-  const pillow = isDark ? "#5b6b80" : "#c8d5e3";
+  const cushion = isDark ? "#7a4438" : "#e2725b";
+  const cushionHi = isDark ? "#8a5244" : "#ea8a76";
+  const frame = isDark ? "#52302a" : "#c05743";
+  const pillow = isDark ? "#9a6253" : "#f4b09e";
 
   return (
     <g transform={`translate(${x}, ${y}) rotate(${rotation})`}>
       {/* Sofa frame */}
-      <rect x={-55} y={-22} width={110} height={44} rx={10} fill={frame} />
-      {/* Seat cushion */}
-      <rect x={-48} y={-16} width={96} height={32} rx={6} fill={cushion} />
+      <rect x={-55} y={-22} width={110} height={44} rx={12} fill={frame} />
+      {/* Seat cushions */}
+      <rect x={-49} y={-15} width={47} height={32} rx={7} fill={cushion} />
+      <rect x={2} y={-15} width={47} height={32} rx={7} fill={cushion} />
+      <rect x={-49} y={-15} width={47} height={10} rx={5} fill={cushionHi} opacity={0.55} />
+      <rect x={2} y={-15} width={47} height={10} rx={5} fill={cushionHi} opacity={0.55} />
       {/* Pillows */}
-      <circle cx={-30} cy={0} r={8} fill={pillow} opacity={0.7} />
-      <circle cx={30} cy={0} r={8} fill={pillow} opacity={0.7} />
-      {/* Back rest */}
-      <rect x={-52} y={-25} width={104} height={8} rx={4} fill={frame} opacity={0.7} />
+      <rect x={-40} y={-9} width={16} height={16} rx={5} fill={pillow} transform="rotate(-10 -32 -1)" />
+      <rect x={24} y={-9} width={16} height={16} rx={5} fill={pillow} transform="rotate(10 32 -1)" />
+      {/* Backrest */}
+      <rect x={-53} y={-26} width={106} height={9} rx={4.5} fill={frame} />
     </g>
   );
 });

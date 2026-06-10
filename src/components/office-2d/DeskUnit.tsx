@@ -13,12 +13,17 @@ interface DeskUnitProps {
 export const DeskUnit = memo(
   function DeskUnit({ x, y, agent }: DeskUnitProps) {
     const isDark = useOfficeStore((s) => s.theme) === "dark";
+    const isWorking =
+      agent !== null &&
+      (agent.status === "thinking" ||
+        agent.status === "tool_calling" ||
+        agent.status === "speaking");
 
     return (
       <g transform={`translate(${x}, ${y})`}>
-        <Desk x={0} y={30} isDark={isDark} />
-        <Chair x={0} y={-12} isDark={isDark} />
-        {agent && <AgentAvatar agent={{ ...agent, position: { x: 0, y: -12 } }} />}
+        <Chair x={0} y={-14} isDark={isDark} />
+        <Desk x={0} y={24} isDark={isDark} active={isWorking} />
+        {agent && <AgentAvatar agent={{ ...agent, position: { x: 0, y: -18 } }} />}
       </g>
     );
   },

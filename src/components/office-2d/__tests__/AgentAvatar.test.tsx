@@ -2,7 +2,6 @@ import { render, fireEvent } from "@testing-library/react";
 import { describe, it, expect, beforeEach } from "vitest";
 import { AgentAvatar } from "@/components/office-2d/AgentAvatar";
 import type { VisualAgent } from "@/gateway/types";
-import { STATUS_COLORS } from "@/lib/constants";
 import { useOfficeStore } from "@/store/office-store";
 
 const mockAgent: VisualAgent = {
@@ -39,22 +38,35 @@ describe("AgentAvatar", () => {
     useOfficeStore.setState({ selectedAgentId: null });
   });
 
-  it("renders status ring with correct color", () => {
+  it("exposes agent status as data attribute", () => {
     const { container } = renderAvatar();
-    const circles = container.querySelectorAll("circle");
-    const ringCircle = Array.from(circles).find(
-      (c) => c.getAttribute("stroke") === STATUS_COLORS.idle,
-    );
-    expect(ringCircle).toBeTruthy();
+    const root = container.querySelector("[data-agent-id='a1']");
+    expect(root?.getAttribute("data-status")).toBe("idle");
   });
 
-  it("renders error status ring color", () => {
+  it("renders full-body pawn (legs, torso, head present)", () => {
+    const { container } = renderAvatar();
+    // Head circle + hand circles → multiple circles; torso/legs → multiple rects
+    expect(container.querySelectorAll("circle").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll("rect").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("renders error emote on error status", () => {
     const { container } = renderAvatar({ ...mockAgent, status: "error" });
-    const circles = container.querySelectorAll("circle");
-    const ringCircle = Array.from(circles).find(
-      (c) => c.getAttribute("stroke") === STATUS_COLORS.error,
+    const root = container.querySelector("[data-agent-id='a1']");
+    expect(root?.getAttribute("data-status")).toBe("error");
+    const errorMark = Array.from(container.querySelectorAll("path")).find(
+      (p) => p.getAttribute("fill") === "#ef4444",
     );
-    expect(ringCircle).toBeTruthy();
+    expect(errorMark).toBeTruthy();
+  });
+
+  it("renders thought bubble when thinking", () => {
+    const { container } = renderAvatar({ ...mockAgent, status: "thinking" });
+    const dots = Array.from(container.querySelectorAll("circle")).filter(
+      (c) => c.getAttribute("fill") === "#3b82f6",
+    );
+    expect(dots.length).toBe(3);
   });
 
   it("renders foreignObject for name label", () => {
@@ -72,7 +84,7 @@ describe("AgentAvatar", () => {
 
   it("shows sub-agent badge when isSubAgent is true", () => {
     const { container } = renderAvatar({ ...mockAgent, isSubAgent: true });
-    const badge = container.querySelector("text");
-    expect(badge?.textContent).toBe("S");
+    const spans = Array.from(container.querySelectorAll("span"));
+    expect(spans.some((s) => s.textContent === "S")).toBe(true);
   });
 });

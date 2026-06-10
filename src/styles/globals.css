@@ -110,6 +110,190 @@
   }
 }
 
+/* ── Game pawn (digital character) animations ── */
+
+/* Leg/arm swing while walking — rotates around the group's own origin (hip/shoulder) */
+@keyframes pawn-swing {
+  from {
+    transform: rotate(-26deg);
+  }
+  to {
+    transform: rotate(26deg);
+  }
+}
+
+/* Typing hands — quick alternating tap */
+@keyframes pawn-type {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+/* Idle breathing — subtle torso rise */
+@keyframes pawn-breathe {
+  0%,
+  100% {
+    transform: scaleY(1) translateY(0);
+  }
+  50% {
+    transform: scaleY(1.04) translateY(-0.5px);
+  }
+}
+
+/* Eye blink */
+@keyframes pawn-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* Error shake */
+@keyframes pawn-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-1.6px) rotate(-2deg);
+  }
+  40% {
+    transform: translateX(1.6px) rotate(2deg);
+  }
+  60% {
+    transform: translateX(-1.2px) rotate(-1deg);
+  }
+  80% {
+    transform: translateX(1.2px) rotate(1deg);
+  }
+}
+
+/* Talking mouth open/close */
+@keyframes pawn-mouth-talk {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1.2);
+  }
+}
+
+/* Raised arm wave while speaking */
+@keyframes pawn-wave {
+  0%,
+  100% {
+    transform: rotate(-160deg);
+  }
+  50% {
+    transform: rotate(-130deg);
+  }
+}
+
+/* ── Emote bubble animations ── */
+
+@keyframes emote-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes emote-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes gear-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes emote-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-4px) scale(1.1);
+  }
+  60% {
+    transform: translateY(0) scale(0.95);
+  }
+}
+
+@keyframes zzz-float {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(5px, -10px);
+    opacity: 0;
+  }
+}
+
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    transform: scale(0.6) rotate(0deg);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.1) rotate(45deg);
+    opacity: 1;
+  }
+}
+
+/* Selection ring under the pawn's feet */
+@keyframes selection-ring {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.12);
+  }
+}
+
+/* Monitor glow when an agent is working */
+@keyframes monitor-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes connection-pulse {
   0% {
     stroke-dashoffset: 24;

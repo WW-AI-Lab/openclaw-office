@@ -86,3 +86,49 @@ export function generateSvgAvatar(agentId: string): SvgAvatarData {
     shirtColor: PALETTE[h % PALETTE.length],
   };
 }
+
+// --- Game-style full-body pawn appearance ---
+
+const PANTS_COLORS = ["#3a4a63", "#52525b", "#5b4636", "#334155", "#4a3f63", "#6b3f4a"];
+const SHOE_COLORS = ["#3f3f46", "#7c2d12", "#1e293b", "#525252"];
+
+/** Saturated, friendly shirt colors that read well at small sizes */
+const SHIRT_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#84cc16",
+  "#22c55e",
+  "#14b8a6",
+  "#0ea5e9",
+  "#3b82f6",
+  "#6366f1",
+  "#a855f7",
+  "#ec4899",
+  "#f43f5e",
+];
+
+export interface PawnAppearance {
+  hairStyle: HairStyle;
+  eyeStyle: EyeStyle;
+  skinColor: string;
+  hairColor: string;
+  shirtColor: string;
+  pantsColor: string;
+  shoeColor: string;
+}
+
+export function generatePawnAppearance(agentId: string): PawnAppearance {
+  const h = hashString(agentId);
+  const bits = (offset: number, count: number) => (h >>> offset) % count;
+
+  return {
+    hairStyle: HAIR_STYLES[bits(3, HAIR_STYLES.length)],
+    eyeStyle: EYE_STYLES[bits(6, EYE_STYLES.length)],
+    skinColor: SKIN_COLORS[bits(8, SKIN_COLORS.length)],
+    hairColor: HAIR_COLORS[bits(11, HAIR_COLORS.length)],
+    shirtColor: SHIRT_COLORS[h % SHIRT_COLORS.length],
+    pantsColor: PANTS_COLORS[bits(14, PANTS_COLORS.length)],
+    shoeColor: SHOE_COLORS[bits(17, SHOE_COLORS.length)],
+  };
+}

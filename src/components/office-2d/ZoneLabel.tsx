@@ -11,7 +11,7 @@ export function ZoneLabel({ zone, zoneKey }: ZoneLabelProps) {
   const { t } = useTranslation("common");
   const theme = useOfficeStore((s) => s.theme);
   const isDark = theme === "dark";
-  const textColor = isDark ? "#64748b" : "#94a3b8";
+  const textColor = isDark ? "#8a7355" : "#a98f68";
 
   return (
     <text

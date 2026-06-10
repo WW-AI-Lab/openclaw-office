@@ -171,20 +171,21 @@ export function agentSlotIndex(agentId: string, totalSlots: number): number {
  * Positioned near sofas and coffee tables, avoiding overlap with decorative elements.
  */
 export function calculateLoungePositions(maxCount: number): Array<{ x: number; y: number }> {
+  // Open-floor spots in the gaps between sofas / coffee tables / reception desk
   const lz = ZONES.lounge;
   const anchors = [
-    { x: lz.x + 60, y: lz.y + 40 },
-    { x: lz.x + 160, y: lz.y + 40 },
-    { x: lz.x + 260, y: lz.y + 40 },
-    { x: lz.x + 360, y: lz.y + 40 },
-    { x: lz.x + 60, y: lz.y + 120 },
-    { x: lz.x + 160, y: lz.y + 120 },
-    { x: lz.x + 260, y: lz.y + 120 },
-    { x: lz.x + 360, y: lz.y + 120 },
-    { x: lz.x + 440, y: lz.y + 60 },
-    { x: lz.x + 440, y: lz.y + 130 },
-    { x: lz.x + 100, y: lz.y + 180 },
-    { x: lz.x + 280, y: lz.y + 180 },
+    { x: lz.x + 190, y: lz.y + 75 },
+    { x: lz.x + 190, y: lz.y + 130 },
+    { x: lz.x + 255, y: lz.y + 130 },
+    { x: lz.x + 350, y: lz.y + 75 },
+    { x: lz.x + 350, y: lz.y + 130 },
+    { x: lz.x + 28, y: lz.y + 75 },
+    { x: lz.x + 28, y: lz.y + 130 },
+    { x: lz.x + 28, y: lz.y + 190 },
+    { x: lz.x + 365, y: lz.y + 190 },
+    { x: lz.x + 80, y: lz.y + 250 },
+    { x: lz.x + 290, y: lz.y + 250 },
+    { x: lz.x + 420, y: lz.y + 250 },
   ];
   return anchors.slice(0, Math.min(maxCount, anchors.length));
 }
