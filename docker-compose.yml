@@ -1,6 +1,6 @@
 services:
   openclaw-office:
-    image: ccr.ccs.tencentyun.com/openclaw/openclaw-office:latest
+    image: ghcr.io/ww-ai-lab/openclaw-office:latest
     # Uncomment the lines below to build locally instead of pulling from registry:
     # build:
     #   context: .

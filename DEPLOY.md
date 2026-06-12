@@ -1,6 +1,6 @@
 # OpenClaw Office — 部署文档
 
-> 版本：2026.3.31 | 镜像仓库：`ccr.ccs.tencentyun.com/openclaw/openclaw-office`
+> 版本：2026.6.11 | 镜像仓库：`ghcr.io/ww-ai-lab/openclaw-office`
 
 ---
 
@@ -86,7 +86,9 @@ docker run -d \
   -p 5180:5180 \
   -e OPENCLAW_GATEWAY_URL="ws://YOUR_GATEWAY_HOST:18789" \
   -e OPENCLAW_GATEWAY_TOKEN="YOUR_TOKEN" \
-  ccr.ccs.tencentyun.com/openclaw/openclaw-office:latest
+  ghcr.io/ww-ai-lab/openclaw-office:latest
+  # 或使用腾讯云镜像:
+  # ccr.ccs.tencentyun.com/openclaw/openclaw-office:latest
 ```
 
 如果 Gateway 运行在宿主机上：
@@ -99,13 +101,13 @@ docker run -d \
   --add-host host.docker.internal:host-gateway \
   -e OPENCLAW_GATEWAY_URL="ws://host.docker.internal:18789" \
   -e OPENCLAW_GATEWAY_TOKEN="YOUR_TOKEN" \
-  ccr.ccs.tencentyun.com/openclaw/openclaw-office:latest
+  ghcr.io/ww-ai-lab/openclaw-office:latest
 ```
 
 指定版本（推荐生产环境固定版本）：
 
 ```bash
-docker run ... ccr.ccs.tencentyun.com/openclaw/openclaw-office:2026.3.31
+docker run ... ghcr.io/ww-ai-lab/openclaw-office:2026.6.11
 ```
 
 ---
@@ -156,16 +158,28 @@ docker buildx inspect --bootstrap
 ### 2. 登录镜像仓库
 
 ```bash
+# GitHub Container Registry (推荐)
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+# 或腾讯云容器镜像
 docker login ccr.ccs.tencentyun.com
-# 按提示输入用户名和密码
 ```
 
 ### 3. 构建并推送多平台镜像
 
 ```bash
-# 替换 VERSION 为实际版本号，如 2026.3.31
+# 替换 VERSION 为实际版本号，如 2026.6.11
 VERSION=$(node -p "require('./package.json').version")
 
+# 推送到 ghcr.io (推荐)
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --push \
+  -t ghcr.io/ww-ai-lab/openclaw-office:${VERSION} \
+  -t ghcr.io/ww-ai-lab/openclaw-office:latest \
+  .
+
+# 或推送到腾讯云
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   --push \
@@ -177,7 +191,7 @@ docker buildx build \
 ### 4. 验证多平台 Manifest
 
 ```bash
-docker buildx imagetools inspect ccr.ccs.tencentyun.com/openclaw/openclaw-office:latest
+docker buildx imagetools inspect ghcr.io/ww-ai-lab/openclaw-office:latest
 ```
 
 ---
@@ -246,7 +260,7 @@ docker compose up -d
 编辑 `docker-compose.yml`，将 `image` 改为指定版本：
 
 ```yaml
-image: ccr.ccs.tencentyun.com/openclaw/openclaw-office:2026.4.1
+image: ghcr.io/ww-ai-lab/openclaw-office:2026.6.11
 ```
 
 然后：

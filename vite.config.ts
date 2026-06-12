@@ -204,7 +204,7 @@ function runGit(repoRoot: string, args: string[]): Promise<{ stdout: string; std
       (err, stdout, stderr) => {
         const code =
           err && typeof (err as { code?: unknown }).code === "number"
-            ? ((err as { code: number }).code)
+            ? ((err as unknown as { code: number }).code)
             : err
               ? 1
               : 0;

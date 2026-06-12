@@ -1,6 +1,8 @@
 declare module "node:path" {
   export function resolve(...paths: string[]): string;
   export function join(...paths: string[]): string;
+  export function dirname(path: string): string;
+  export function relative(from: string, to: string): string;
 }
 
 declare module "node:fs" {
@@ -40,6 +42,19 @@ declare module "node:url" {
 
 declare module "node:os" {
   export function homedir(): string;
+}
+
+declare module "node:child_process" {
+  interface ExecFileOptions {
+    timeout?: number;
+    encoding?: string;
+  }
+  export function execFile(
+    file: string,
+    args: string[],
+    options: ExecFileOptions,
+    callback: (err: Error | null, stdout: string, stderr: string) => void,
+  ): void;
 }
 
 interface ImportMeta {
