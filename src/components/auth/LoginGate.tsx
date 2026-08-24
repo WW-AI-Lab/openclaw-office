@@ -1,5 +1,5 @@
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useAuthStore } from "@/store/auth-store";
@@ -20,6 +20,23 @@ export function LoginGate() {
   const [remember, setRemember] = useState(rememberInit);
   const [showToken, setShowToken] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // The store is seeded from the injected config by an effect in <App>, which
+  // React runs *after* this component has mounted. The useState() calls above
+  // therefore capture the pre-hydration values (empty strings), and a plain
+  // re-render never revisits them — so the form stays blank even though the
+  // deployment provided a gateway URL and token.
+  //
+  // Backfill once the defaults arrive, using functional updates so anything the
+  // user has already typed always wins. This does not restore credentials from
+  // localStorage; that remains deliberately opt-in via submit (see auth-store).
+  useEffect(() => {
+    setGatewayUrl((current) => current || gatewayUrlInit);
+  }, [gatewayUrlInit]);
+
+  useEffect(() => {
+    setToken((current) => current || tokenInit);
+  }, [tokenInit]);
 
   const isAuthenticating = authStatus === "authenticating";
 
