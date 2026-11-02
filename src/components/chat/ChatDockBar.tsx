@@ -121,7 +121,7 @@ export function ChatDockBar() {
           onCompositionEnd={() => setIsComposing(false)}
           placeholder={t("dock.placeholder")}
           maxRows={4}
-          className="flex-1 resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-blue-400 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:placeholder:text-gray-500 dark:focus:border-blue-500 dark:focus:bg-gray-900"
+          className="flex-1 resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:border-[#00D4AA] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,212,170,0.1)] dark:border-gray-700/50 dark:bg-gray-800 dark:placeholder:text-gray-500 dark:focus:border-[#00D4AA] dark:focus:bg-gray-900"
         />
 
         {/* Send / Stop button */}
@@ -129,7 +129,7 @@ export function ChatDockBar() {
           <button
             type="button"
             onClick={() => abort()}
-            className="rounded-lg bg-red-500 p-1.5 text-white transition-colors hover:bg-red-600"
+            className="rounded-lg bg-red-500 p-1.5 text-white transition-all hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/20"
             title={t("common:actions.stop")}
           >
             <Square className="h-4 w-4" />
@@ -139,9 +139,9 @@ export function ChatDockBar() {
             type="button"
             onClick={handleSend}
             disabled={!canSend}
-            className={`rounded-lg p-1.5 transition-colors ${
+            className={`rounded-lg p-1.5 transition-all ${
               canSend
-                ? "bg-blue-600 text-white hover:bg-blue-700"
+                ? "bg-[#00D4AA] text-white hover:bg-[#00E4BA] hover:shadow-lg hover:shadow-[#00D4AA]/20"
                 : "bg-gray-200 text-gray-400 dark:bg-gray-700"
             }`}
             title={t("common:actions.send")}

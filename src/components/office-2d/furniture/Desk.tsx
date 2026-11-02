@@ -15,6 +15,8 @@ export const Desk = memo(function Desk({ x, y, isDark = false, active = false }:
   const plank = isDark ? "#4f3f2b" : "#d3a96c";
   const monitorFrame = isDark ? "#1c1917" : "#44403c";
   const screenOff = isDark ? "#334155" : "#64748b";
+  const monitorGlow = isDark ? "rgba(0, 212, 170, 0.3)" : "transparent";
+  const monitorAccent = isDark ? "#00D4AA" : "#0284c7";
 
   return (
     <g transform={`translate(${x}, ${y})`}>
@@ -39,11 +41,34 @@ export const Desk = memo(function Desk({ x, y, isDark = false, active = false }:
 
       {/* Monitor */}
       <g transform="translate(0, 14)">
+        {/* Ambient glow behind the monitor (dark mode) */}
+        {isDark && (
+          <rect
+            x={-25}
+            y={-18}
+            width={50}
+            height={37}
+            rx={6}
+            fill="none"
+            stroke={monitorGlow}
+            strokeWidth={4}
+            style={{ filter: `blur(4px)` }}
+          />
+        )}
         {/* Stand */}
         <rect x={-4} y={12} width={8} height={4} rx={1.5} fill={monitorFrame} />
         <rect x={-9} y={15} width={18} height={3} rx={1.5} fill={monitorFrame} />
         {/* Screen */}
-        <rect x={-19} y={-12} width={38} height={25} rx={3} fill={monitorFrame} />
+        <rect
+          x={-19}
+          y={-12}
+          width={38}
+          height={25}
+          rx={3}
+          fill={monitorFrame}
+          stroke={monitorAccent}
+          strokeWidth={1.5}
+        />
         <rect
           x={-16.5}
           y={-9.5}

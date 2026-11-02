@@ -10,6 +10,7 @@ export const Chair = memo(function Chair({ x, y, isDark = false }: ChairProps) {
   const seat = isDark ? "#3f4a5c" : "#7d93ab";
   const seatHi = isDark ? "#4d5a6e" : "#93a8bf";
   const back = isDark ? "#2e3745" : "#5f7488";
+  const accent = isDark ? "#00D4AA" : "#94a3b8";
 
   return (
     <g transform={`translate(${x}, ${y})`}>
@@ -24,6 +25,8 @@ export const Chair = memo(function Chair({ x, y, isDark = false }: ChairProps) {
       {/* Seat cushion */}
       <circle r={12.5} fill={seat} stroke={back} strokeWidth={1.2} />
       <circle r={8} fill={seatHi} opacity={0.6} />
+      {/* Center accent dot */}
+      <circle r={3.5} fill={accent} opacity={isDark ? 0.6 : 0.35} />
     </g>
   );
 });

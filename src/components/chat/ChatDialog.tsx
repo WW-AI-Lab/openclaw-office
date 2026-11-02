@@ -210,7 +210,7 @@ export function ChatDialog() {
 
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-30 mx-auto flex w-full max-w-2xl flex-col overflow-hidden rounded-t-xl border border-b-0 border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900 ${
+      className={`absolute inset-x-0 bottom-0 z-30 mx-auto flex w-full max-w-2xl flex-col overflow-hidden rounded-t-xl border border-b-0 border-gray-200/50 bg-gradient-to-b from-white to-gray-50 shadow-2xl backdrop-blur-xl dark:border-gray-700/50 dark:from-gray-900 dark:to-slate-900 ${
         dockExpanded ? "animate-slide-up" : "animate-slide-down"
       }`}
       style={{

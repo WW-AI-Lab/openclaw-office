@@ -2,30 +2,142 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ===== 统一配色系统 v1.0 ===== */
 :root {
-  --zone-desk: #e8edf5;
-  --zone-meeting: #e0eaf5;
-  --zone-hotDesk: #e5e8f0;
-  --zone-lounge: #e8e5f0;
+  /* Brand */
+  --color-primary: #00D4AA;
+  --color-primary-light: #00E4BA;
+  --color-primary-glow: rgba(0, 212, 170, 0.15);
+  --color-secondary: #3B82F6;
+  
+  /* Backgrounds */
+  --bg-base: #0F172A;
+  --bg-surface: #1E293B;
+  --bg-elevated: #334155;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-section: #f1f5f9;
+  
+  /* Text */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-zone-label: rgba(255, 255, 255, 0.6);
+  
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  
+  /* Status */
+  --status-success: #10b981;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-online: #00D4AA;
+  --status-busy: #EF4444;
+  --status-offline: #475569;
+  
+  /* 2D Office 区域色 - 浅色模式 */
+  --zone-desk: #e8f4fc;
+  --zone-meeting: #fef3e2;
+  --zone-hotDesk: #f0fdf4;
+  --zone-lounge: #fdf2f8;
+  --zone-corridor: #f1f5f9;
   --zone-stroke: #c8d0dc;
-  --zone-label: #64748b;
+  --zone-label: #94a3b8;
   --dot-tooltip-bg: white;
   --dot-tooltip-stroke: #d1d5db;
   --dot-tooltip-text: #374151;
   --svg-link-color: #60a5fa;
+
+  /* Hover */
+  --hover-highlight: rgba(0, 212, 170, 0.15);
 }
 
+/* 深色模式 */
 .dark {
-  --zone-desk: #1e293b;
-  --zone-meeting: #1a2744;
-  --zone-hotDesk: #1e2433;
-  --zone-lounge: #231e33;
+  /* Brand */
+  --color-primary: #00D4AA;
+  --color-primary-light: #00E4BA;
+  --color-primary-glow: rgba(0, 212, 170, 0.15);
+  --color-secondary: #3B82F6;
+  
+  /* Backgrounds */
+  --bg-base: #0F172A;
+  --bg-surface: #1E293B;
+  --bg-elevated: #334155;
+  --bg-card: #1E293B;
+  --bg-card-hover: #334155;
+  --bg-section: #0f172a;
+  
+  /* Text */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-zone-label: rgba(255, 255, 255, 0.6);
+  
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  
+  /* 2D Office 区域色 - 深色赛博朋克风格 */
+  --zone-desk: #1A2F3D;
+  --zone-meeting: #2D2A3E;
+  --zone-hotDesk: #1E3D2D;
+  --zone-lounge: #3D2A2A;
+  --zone-corridor: #0F172A;
   --zone-stroke: #334155;
   --zone-label: #94a3b8;
   --dot-tooltip-bg: #1e293b;
   --dot-tooltip-stroke: #475569;
   --dot-tooltip-text: #e2e8f0;
-  --svg-link-color: #60a5fa;
+  --svg-link-color: #00D4AA;
+
+  /* Hover */
+  --hover-highlight: rgba(0, 212, 170, 0.15);
+}
+
+/* ===== 增强的组件样式 ===== */
+
+/* 卡片悬停效果 */
+.card-hover {
+  transition: all 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* 渐变背景 */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+}
+
+/* 玻璃效果 */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 状态指示器动画 */
+.status-pulse {
+  animation: status-pulse 2s infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 数字跳动效果 */
+.number-pop {
+  animation: number-pop 0.3s ease-out;
+}
+
+@keyframes number-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 @keyframes pulse {
@@ -332,4 +444,75 @@
 
 .animate-slide-down {
   animation: chat-slide-down 150ms ease-in forwards;
+}
+
+/* ===== Premium Effects ===== */
+
+/* Brand glow pulse - for active indicators */
+@keyframes brand-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(0, 212, 170, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 212, 170, 0.5);
+  }
+}
+
+/* Subtle float animation for decorative elements */
+@keyframes subtle-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Premium button press effect */
+.btn-press {
+  transition: all 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Input focus glow */
+.input-glow:focus {
+  box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.3), 0 0 12px rgba(0, 212, 170, 0.15);
+  border-color: var(--color-primary);
+}
+
+/* Tab indicator slide */
+@keyframes tab-slide {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Premium card hover */
+.premium-card {
+  transition: all 0.25s ease;
+  border: 1px solid var(--border-subtle);
+}
+.premium-card:hover {
+  border-color: rgba(0, 212, 170, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 212, 170, 0.05);
+  transform: translateY(-1px);
+}
+
+/* Zone ambient corner glow */
+.zone-corner-glow {
+  position: relative;
+}
+.zone-corner-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 170, 0.4), transparent);
 }
