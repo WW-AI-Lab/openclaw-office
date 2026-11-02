@@ -12,6 +12,7 @@ export const Sofa = memo(function Sofa({ x, y, rotation = 0, isDark = false }: S
   const cushionHi = isDark ? "#8a5244" : "#ea8a76";
   const frame = isDark ? "#52302a" : "#c05743";
   const pillow = isDark ? "#9a6253" : "#f4b09e";
+  const pillowGlow = isDark ? "rgba(0, 212, 170, 0.15)" : "transparent";
 
   return (
     <g transform={`translate(${x}, ${y}) rotate(${rotation})`}>
@@ -22,6 +23,13 @@ export const Sofa = memo(function Sofa({ x, y, rotation = 0, isDark = false }: S
       <rect x={2} y={-15} width={47} height={32} rx={7} fill={cushion} />
       <rect x={-49} y={-15} width={47} height={10} rx={5} fill={cushionHi} opacity={0.55} />
       <rect x={2} y={-15} width={47} height={10} rx={5} fill={cushionHi} opacity={0.55} />
+      {/* Pillow accent glow (dark mode) */}
+      {isDark && (
+        <>
+          <circle cx={-32} cy={-1} r={13} fill={pillowGlow} style={{ filter: `blur(4px)` }} />
+          <circle cx={32} cy={-1} r={13} fill={pillowGlow} style={{ filter: `blur(4px)` }} />
+        </>
+      )}
       {/* Pillows */}
       <rect x={-40} y={-9} width={16} height={16} rx={5} fill={pillow} transform="rotate(-10 -32 -1)" />
       <rect x={24} y={-9} width={16} height={16} rx={5} fill={pillow} transform="rotate(10 32 -1)" />

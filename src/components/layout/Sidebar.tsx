@@ -59,7 +59,7 @@ export function Sidebar() {
 
   if (collapsed) {
     return (
-      <aside className="flex w-12 flex-col items-center border-l border-gray-200 bg-white py-3 dark:border-gray-700 dark:bg-gray-900">
+      <aside className="flex w-12 flex-col items-center border-l border-gray-200/50 bg-gradient-to-b from-white to-gray-50 py-3 dark:border-gray-700/50 dark:from-gray-900 dark:to-slate-900">
         <button
           onClick={() => setSidebarCollapsed(false)}
           className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -78,15 +78,15 @@ export function Sidebar() {
   const timelineSection = getSection("timeline");
 
   return (
-    <aside className="flex w-80 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <aside className="flex w-80 flex-col border-l border-gray-200/50 bg-gradient-to-b from-white to-gray-50 dark:border-gray-700/50 dark:from-gray-900 dark:to-slate-900">
       {/* Sidebar header */}
-      <div className="flex h-8 shrink-0 items-center justify-between border-b border-gray-200 px-3 dark:border-gray-700">
+      <div className="flex h-8 shrink-0 items-center justify-between border-b border-gray-200/50 px-3 dark:border-gray-700/50">
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           {t("sidebar.agents")}
         </span>
         <button
           onClick={() => setSidebarCollapsed(true)}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          className="text-gray-400 transition-colors hover:text-[#00D4AA] dark:hover:text-[#00D4AA]"
           title={t("sidebar.collapse")}
         >
           ▶

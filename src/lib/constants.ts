@@ -67,13 +67,13 @@ export const A2A_TOOL_NAMES = new Set([
 ]);
 
 export const STATUS_COLORS: Record<AgentVisualStatus, string> = {
-  idle: "#22c55e",
+  idle: "#00D4AA",
   thinking: "#3b82f6",
   tool_calling: "#f97316",
   speaking: "#a855f7",
-  spawning: "#06b6d4",
+  spawning: "#00D4AA",
   error: "#ef4444",
-  offline: "#6b7280",
+  offline: "#475569",
 };
 
 export const STATUS_LABELS: Record<AgentVisualStatus, string> = {

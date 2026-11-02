@@ -140,6 +140,23 @@ export function FloorPlan() {
             <circle cx="2.5" cy="2.5" r="0.7" fill={isDark ? "#3a2f28" : "#e2d0bc"} opacity="0.6" />
             <circle cx="7.5" cy="7.5" r="0.7" fill={isDark ? "#3a2f28" : "#e2d0bc"} opacity="0.6" />
           </pattern>
+          {/* Zone gradients for depth (dark mode only) */}
+          <linearGradient id="zone-desk-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#1A2F3D" />
+            <stop offset="100%" stopColor="#0B1929" />
+          </linearGradient>
+          <linearGradient id="zone-meeting-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#2D2A3E" />
+            <stop offset="100%" stopColor="#1A1525" />
+          </linearGradient>
+          <linearGradient id="zone-hotdesk-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#1E3D2D" />
+            <stop offset="100%" stopColor="#0B1A18" />
+          </linearGradient>
+          <linearGradient id="zone-lounge-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#3D2A2A" />
+            <stop offset="100%" stopColor="#1A1218" />
+          </linearGradient>
         </defs>
 
         {/* ── Layer 0: Building shell (outer wall) ── */}
@@ -166,7 +183,15 @@ export function FloorPlan() {
             y={zone.y}
             width={zone.width}
             height={zone.height}
-            fill={key === "lounge" ? "url(#lounge-carpet)" : "url(#wood-floor)"}
+            fill={
+              key === "lounge"
+                ? isDark
+                  ? "url(#zone-lounge-grad)"
+                  : "url(#lounge-carpet)"
+                : isDark
+                  ? `url(#zone-${key}-grad)`
+                  : "url(#wood-floor)"
+            }
           />
         ))}
 
@@ -567,7 +592,7 @@ function LoungeDecor({ isDark }: { isDark: boolean }) {
   const wallColor = isDark ? "#42351f" : "#8a6f4e";
   const deskColor = isDark ? "#5d4a35" : "#c79f6a";
   const deskTop = isDark ? "#6e5a42" : "#e2b97f";
-  const logoTextColor = isDark ? "#d8c39a" : "#fff7e6";
+  const logoTextColor = isDark ? "#00D4AA" : "#fff7e6";
   const logoBg = isDark ? "#42351f" : "#7a5f3e";
 
   // Logo backdrop wall — centered horizontally, at ~55% from top
@@ -606,7 +631,7 @@ function LoungeDecor({ isDark }: { isDark: boolean }) {
         width={bgWallW}
         height={3}
         rx={1.5}
-        fill={isDark ? "#8a6f4e" : "#caa873"}
+        fill={isDark ? "#00D4AA" : "#caa873"}
       />
       {/* "OpenClaw" logo text */}
       <text

@@ -16,6 +16,8 @@ export interface SessionEntry {
   createdAt?: number;
   totalTokens?: number;
   totalTokensFresh?: boolean;
+  /** Session status — only "running" sessions are considered active sub-agents */
+  status?: string;
 }
 
 export function diffSessions(
@@ -48,6 +50,8 @@ function extractSubAgentUuid(sessionKey: string): string | null {
 export function toSubAgentInfoList(entries: SessionEntry[]): SubAgentInfo[] {
   return entries
     .filter((s) => s.requesterSessionKey && (s.sessionKey ?? s.key))
+    // Only include active (running) sessions — skip done, timed out, aborted, etc.
+    .filter((s) => s.status === undefined || s.status === "running")
     .map((s) => {
       const sessionKey = s.sessionKey ?? s.key ?? "";
       // Gateway returns agentId as the parent agent name (e.g. "main"), not the

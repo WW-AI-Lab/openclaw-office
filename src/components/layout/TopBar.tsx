@@ -7,7 +7,7 @@ import type { ConnectionStatus, ThemeMode, PageId } from "@/gateway/types";
 import { useAuthStore } from "@/store/auth-store";
 import { useOfficeStore } from "@/store/office-store";
 
-const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";
+// APP_VERSION removed per UI spec
 
 function getStatusConfig(
   t: (key: string) => string,
@@ -38,7 +38,7 @@ export function TopBar({ isMobile = false }: TopBarProps) {
   const isOfficePage = currentPage === "office";
 
   return (
-    <header className="grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-gray-200/80 bg-white px-5 dark:border-gray-800 dark:bg-gray-900">
+    <header className="grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-gray-200/80 bg-white px-5 dark:border-gray-800/50 dark:bg-gradient-to-b dark:from-gray-900/95 dark:to-gray-950/95">
       <div className="min-w-0">
         <BrandSection metrics={metrics} isOfficePage={isOfficePage} isMobile={isMobile} />
       </div>
@@ -66,29 +66,16 @@ function BrandSection({
   isOfficePage: boolean;
   isMobile?: boolean;
 }) {
-  const { t } = useTranslation("layout");
-
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <h1 className="truncate text-sm font-semibold tracking-tight text-gray-800 dark:text-gray-100">
-        OpenClaw Office
+      <h1 className="truncate text-base font-semibold tracking-tight text-gray-800 dark:text-gray-100">
+        🍎 <span className="bg-gradient-to-r from-[#00D4AA] to-[#3B82F6] bg-clip-text text-transparent">OpenClaw</span> Office
       </h1>
-      <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] tabular-nums text-gray-400 dark:bg-gray-800 dark:text-gray-500">
-        v{APP_VERSION}
-      </span>
       {isOfficePage && !isMobile && (
         <div className="ml-2 hidden items-center gap-5 text-xs text-gray-400 dark:text-gray-500 xl:flex">
           <span>
-            {t("topbar.activeCountText")}{" "}
-            <strong className="text-gray-700 dark:text-gray-300">
-              {metrics.activeAgents}/{metrics.totalAgents}
-            </strong>
-          </span>
-          <span>
-            {t("topbar.tokensLabel")}{" "}
-            <strong className="text-gray-700 dark:text-gray-300">
-              {formatTokens(metrics.totalTokens)}
-            </strong>
+            <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#00D4AA]" />
+            {metrics.activeAgents}/{metrics.totalAgents} 在线
           </span>
         </div>
       )}
@@ -117,15 +104,22 @@ function TopNav({ currentPage }: { currentPage: PageId }) {
         <button
           key={item.label}
           onClick={item.onClick}
-          className={`relative px-4 py-1 text-sm font-medium transition-colors ${
+          className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 ${
             item.active
-              ? "text-gray-900 dark:text-gray-100"
-              : "text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
+              ? "text-gray-100"
+              : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
           }`}
+          style={{
+            backgroundColor: item.active ? "rgba(0, 212, 170, 0.08)" : undefined,
+            borderRadius: "6px",
+          }}
         >
           {item.label}
           {item.active && (
-            <span className="absolute inset-x-1 -bottom-[9px] h-0.5 rounded-full bg-gray-900 dark:bg-gray-100" />
+            <span
+              className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full"
+              style={{ backgroundColor: "#00D4AA" }}
+            />
           )}
         </button>
       ))}
@@ -192,12 +186,4 @@ function ThemeToggle({ theme, setTheme }: { theme: ThemeMode; setTheme: (t: Them
   );
 }
 
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) {
-    return `${(n / 1_000_000).toFixed(1)}M`;
-  }
-  if (n >= 1_000) {
-    return `${(n / 1_000).toFixed(1)}k`;
-  }
-  return String(n);
-}
+

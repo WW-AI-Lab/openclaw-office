@@ -45,6 +45,7 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
   const statusColor = isGhost ? "#6b7280" : STATUS_COLORS[agent.status];
   const appearance = generatePawnAppearance(agent.id);
   const groupOpacity = isPlaceholder ? 0.35 : isUnconfirmed ? 0.6 : 1;
+  const hoverScale = hovered && !isGhost ? 1.08 : 1;
 
   const displayName =
     agent.name.length > AVATAR.nameLabelMaxChars
@@ -126,8 +127,11 @@ export const AgentAvatar = memo(function AgentAvatar({ agent }: AgentAvatarProps
       ref={gRef}
       data-agent-id={agent.id}
       data-status={agent.status}
-      transform={`translate(${agent.position.x}, ${agent.position.y})`}
-      style={{ cursor: isPlaceholder ? "default" : "pointer" }}
+      transform={`translate(${agent.position.x}, ${agent.position.y}) scale(${hoverScale})`}
+      style={{
+        cursor: isPlaceholder ? "default" : "pointer",
+        transition: "transform 0.2s ease",
+      }}
       opacity={groupOpacity}
       onClick={() => !isPlaceholder && selectAgent(agent.id)}
       onMouseEnter={() => !isPlaceholder && setHovered(true)}

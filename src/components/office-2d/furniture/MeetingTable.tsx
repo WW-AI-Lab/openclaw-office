@@ -17,6 +17,7 @@ export const MeetingTable = memo(function MeetingTable({
   const surface = isDark ? "#5d4a35" : "#dfb27a";
   const surfaceCenter = isDark ? "#6e5a42" : "#eccb98";
   const edge = isDark ? "#42351f" : "#b98a4c";
+  const rimGlow = isDark ? "rgba(0, 212, 170, 0.2)" : "transparent";
 
   return (
     <g transform={`translate(${x}, ${y})`}>
@@ -26,6 +27,16 @@ export const MeetingTable = memo(function MeetingTable({
           <stop offset="100%" stopColor={surface} />
         </radialGradient>
       </defs>
+      {/* Outer accent glow (dark mode) */}
+      {isDark && (
+        <circle
+          r={radius + 6}
+          fill="none"
+          stroke={rimGlow}
+          strokeWidth={8}
+          style={{ filter: `blur(6px)` }}
+        />
+      )}
       {/* Table top */}
       <circle
         r={radius}
